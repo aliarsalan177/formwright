@@ -73,6 +73,13 @@ export interface FieldOption {
   readonly value: FieldValue;
 }
 
+/**
+ * A slot rendered at the start/end of an input — either decorative text/icon
+ * (a string like "$" or "🔍") or a nested field (e.g. a currency `select`) whose
+ * value is added to the payload as a sibling key.
+ */
+export type FieldSlot = string | FieldSchema;
+
 /** A single field in the form. Resolved to a widget by `type`, keyed by `id`. */
 export interface FieldSchema {
   readonly id: string;
@@ -80,6 +87,16 @@ export interface FieldSchema {
   readonly label?: Resolvable<string>;
   readonly placeholder?: Resolvable<string>;
   readonly help?: Resolvable<string>;
+  /** Longer descriptive text, positioned by {@link descriptionPosition}. */
+  readonly description?: Resolvable<string>;
+  /** Where to render `description` (default `"below-label"`). */
+  readonly descriptionPosition?: "below-label" | "below-field";
+  /** For check-like fields (checkbox/toggle): label `"start"` (with control at the end) or `"end"` (default). */
+  readonly labelPosition?: "start" | "end";
+  /** Render content (icon/text or a value-bearing field) before/after the input. */
+  readonly slots?: { readonly start?: FieldSlot; readonly end?: FieldSlot };
+  /** Exclude this field's value from the submitted payload (UI-only control). */
+  readonly omit?: boolean;
   readonly defaultValue?: FieldValue;
   readonly options?: Resolvable<readonly FieldOption[]>;
   readonly validation?: ValidationSchema;

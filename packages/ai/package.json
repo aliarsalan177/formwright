@@ -1,0 +1,42 @@
+{
+  "name": "@formwright/ai",
+  "version": "0.1.0",
+  "description": "Generate a validated Formwright schema from a natural-language description using Claude.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aliarsalan177/formwright.git",
+    "directory": "packages/ai"
+  },
+  "homepage": "https://github.com/aliarsalan177/formwright#readme",
+  "bugs": "https://github.com/aliarsalan177/formwright/issues",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "@formwright/schema": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

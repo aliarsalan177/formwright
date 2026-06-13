@@ -191,7 +191,9 @@ textarea#schema {
   font-size: 14px;
   color: var(--muted);
 }
-.form-host input[type="checkbox"],
+/* Plain (unstyled) checkbox/radio fallback — excludes the custom switch/checkbox
+   so it can't out-specify their width and collapse them. */
+.form-host input[type="checkbox"]:not(.fw-switch):not(.fw-checkbox),
 .form-host input[type="radio"] {
   width: auto;
   margin-right: 6px;
@@ -199,6 +201,7 @@ textarea#schema {
 .form-host [role="radiogroup"] {
   display: flex;
   gap: 14px;
+  flex-wrap: wrap;
 }
 .form-host .fw-help {
   color: var(--muted);
@@ -250,7 +253,7 @@ textarea#schema {
 }
 
 /* iOS-style toggle switch */
-.form-host .fw-switch {
+.form-host input.fw-switch {
   appearance: none;
   -webkit-appearance: none;
   position: relative;
@@ -263,7 +266,7 @@ textarea#schema {
   transition: background 0.2s ease;
   padding: 0;
 }
-.form-host .fw-switch::after {
+.form-host input.fw-switch::after {
   content: "";
   position: absolute;
   top: 3px;
@@ -275,19 +278,19 @@ textarea#schema {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   transition: transform 0.2s ease;
 }
-.form-host .fw-switch:checked {
+.form-host input.fw-switch:checked {
   background: var(--accent);
 }
-.form-host .fw-switch:checked::after {
+.form-host input.fw-switch:checked::after {
   transform: translateX(18px);
 }
-.form-host .fw-switch:focus-visible {
+.form-host input.fw-switch:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
 /* Custom checkbox */
-.form-host .fw-checkbox {
+.form-host input.fw-checkbox {
   appearance: none;
   -webkit-appearance: none;
   position: relative;
@@ -300,11 +303,11 @@ textarea#schema {
   cursor: pointer;
   margin: 0;
 }
-.form-host .fw-checkbox:checked {
+.form-host input.fw-checkbox:checked {
   background: var(--accent);
   border-color: var(--accent);
 }
-.form-host .fw-checkbox:checked::after {
+.form-host input.fw-checkbox:checked::after {
   content: "";
   position: absolute;
   left: 6px;
