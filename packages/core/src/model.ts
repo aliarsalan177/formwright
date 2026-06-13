@@ -25,15 +25,19 @@ export class FieldState {
   /** Discriminant for the {@link FieldNode} union (leaf vs group/collection). */
   readonly kind = "field" as const;
   readonly id: string;
-  readonly schema: FieldSchema;
+  /** The field's schema — mutable at runtime via {@link patchSchema}. */
+  schema: FieldSchema;
   readonly value: WriteSignal<FieldValue>;
   readonly error: WriteSignal<string | null>;
   readonly touched: WriteSignal<boolean>;
   readonly visible: ReadSignal<boolean>;
   readonly enabled: ReadSignal<boolean>;
   readonly required: ReadSignal<boolean>;
+  /** Bumps whenever the schema is patched — renderers re-render the field on change. */
+  readonly revision: ReadSignal<number>;
 
-  private readonly validator: FieldValidator | null;
+  private validator: FieldValidator | null;
+  private readonly rev = signal(0);
 
   constructor(schema: FieldSchema, initial: FieldValue, getValue: ValueGetter) {
     this.id = schema.id;
@@ -42,15 +46,32 @@ export class FieldState {
     this.error = signal<string | null>(null);
     this.touched = signal(false);
     this.validator = schema.validation ? compileValidator(schema.validation) : null;
+    this.revision = this.rev;
 
-    this.visible = computed(() => evaluateCondition(schema.visibleWhen, getValue, true));
-    this.enabled = computed(() => evaluateCondition(schema.enabledWhen, getValue, true));
-    this.required = computed(() => {
-      if (schema.requiredWhen !== undefined) {
-        return evaluateCondition(schema.requiredWhen, getValue, false);
-      }
-      return schema.validation?.required ?? false;
+    // Conditions read `this.schema` (not the captured arg) and track `rev`, so a
+    // runtime patch re-evaluates visibility/enablement/required automatically.
+    this.visible = computed(() => {
+      this.rev.get();
+      return evaluateCondition(this.schema.visibleWhen, getValue, true);
     });
+    this.enabled = computed(() => {
+      this.rev.get();
+      return evaluateCondition(this.schema.enabledWhen, getValue, true);
+    });
+    this.required = computed(() => {
+      this.rev.get();
+      if (this.schema.requiredWhen !== undefined) {
+        return evaluateCondition(this.schema.requiredWhen, getValue, false);
+      }
+      return this.schema.validation?.required ?? false;
+    });
+  }
+
+  /** Merge a partial schema in at runtime (change type, label, options, validation, …). */
+  patchSchema(partial: Partial<FieldSchema>): void {
+    this.schema = { ...this.schema, ...partial } as FieldSchema;
+    this.validator = this.schema.validation ? compileValidator(this.schema.validation) : null;
+    this.rev.update((n) => n + 1);
   }
 
   /** Run validation, store and return the error (or null). Hidden fields never error. */

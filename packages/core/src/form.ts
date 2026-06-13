@@ -155,6 +155,18 @@ export class Form {
     this.field(id)?.error.set(error);
   }
 
+  /** Patch one field's schema at runtime (change type, label, options, validation, …). */
+  setFieldSchema(path: string, partial: Partial<FieldSchema>): void {
+    this.field(path)?.patchSchema(partial);
+  }
+
+  /** Patch many fields' schemas at once: `form.patch({ state: { type: "text" }, … })`. */
+  patch(updates: Record<string, Partial<FieldSchema>>): void {
+    batch(() => {
+      for (const [path, partial] of Object.entries(updates)) this.setFieldSchema(path, partial);
+    });
+  }
+
   setErrors(errors: FormErrors): void {
     batch(() => {
       for (const [id, error] of Object.entries(errors)) this.setError(id, error);

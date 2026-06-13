@@ -159,7 +159,7 @@ const form = new Form(schema, initialValues, {
 form.mount(document.querySelector("#form")!);
 ```
 
-### React (today)
+### React
 
 The `Form` instance is render-agnostic — mount it into a ref:
 

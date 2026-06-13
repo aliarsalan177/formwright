@@ -238,7 +238,13 @@ const SHOWCASE: FormSchema = {
     { id: "section2", type: "heading", label: "Options" },
     { id: "inStock", type: "toggle", label: "In stock", labelPosition: "start" },
     { id: "featured", type: "toggle", label: "Feature on homepage", labelPosition: "start" },
-    { id: "image", type: "file", label: "Product image", help: "PNG or JPG", props: { accept: "image/*" } },
+    {
+      id: "image",
+      type: "file",
+      label: "Product image",
+      help: "PNG or JPG",
+      props: { accept: "image/*" },
+    },
   ],
   actions: [
     { name: "save", role: "submit", label: "Save product", variant: "primary" },
@@ -281,13 +287,24 @@ function rebuild(): void {
   hostEl.replaceChildren();
   payloadEl.textContent = "— submit the form —";
 
-  const form = new Form(result.value, {}, { send: async (payload) => payload });
+  const form = new Form(
+    result.value,
+    {},
+    {
+      send: async (payload) => payload,
+      // Named handlers referenced by schema actions (e.g. the Showcase "Delete" button).
+      handlers: {
+        removeItem: () => setStatus("ok", "🗑  Delete action fired (handler: removeItem)"),
+      },
+    },
+  );
   currentForm = form;
 
   form.on("submit", (payload) => {
     payloadEl.textContent = JSON.stringify(payload, null, 2);
     payloadEl.classList.add("ok");
   });
+  form.on("action", (p) => setStatus("ok", `Action: ${(p as { name: string }).name}`));
 
   form.mount(hostEl);
 
