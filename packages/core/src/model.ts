@@ -7,7 +7,7 @@
 import type { FieldSchema, FieldValue } from "@formwright/schema";
 import { computed, signal, type ReadSignal, type WriteSignal } from "./reactive.js";
 import { evaluateCondition, type ValueGetter } from "./conditions.js";
-import { compileValidator, type FieldValidator } from "./validation.js";
+import { compileValidator, requiredMessage, type FieldValidator } from "./validation.js";
 
 /** Default value for a leaf field with no explicit initial/default. */
 export function defaultValueFor(type: string): FieldValue {
@@ -61,7 +61,7 @@ export class FieldState {
     }
     let result: string | null = null;
     if (this.required.peek() && isEmpty(this.value.peek())) {
-      result = "This field is required";
+      result = requiredMessage(this.schema.validation);
     } else if (this.validator) {
       result = this.validator(this.value.peek());
     }

@@ -19,39 +19,54 @@ function isEmpty(value: FieldValue): boolean {
   return value === undefined || value === null || value === "";
 }
 
+type Rule = NonNullable<ValidationSchema["messages"]>;
+
 /** Compile a declarative validation descriptor into a validator function. */
 export function compileValidator(schema: ValidationSchema): FieldValidator {
-  return (value: FieldValue): string | null => {
-    const msg = (fallback: string): string =>
-      typeof schema.message === "string" ? schema.message : fallback;
+  const overrides = schema.messages ?? {};
+  // A per-rule override wins; then the catch-all `message`; then the built-in default.
+  const msg = (rule: keyof Rule, fallback: string): string =>
+    overrides[rule] ?? (typeof schema.message === "string" ? schema.message : fallback);
 
+  return (value: FieldValue): string | null => {
     if (isEmpty(value)) {
-      return schema.required ? msg("This field is required") : null;
+      return schema.required ? msg("required", "This field is required") : null;
     }
 
     if (schema.kind === "string" || schema.format) {
       const str = String(value);
       if (schema.minLength !== undefined && str.length < schema.minLength) {
-        return msg(`Must be at least ${schema.minLength} characters`);
+        return msg("minLength", `Must be at least ${schema.minLength} characters`);
       }
       if (schema.maxLength !== undefined && str.length > schema.maxLength) {
-        return msg(`Must be at most ${schema.maxLength} characters`);
+        return msg("maxLength", `Must be at most ${schema.maxLength} characters`);
       }
       if (schema.pattern !== undefined && !new RegExp(schema.pattern).test(str)) {
-        return msg("Invalid format");
+        return msg("pattern", "Invalid format");
       }
-      if (schema.format === "email" && !EMAIL.test(str)) return msg("Enter a valid email");
-      if (schema.format === "url" && !URL.test(str)) return msg("Enter a valid URL");
-      if (schema.format === "uuid" && !UUID.test(str)) return msg("Enter a valid UUID");
+      if (schema.format === "email" && !EMAIL.test(str))
+        return msg("format", "Enter a valid email");
+      if (schema.format === "url" && !URL.test(str)) return msg("format", "Enter a valid URL");
+      if (schema.format === "uuid" && !UUID.test(str)) return msg("format", "Enter a valid UUID");
     }
 
     if (schema.kind === "number") {
       const num = Number(value);
-      if (Number.isNaN(num)) return msg("Must be a number");
-      if (schema.min !== undefined && num < schema.min) return msg(`Must be ≥ ${schema.min}`);
-      if (schema.max !== undefined && num > schema.max) return msg(`Must be ≤ ${schema.max}`);
+      if (Number.isNaN(num)) return msg("type", "Must be a number");
+      if (schema.min !== undefined && num < schema.min)
+        return msg("min", `Must be ≥ ${schema.min}`);
+      if (schema.max !== undefined && num > schema.max)
+        return msg("max", `Must be ≤ ${schema.max}`);
     }
 
     return null;
   };
+}
+
+/** Resolve the message for a missing required value, honoring overrides. */
+export function requiredMessage(schema: ValidationSchema | undefined): string {
+  return (
+    schema?.messages?.required ??
+    (typeof schema?.message === "string" ? schema.message : "This field is required")
+  );
 }

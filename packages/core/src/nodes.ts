@@ -22,6 +22,14 @@ export type Scope = ValueGetter;
 
 type Dict = Record<string, unknown>;
 
+/** Presentational field types carry no value and never appear in the payload. */
+const PRESENTATIONAL = new Set(["heading", "separator", "paragraph"]);
+
+/** True for fields that render content but contribute nothing to the payload. */
+export function isPresentational(type: string): boolean {
+  return PRESENTATIONAL.has(type);
+}
+
 /** Current value of any node (subscribes the caller). */
 function nodeValue(node: FieldNode): unknown {
   return node.value.get();
@@ -36,7 +44,7 @@ function nodeValue(node: FieldNode): unknown {
 function collectValues(nodes: readonly FieldNode[]): Dict {
   const out: Dict = {};
   for (const node of nodes) {
-    if (node.schema.omit) continue;
+    if (node.schema.omit || isPresentational(node.schema.type)) continue;
     if (!node.visible.get()) continue;
     out[node.id] = nodeValue(node);
   }

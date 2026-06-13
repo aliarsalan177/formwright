@@ -89,7 +89,19 @@ export interface ValidationSchema {
   readonly maxLength?: number;
   readonly pattern?: string;
   readonly format?: "email" | "url" | "uuid";
+  /** Catch-all override for every rule's message. */
   readonly message?: Resolvable<string>;
+  /** Per-rule message overrides (take precedence over `message` and the defaults). */
+  readonly messages?: {
+    readonly required?: string;
+    readonly min?: string;
+    readonly max?: string;
+    readonly minLength?: string;
+    readonly maxLength?: string;
+    readonly pattern?: string;
+    readonly format?: string;
+    readonly type?: string;
+  };
 }
 
 /** A selectable option for `select` / `radio` fields. */
@@ -189,6 +201,17 @@ export interface ProviderDecl {
   readonly [key: string]: unknown;
 }
 
+/** A form-level action button (submit, reset, or a named custom action like "delete"). */
+export interface FormAction {
+  readonly name: string;
+  readonly label?: Resolvable<string>;
+  /** `"submit"` triggers submission, `"reset"` resets, `"button"` (default) emits an action event. */
+  readonly role?: "submit" | "reset" | "button";
+  readonly variant?: "primary" | "secondary" | "danger";
+  /** Name of a handler in `options.handlers`, called with the form on click. */
+  readonly handler?: string;
+}
+
 /** How the form submits: transform the payload, send it, handle success/error. */
 export interface SubmitSchema {
   /** Name of a registered transform applied to values before sending. */
@@ -211,4 +234,8 @@ export interface FormSchema {
   readonly providers?: Record<string, ProviderDecl>;
   readonly fields: readonly FieldSchema[];
   readonly submit?: SubmitSchema;
+  /** Locales for `localized` fields — each captures a value per locale. */
+  readonly locales?: readonly string[];
+  /** Action buttons rendered at the bottom of the form (defaults to a single Submit). */
+  readonly actions?: readonly FormAction[];
 }

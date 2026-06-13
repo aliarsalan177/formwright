@@ -13,6 +13,10 @@ out.
 [`@formwright/schema`](https://www.npmjs.com/package/@formwright/schema) ·
 [`@formwright/ai`](https://www.npmjs.com/package/@formwright/ai)
 
+⚡ **~12 KB gzipped, zero dependencies** for the entire framework-agnostic runtime
+(`core` + `dom` + `schema`). One compact engine instead of a form library _plus_ a validation
+library _plus_ a conditional-logic library _plus_ per-framework bindings.
+
 ---
 
 ## What makes it powerful
@@ -31,6 +35,33 @@ out.
   virtual DOM, no re-render. **Real-time, field-by-field validation** as you type.
 - 🌍 **Runs everywhere** — vanilla JS, any bundler, or straight from a CDN; the core owns
   state independently of rendering, so web-component and framework adapters drop in.
+
+## Everything in the box
+
+One schema, one tiny engine — no add-on libraries needed:
+
+- **Fields** — text, email, password, number, textarea, select, radio, checkbox,
+  **iOS-style toggle**, native **file** upload, nested **group** (object), repeatable
+  **collection** (array, add/remove, `min`/`max`), plus any custom type.
+- **Authoring elements** — `heading`, `separator`, `paragraph`, per-field **tooltips**, and a
+  dismissible **top-of-form error alert** — enough to build forms in a Shopify/Magento-style
+  editor.
+- **Conditional logic as data** — `visibleWhen` / `enabledWhen` / `requiredWhen` with a
+  sandboxed JSONLogic algebra (`==`,`>`,`in`,`and`,`or`,`not`,`var`), resolved **lexically**
+  across groups and collection rows.
+- **Validation** — declarative rules + formats, **real-time field-by-field** as you type, or
+  any Standard-Schema validator (Zod/Valibot/ArkType).
+- **Bring-your-own UI** — map any field to a **React/Vue/Svelte/any** component, a custom
+  element, or a native tag, with `toValue`/`fromValue` transformers — straight from the schema.
+- **Styling** — unstyled with stable hooks; override any part with your CSS or **Tailwind**
+  utilities (`class` + `classes`).
+- **Internationalisation** — `localized` fields → `{ en, ar, … }` payload; provider sigils for
+  i18n, async data (`$query`), and theming.
+- **Submission** — `validate → transform → send → onSuccess/onError`, an inline
+  `submit(transform)`, configurable **submit/reset/delete action buttons**, and server-error
+  mapping.
+- **Smart payload** — nested output, hidden and `omit` fields automatically excluded.
+- **AI-native** — `@formwright/ai` turns English into a validated schema with **any** model.
 
 ## Why Formwright
 
@@ -158,7 +189,7 @@ A field is resolved to a widget by `type` and keyed by `id`.
 ### Field types
 
 `text` · `email` · `password` · `number` · `textarea` · `select` · `radio` · `checkbox` ·
-`toggle` (iOS-style switch) · `group` (nested object) · `collection` (repeatable list) —
+`toggle` · `group` (nested object) · `collection` (repeatable list) —
 plus any custom type via `registerWidget`.
 
 ### Conditional logic (as data)
@@ -339,11 +370,19 @@ form.destroy();
 ## Packages
 
 | Package                                                                  | Description                                          |
-| ------------------------------------------------------------------------ | ---------------------------------------------------- |
-| [`@formwright/schema`](https://www.npmjs.com/package/@formwright/schema) | Schema types + dependency-free validator             |
-| [`@formwright/core`](https://www.npmjs.com/package/@formwright/core)     | Signal reactivity + the `Form` class                 |
-| [`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom)       | Surgical direct-DOM renderer + widget adapters       |
-| [`@formwright/ai`](https://www.npmjs.com/package/@formwright/ai)         | Generate a validated schema from English (any model) |
+| ------------------------------------------------------------------------ | ---------------------------------------------------- | ---------------- |
+| Package                                                                  | Description                                          | Size (min+gzip)  |
+| ------------------------------------------------------------------------ | ---------------------------------------------------- | ---------------- |
+| [`@formwright/schema`](https://www.npmjs.com/package/@formwright/schema) | Schema types + dependency-free validator             | ~1.2 KB          |
+| [`@formwright/core`](https://www.npmjs.com/package/@formwright/core)     | Signal reactivity + the `Form` class                 | ~5.8 KB          |
+| [`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom)       | Surgical direct-DOM renderer + widget adapters       | ~4.8 KB          |
+| [`@formwright/ai`](https://www.npmjs.com/package/@formwright/ai)         | Generate a validated schema from English (any model) | optional, server |
+| **Full runtime** (`schema` + `core` + `dom`)                             | Everything above to render & submit a form           | **~12 KB**       |
+
+**Zero runtime dependencies.** Tree-shakeable subpath exports — pull only what you use. Ships
+ESM + CJS + types, and works straight from a CDN (`esm.sh`) with no build step. For comparison,
+that's smaller than most single-purpose form libraries — and it includes validation, conditional
+logic, nesting, i18n, custom widgets, and the submission pipeline in the box.
 
 ## Run the playground locally
 

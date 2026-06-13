@@ -125,7 +125,9 @@ describe("submission pipeline", () => {
       { email: "bad" },
       { handlers: { err: onError } },
     );
-    await expect(form.submit()).rejects.toThrow(/validation failed/);
+    const result = await form.submit();
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBeInstanceOf(Error);
     expect(onError).toHaveBeenCalledOnce();
   });
 
