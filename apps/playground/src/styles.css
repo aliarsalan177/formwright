@@ -8,7 +8,13 @@
   --accent: #6ea8fe;
   --ok: #3fb950;
   --err: #f85149;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
 }
 
 * {
@@ -334,7 +340,8 @@ textarea#schema {
 .form-host select {
   appearance: none;
   -webkit-appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
     linear-gradient(135deg, var(--muted) 50%, transparent 50%);
   background-position:
     calc(100% - 18px) 50%,
@@ -457,4 +464,29 @@ textarea#schema {
 .form-host .fw-remove:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ---- custom <fw-rating> Web Component + class-override demo ---- */
+.form-host fw-rating {
+  display: inline-flex;
+  gap: 2px;
+}
+.form-host .fw-star {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 22px;
+  line-height: 1;
+  color: #f5b301;
+  cursor: pointer;
+}
+.form-host .fw-star:hover {
+  filter: brightness(1.1);
+}
+/* A schema-supplied class (`classes.field`) — swap for any Tailwind utilities. */
+.form-host .demo-highlight {
+  padding: 12px;
+  border: 1px dashed var(--accent);
+  border-radius: 12px;
+  background: rgba(110, 168, 254, 0.06);
 }

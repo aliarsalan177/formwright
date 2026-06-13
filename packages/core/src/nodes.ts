@@ -28,14 +28,16 @@ function nodeValue(node: FieldNode): unknown {
 }
 
 /**
- * Aggregate children into an object. Hidden fields KEEP their value in the
- * payload (matching native form behavior — they're only skipped by validation).
- * Fields flagged `omit` are excluded entirely (UI-only controls).
+ * Aggregate children into an object. Hidden fields (whose `visibleWhen` is false)
+ * are excluded from the payload — at any depth, including inside groups and
+ * collection rows — as are fields flagged `omit`. Hide a field or a whole
+ * group/collection and its data drops out of the submitted payload.
  */
 function collectValues(nodes: readonly FieldNode[]): Dict {
   const out: Dict = {};
   for (const node of nodes) {
     if (node.schema.omit) continue;
+    if (!node.visible.get()) continue;
     out[node.id] = nodeValue(node);
   }
   return out;

@@ -50,9 +50,34 @@ export type FieldType =
   | "select"
   | "checkbox"
   | "radio"
+  | "file" // native file input (override with a custom widget for uploads)
   | "group" // a nested object: produces `{ ...child values }`
   | "collection" // a repeatable list of groups: produces `[{ ... }, { ... }]`
+  | "heading" // presentational: a section title (no payload)
+  | "separator" // presentational: a divider (no payload)
+  | "paragraph" // presentational: static text (no payload)
   | (string & {});
+
+/**
+ * Map a field to your own UI — a custom element, native tag, or a widget you
+ * registered by name. The serializable bits (tag/component/valueProp/event/attrs)
+ * live here; code-level transforms and framework `mount` functions are attached
+ * via `registerWidget` in the renderer.
+ */
+export type WidgetRef =
+  | string // the name of a registered widget to use instead of `type`
+  | {
+      /** A registered widget name (takes precedence over `tag`). */
+      readonly component?: string;
+      /** A custom element / native tag to render, e.g. "s-select". */
+      readonly tag?: string;
+      /** Property the value is written to / read from (default "value"). */
+      readonly valueProp?: string;
+      /** DOM event that signals a change, e.g. "value-change" (default "input"). */
+      readonly event?: string;
+      /** Static attributes to set on the element. */
+      readonly attrs?: Record<string, string>;
+    };
 
 /** Validation descriptor — declarative, mapped to a Standard Schema validator at runtime. */
 export interface ValidationSchema {
@@ -74,6 +99,19 @@ export interface FieldOption {
 }
 
 /**
+ * Per-part class overrides — drop in your own CSS classes or Tailwind utilities
+ * to restyle any part of a field without touching the renderer.
+ */
+export interface FieldClasses {
+  readonly field?: string; // the wrapper
+  readonly label?: string;
+  readonly control?: string; // the input / control element
+  readonly help?: string;
+  readonly description?: string;
+  readonly error?: string;
+}
+
+/**
  * A slot rendered at the start/end of an input — either decorative text/icon
  * (a string like "$" or "🔍") or a nested field (e.g. a currency `select`) whose
  * value is added to the payload as a sibling key.
@@ -87,6 +125,15 @@ export interface FieldSchema {
   readonly label?: Resolvable<string>;
   readonly placeholder?: Resolvable<string>;
   readonly help?: Resolvable<string>;
+  /** Static body text — for `paragraph`/`heading` presentational fields. */
+  readonly content?: Resolvable<string>;
+  /** An info tooltip shown next to the field's label. */
+  readonly tooltip?: Resolvable<string>;
+  /**
+   * Capture a value per locale → payload `{ en: "...", ar: "..." }`. Requires
+   * the form's `locales`. Reshape to `translations: { en: {...} }` in submit if needed.
+   */
+  readonly localized?: boolean;
   /** Longer descriptive text, positioned by {@link descriptionPosition}. */
   readonly description?: Resolvable<string>;
   /** Where to render `description` (default `"below-label"`). */
@@ -97,6 +144,12 @@ export interface FieldSchema {
   readonly slots?: { readonly start?: FieldSlot; readonly end?: FieldSlot };
   /** Exclude this field's value from the submitted payload (UI-only control). */
   readonly omit?: boolean;
+  /** Render this field with your own component/element instead of the built-in for `type`. */
+  readonly widget?: WidgetRef;
+  /** Extra class(es) on the field wrapper (e.g. Tailwind utilities). */
+  readonly class?: string;
+  /** Per-part class overrides (wrapper, label, control, help, description, error). */
+  readonly classes?: FieldClasses;
   readonly defaultValue?: FieldValue;
   readonly options?: Resolvable<readonly FieldOption[]>;
   readonly validation?: ValidationSchema;
