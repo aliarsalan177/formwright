@@ -35,5 +35,9 @@ jobs:
           publish: pnpm release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # setup-node's generated .npmrc authenticates via NODE_AUTH_TOKEN; without
+          # this, `npm publish` runs anonymously and the registry returns E404 for
+          # scoped packages. NPM_TOKEN is kept for changesets/action's own checks.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"

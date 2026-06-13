@@ -46,7 +46,8 @@ describe("mount", () => {
     expect(host.querySelectorAll(".fw-field").length).toBe(3);
     expect(host.querySelector("label[for='fw-email']")?.textContent).toBe("Email");
     expect(host.querySelector("input[type='email']")).toBeTruthy();
-    expect(host.querySelector("select[name='country']")?.children.length).toBe(2);
+    // 2 options + a leading empty placeholder.
+    expect(host.querySelector("select[name='country']")?.children.length).toBe(3);
     expect(host.querySelector(".fw-submit")).toBeTruthy();
   });
 
@@ -55,6 +56,24 @@ describe("mount", () => {
     const stateField = host.querySelector("[data-field='state']") as HTMLElement;
     expect(stateField.hidden).toBe(true);
     form.setValue("country", "US");
+    expect(stateField.hidden).toBe(false);
+  });
+
+  it("an unselected select shows an empty placeholder, not its first option", () => {
+    const { host, form } = setup();
+    const select = host.querySelector("select[name='country']") as HTMLSelectElement;
+    const stateField = host.querySelector("[data-field='state']") as HTMLElement;
+    // The model value is empty, so the control must show empty — NOT silently
+    // display "US" (its first real option) while State stays hidden.
+    expect(form.getValue("country")).toBe("");
+    expect(select.value).toBe("");
+    expect((select.firstElementChild as HTMLOptionElement).value).toBe("");
+    expect(stateField.hidden).toBe(true);
+
+    // Choosing United States in the DOM drives the value and reveals State.
+    select.value = "US";
+    select.dispatchEvent(new Event("change"));
+    expect(form.getValue("country")).toBe("US");
     expect(stateField.hidden).toBe(false);
   });
 
