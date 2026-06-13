@@ -15,8 +15,6 @@ form.mount(document.getElementById("root")!);
 await form.submit();
 ```
 
-See [PLAN.md](./PLAN.md) for the full architecture, roadmap, and rationale.
-
 ## Packages
 
 | Package                                   | Description                                 |
