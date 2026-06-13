@@ -9,7 +9,21 @@ import { computed, signal, type ReadSignal, type WriteSignal } from "./reactive.
 import { evaluateCondition, type ValueGetter } from "./conditions.js";
 import { compileValidator, type FieldValidator } from "./validation.js";
 
+/** Default value for a leaf field with no explicit initial/default. */
+export function defaultValueFor(type: string): FieldValue {
+  switch (type) {
+    case "checkbox":
+      return false;
+    case "number":
+      return undefined;
+    default:
+      return "";
+  }
+}
+
 export class FieldState {
+  /** Discriminant for the {@link FieldNode} union (leaf vs group/collection). */
+  readonly kind = "field" as const;
   readonly id: string;
   readonly schema: FieldSchema;
   readonly value: WriteSignal<FieldValue>;

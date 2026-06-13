@@ -13,10 +13,19 @@
 import { parseSchema, type FieldValue, type FormSchema } from "@formwright/schema";
 import { batch, computed, signal, untrack, type Dispose, type ReadSignal } from "./reactive.js";
 import { FieldState } from "./model.js";
-import type { ValueGetter } from "./conditions.js";
+import {
+  buildTree,
+  collectValues,
+  eachLeaf,
+  resetNodes,
+  CollectionNode,
+  GroupNode,
+  type FieldNode,
+} from "./nodes.js";
 import type { Providers } from "./providers.js";
 
-export type FormValues = Record<string, FieldValue>;
+/** Form values — nested for `group` (object) and `collection` (array) fields. */
+export type FormValues = Record<string, unknown>;
 export type FormErrors = Record<string, string | null>;
 
 /** A transform applied to values before submission. */
@@ -51,18 +60,21 @@ export function setDefaultRenderer(renderer: FormRenderer): void {
 export class Form {
   readonly schema: FormSchema;
   readonly options: FormOptions;
-  readonly fields: ReadonlyMap<string, FieldState>;
+  /** Top-level field tree (leaf fields, groups, and collections, in order). */
+  readonly tree: readonly FieldNode[];
   readonly order: readonly string[];
 
-  /** Reactive snapshot of all field values. */
+  /** Reactive snapshot of all field values (nested for groups/collections). */
   readonly values: ReadSignal<FormValues>;
-  /** True when any field's value differs from its initial value. */
+  /** True when the current values differ from the initial values. */
   readonly isDirty: ReadSignal<boolean>;
   /** True when no visible field currently has an error. */
   readonly isValid: ReadSignal<boolean>;
 
   private readonly submitting = signal(false);
-  private readonly initial: FormValues;
+  private readonly initialValues: FormValues;
+  private readonly initialSnapshot: string;
+  private readonly rootByName: ReadonlyMap<string, FieldNode>;
   private readonly listeners = new Map<EventName, Set<Listener>>();
   private disposeRenderer: Dispose | null = null;
 
@@ -75,59 +87,56 @@ export class Form {
     // throws a precise SchemaValidationError otherwise (key for LLM-emitted input).
     this.schema = parseSchema(schema);
     this.options = options;
+    this.initialValues = initialValues;
 
-    const getValue: ValueGetter = (id) => this.fields.get(id)?.value.get();
-
-    const fields = new Map<string, FieldState>();
-    const initial: FormValues = {};
-    for (const fieldSchema of this.schema.fields) {
-      const init =
-        initialValues[fieldSchema.id] ??
-        fieldSchema.defaultValue ??
-        defaultForType(fieldSchema.type);
-      initial[fieldSchema.id] = init;
-      fields.set(fieldSchema.id, new FieldState(fieldSchema, init, getValue));
-    }
-    this.fields = fields;
+    const tree = buildTree(this.schema.fields, initialValues);
+    this.tree = tree.nodes;
+    this.rootByName = tree.byName;
     this.order = this.schema.fields.map((f) => f.id);
-    this.initial = initial;
 
-    this.values = computed(() => {
-      const out: FormValues = {};
-      for (const [id, field] of fields) out[id] = field.value.get();
-      return out;
-    });
-    this.isDirty = computed(() => {
-      for (const [id, field] of fields) {
-        if (!Object.is(field.value.get(), this.initial[id])) return true;
-      }
-      return false;
-    });
+    this.values = computed(() => collectTree(this.tree));
+    this.initialSnapshot = JSON.stringify(untrack(() => this.values.peek()));
+    this.isDirty = computed(() => JSON.stringify(this.values.get()) !== this.initialSnapshot);
     this.isValid = computed(() => {
-      for (const field of fields.values()) {
-        if (field.visible.get() && field.error.get() !== null) return false;
-      }
-      return true;
+      let valid = true;
+      eachLeaf(this.tree, (leaf) => {
+        if (leaf.visible.get() && leaf.error.get() !== null) valid = false;
+      });
+      return valid;
     });
   }
 
   // ---- value access -------------------------------------------------------
 
-  getValue(id: string): FieldValue {
-    return this.fields.get(id)?.value.peek();
+  /** All leaf fields keyed by dotted path (e.g. `items.name`, `contacts.0.email`). */
+  get fields(): ReadonlyMap<string, FieldState> {
+    return collectLeaves(this.tree);
   }
 
-  setValue(id: string, value: FieldValue): void {
-    const field = this.fields.get(id);
-    if (!field) return;
+  /** Resolve a leaf field by dotted path. Top-level ids work directly. */
+  field(path: string): FieldState | undefined {
+    return resolveLeaf(this.tree, this.rootByName, path);
+  }
+
+  getValue(path: string): FieldValue {
+    return this.field(path)?.value.peek();
+  }
+
+  setValue(path: string, value: FieldValue): void {
+    const field = this.field(path);
+    if (field) this.setFieldValue(field, value);
+  }
+
+  /** Apply a value to a specific leaf node (used by the renderer). */
+  setFieldValue(field: FieldState, value: FieldValue): void {
     field.value.set(value);
     field.touched.set(true);
     if (field.error.peek() !== null) field.validate(); // re-validate once shown an error
-    this.emit("change", { id, value });
+    this.emit("change", { id: field.id, value });
   }
 
   setError(id: string, error: string | null): void {
-    this.fields.get(id)?.error.set(error);
+    this.field(id)?.error.set(error);
   }
 
   setErrors(errors: FormErrors): void {
@@ -142,14 +151,14 @@ export class Form {
 
   // ---- lifecycle ----------------------------------------------------------
 
-  /** Validate every field; returns true when the whole form is valid. */
+  /** Validate every (visible) leaf field; returns true when the whole form is valid. */
   validate(): boolean {
     return untrack(() => {
       let ok = true;
       batch(() => {
-        for (const field of this.fields.values()) {
-          if (field.validate() !== null) ok = false;
-        }
+        eachLeaf(this.tree, (leaf) => {
+          if (leaf.validate() !== null) ok = false;
+        });
       });
       return ok;
     });
@@ -183,11 +192,9 @@ export class Form {
     }
   }
 
-  reset(values: FormValues = this.initial): void {
+  reset(values: FormValues = this.initialValues): void {
     batch(() => {
-      for (const [id, field] of this.fields) {
-        field.reset(values[id] ?? this.initial[id]);
-      }
+      resetNodes(this.tree, values as Record<string, unknown>);
     });
   }
 
@@ -230,7 +237,7 @@ export class Form {
 
   private collectErrors(): FormErrors {
     const errors: FormErrors = {};
-    for (const [id, field] of this.fields) errors[id] = field.error.peek();
+    for (const [path, field] of this.fields) errors[path] = field.error.peek();
     return errors;
   }
 
@@ -277,13 +284,45 @@ export class FormValidationError extends Error {
   }
 }
 
-function defaultForType(type: string): FieldValue {
-  switch (type) {
-    case "checkbox":
-      return false;
-    case "number":
+/** Aggregate the tree into a nested values object (subscribes to all values). */
+function collectTree(tree: readonly FieldNode[]): FormValues {
+  return collectValues(tree) as FormValues;
+}
+
+/** Flatten all leaf fields, keyed by dotted path (`group.child`, `coll.0.child`). */
+function collectLeaves(tree: readonly FieldNode[]): Map<string, FieldState> {
+  const out = new Map<string, FieldState>();
+  const walk = (nodes: readonly FieldNode[], prefix: string): void => {
+    for (const node of nodes) {
+      const path = prefix ? `${prefix}.${node.id}` : node.id;
+      if (node.kind === "field") out.set(path, node);
+      else if (node.kind === "group") walk(node.children, path);
+      else {
+        node.items.peek().forEach((row, i) => walk(row.group.children, `${path}.${i}`));
+      }
+    }
+  };
+  walk(tree, "");
+  return out;
+}
+
+/** Resolve a leaf field by dotted path, descending groups and collection rows. */
+function resolveLeaf(
+  tree: readonly FieldNode[],
+  rootByName: ReadonlyMap<string, FieldNode>,
+  path: string,
+): FieldState | undefined {
+  const parts = path.split(".");
+  let node: FieldNode | undefined = rootByName.get(parts[0]!);
+  for (let i = 1; i < parts.length && node; i++) {
+    const part = parts[i]!;
+    if (node instanceof GroupNode) {
+      node = node.byName.get(part) as FieldNode | undefined;
+    } else if (node instanceof CollectionNode) {
+      node = node.items.peek()[Number(part)]?.group;
+    } else {
       return undefined;
-    default:
-      return "";
+    }
   }
+  return node && node.kind === "field" ? node : undefined;
 }

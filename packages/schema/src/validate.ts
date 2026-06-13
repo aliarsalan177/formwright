@@ -27,7 +27,11 @@ const BUILTIN_TYPES: ReadonlySet<string> = new Set<FieldType>([
   "select",
   "checkbox",
   "radio",
+  "group",
+  "collection",
 ]);
+
+const CONTAINER_TYPES: ReadonlySet<string> = new Set<FieldType>(["group", "collection"]);
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -65,6 +69,19 @@ function validateField(field: unknown, path: string, seenIds: Set<string>, c: Co
 
   if ((type === "select" || type === "radio") && field["options"] === undefined) {
     c.add(`${path}.options`, `field of type "${type}" should declare options`);
+  }
+
+  // Containers (group/collection) must declare nested fields; recurse so nested
+  // problems surface with a precise path (e.g. `fields[3].fields[0].id`).
+  if (typeof type === "string" && CONTAINER_TYPES.has(type)) {
+    const nested = field["fields"];
+    if (!Array.isArray(nested) || nested.length === 0) {
+      c.add(`${path}.fields`, `field of type "${type}" must declare a non-empty "fields" array`);
+    } else {
+      // A container opens a new naming scope: child ids are unique within it, not globally.
+      const childIds = new Set<string>();
+      nested.forEach((f, i) => validateField(f, `${path}.fields[${i}]`, childIds, c));
+    }
   }
 }
 

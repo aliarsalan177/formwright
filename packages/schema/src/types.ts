@@ -50,6 +50,8 @@ export type FieldType =
   | "select"
   | "checkbox"
   | "radio"
+  | "group" // a nested object: produces `{ ...child values }`
+  | "collection" // a repeatable list of groups: produces `[{ ... }, { ... }]`
   | (string & {});
 
 /** Validation descriptor — declarative, mapped to a Standard Schema validator at runtime. */
@@ -87,6 +89,26 @@ export interface FieldSchema {
   readonly enabledWhen?: Condition;
   /** Field is required only when this condition holds (overrides validation.required). */
   readonly requiredWhen?: Condition;
+  /**
+   * Child fields — required for `group` (object) and `collection` (array-of-groups).
+   * A child's conditions resolve names lexically: a sibling first, then the
+   * enclosing scope, up to the form root (so an outer toggle can hide a field
+   * nested inside a group or a collection row).
+   */
+  readonly fields?: readonly FieldSchema[];
+  /**
+   * Container layout:
+   *  - `group`: `"fieldset"` (default) or `"accordion"` (collapsible section).
+   *  - `collection`: `"list"` (default), `"cards"`, or `"accordion"` (each row collapsible).
+   */
+  readonly layout?: "fieldset" | "accordion" | "list" | "cards";
+  /** `collection` only: label for each row, e.g. "Contact". */
+  readonly itemLabel?: Resolvable<string>;
+  /** `collection` only: text for the add-row button (default: "Add"). */
+  readonly addLabel?: Resolvable<string>;
+  /** `collection` only: minimum / maximum number of rows. */
+  readonly minItems?: number;
+  readonly maxItems?: number;
   /** Arbitrary widget-specific config, passed through to the renderer. */
   readonly props?: Record<string, unknown>;
 }

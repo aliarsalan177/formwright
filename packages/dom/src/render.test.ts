@@ -119,6 +119,54 @@ describe("mount", () => {
     expect(records.length).toBe(0); // country subtree untouched by an email change
   });
 
+  it("renders groups and collections with add/remove", () => {
+    const nested: FormSchema = {
+      id: "checkout",
+      version: "1.0",
+      fields: [
+        { id: "reuse", type: "toggle", label: "Reuse" },
+        {
+          id: "billing",
+          type: "group",
+          label: "Billing",
+          fields: [
+            { id: "name", type: "text", label: "Name" },
+            { id: "note", type: "text", label: "Note", visibleWhen: { not: { var: "reuse" } } },
+          ],
+        },
+        {
+          id: "contacts",
+          type: "collection",
+          label: "Contacts",
+          minItems: 1,
+          maxItems: 2,
+          fields: [{ id: "name", type: "text", label: "Name" }],
+        },
+      ],
+    };
+    const host = document.createElement("div");
+    const form = new Form(nested);
+    mount(form, host);
+
+    // Group renders as a fieldset with nested fields.
+    expect(host.querySelector("fieldset[data-field='billing']")).toBeTruthy();
+    expect(host.querySelector("[data-field='billing'] [data-field='note']")).toBeTruthy();
+
+    // Collection seeds one row; Add appends another up to maxItems.
+    const collection = host.querySelector("[data-field='contacts']") as HTMLElement;
+    expect(collection.querySelectorAll(".fw-row").length).toBe(1);
+    const addBtn = collection.querySelector(".fw-add") as HTMLButtonElement;
+    addBtn.click();
+    expect(collection.querySelectorAll(".fw-row").length).toBe(2);
+    expect(addBtn.disabled).toBe(true); // at maxItems
+
+    // Outer toggle hides the nested 'note' field.
+    const note = host.querySelector("[data-field='note']") as HTMLElement;
+    expect(note.hidden).toBe(false);
+    form.setValue("reuse", true);
+    expect(note.hidden).toBe(true);
+  });
+
   it("dispose removes the form and stops bindings", () => {
     const { host, form, dispose } = setup();
     dispose();

@@ -44,7 +44,7 @@ function wireInput(ctx: WidgetContext, input: HTMLInputElement | HTMLTextAreaEle
           ? undefined
           : Number(input.value)
         : input.value;
-    form.setValue(field.id, raw);
+    form.setFieldValue(field, raw);
   });
   bindDisabled(scope, input, () => !field.enabled.get());
 }
@@ -85,19 +85,24 @@ registerWidget("textarea", (ctx) => {
   return ta;
 });
 
-registerWidget("checkbox", (ctx) => {
+function checkLikeWidget(ctx: WidgetContext, className: string): HTMLElement {
   const { form, field, scope } = ctx;
   const input = document.createElement("input");
   input.type = "checkbox";
+  input.className = className;
   input.id = commonId(field);
   input.name = field.id;
   scope.bind(() => {
     input.checked = Boolean(field.value.get());
   });
-  on(scope, input, "change", () => form.setValue(field.id, input.checked));
+  on(scope, input, "change", () => form.setFieldValue(field, input.checked));
   bindDisabled(scope, input, () => !field.enabled.get());
   return input;
-});
+}
+
+registerWidget("checkbox", (ctx) => checkLikeWidget(ctx, "fw-checkbox"));
+// A toggle is a checkbox styled as an iOS-style switch (see playground CSS).
+registerWidget("toggle", (ctx) => checkLikeWidget(ctx, "fw-switch"));
 
 registerWidget("select", (ctx) => {
   const { form, field, scope } = ctx;
@@ -135,7 +140,7 @@ registerWidget("select", (ctx) => {
     const v = field.value.get();
     select.value = v == null ? "" : String(v);
   });
-  on(scope, select, "change", () => form.setValue(field.id, select.value));
+  on(scope, select, "change", () => form.setFieldValue(field, select.value));
   bindDisabled(scope, select, () => !field.enabled.get());
   return select;
 });
@@ -154,7 +159,7 @@ registerWidget("radio", (ctx) => {
       input.name = field.id;
       input.value = String(opt.value);
       input.checked = field.value.peek() === opt.value;
-      input.addEventListener("change", () => form.setValue(field.id, opt.value));
+      input.addEventListener("change", () => form.setFieldValue(field, opt.value));
       const text =
         typeof opt.label === "string"
           ? opt.label

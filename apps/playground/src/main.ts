@@ -18,7 +18,7 @@ const hostEl = $<HTMLDivElement>("form-host");
 const valuesEl = $<HTMLPreElement>("values");
 const payloadEl = $<HTMLPreElement>("payload");
 
-const STARTER: FormSchema = {
+const SIGNUP: FormSchema = {
   id: "signup",
   version: "1.0",
   title: "Create your account",
@@ -34,6 +34,7 @@ const STARTER: FormSchema = {
       id: "country",
       type: "select",
       label: "Country",
+      placeholder: "Select a country…",
       options: [
         { label: "United States", value: "US" },
         { label: "Canada", value: "CA" },
@@ -48,13 +49,155 @@ const STARTER: FormSchema = {
       visibleWhen: { "==": [{ var: "country" }, "US"] },
       requiredWhen: { "==": [{ var: "country" }, "US"] },
     },
-    {
-      id: "newsletter",
-      type: "checkbox",
-      label: "Send me product updates",
-    },
+    { id: "newsletter", type: "toggle", label: "Send me product updates" },
   ],
 };
+
+// Demonstrates: a nested `group` (object payload), a repeatable `collection`
+// (array-of-objects, add/remove with min/max), and cross-scope conditions —
+// an outer toggle hiding fields *inside* the group and each collection row,
+// one toggle hiding two fields, and a field shown only when a select + radio +
+// toggle all match. Plus accordion/card layouts and iOS-style toggles.
+const CHECKOUT: FormSchema = {
+  id: "checkout",
+  version: "1.0",
+  title: "Checkout",
+  fields: [
+    {
+      id: "email",
+      type: "email",
+      label: "Email",
+      placeholder: "you@example.com",
+      validation: { kind: "string", format: "email", required: true },
+    },
+    {
+      id: "plan",
+      type: "select",
+      label: "Plan",
+      placeholder: "Choose a plan…",
+      options: [
+        { label: "Free", value: "free" },
+        { label: "Pro", value: "pro" },
+        { label: "Enterprise", value: "enterprise" },
+      ],
+    },
+    {
+      id: "billing",
+      type: "radio",
+      label: "Billing cycle",
+      options: [
+        { label: "Monthly", value: "monthly" },
+        { label: "Annual", value: "annual" },
+      ],
+    },
+    { id: "agree", type: "toggle", label: "I accept the terms of service" },
+    {
+      id: "promoCode",
+      type: "text",
+      label: "Promo code",
+      help: "Shown only when Plan = Pro AND Billing = Annual AND terms accepted.",
+      visibleWhen: {
+        and: [
+          { "==": [{ var: "plan" }, "pro"] },
+          { "==": [{ var: "billing" }, "annual"] },
+          { var: "agree" },
+        ],
+      },
+    },
+
+    // One toggle that hides TWO fields at once.
+    { id: "expedited", type: "toggle", label: "Expedited shipping" },
+    {
+      id: "giftWrap",
+      type: "checkbox",
+      label: "Add gift wrap",
+      visibleWhen: { not: { var: "expedited" } },
+    },
+    {
+      id: "giftMessage",
+      type: "text",
+      label: "Gift message",
+      visibleWhen: { not: { var: "expedited" } },
+    },
+
+    // An outer toggle that hides fields nested inside a group AND a collection.
+    { id: "reuseBilling", type: "toggle", label: "Use billing address everywhere" },
+
+    // Nested object → payload `billingAddress: { ... }`.
+    {
+      id: "billingAddress",
+      type: "group",
+      label: "Billing address",
+      layout: "accordion",
+      fields: [
+        {
+          id: "name",
+          type: "text",
+          label: "Full name",
+          validation: { kind: "string", required: true },
+        },
+        { id: "street", type: "text", label: "Street" },
+        { id: "city", type: "text", label: "City" },
+        {
+          id: "deliveryNote",
+          type: "text",
+          label: "Delivery note",
+          help: "Hidden by the outer 'Use billing address everywhere' toggle.",
+          visibleWhen: { not: { var: "reuseBilling" } },
+        },
+      ],
+    },
+
+    // Repeatable list of objects → payload `contacts: [{ ... }, { ... }]`.
+    {
+      id: "contacts",
+      type: "collection",
+      label: "Additional contacts",
+      layout: "cards",
+      itemLabel: "Contact",
+      addLabel: "+ Add contact",
+      minItems: 1,
+      maxItems: 4,
+      fields: [
+        {
+          id: "name",
+          type: "text",
+          label: "Name",
+          validation: { kind: "string", required: true },
+        },
+        {
+          id: "relation",
+          type: "select",
+          label: "Relation",
+          placeholder: "Select…",
+          options: [
+            { label: "Family", value: "family" },
+            { label: "Friend", value: "friend" },
+            { label: "Colleague", value: "colleague" },
+          ],
+        },
+        // Sibling condition INSIDE the row: show only when this row's relation = Colleague.
+        {
+          id: "company",
+          type: "text",
+          label: "Company",
+          visibleWhen: { "==": [{ var: "relation" }, "colleague"] },
+        },
+        // Hidden by the OUTER toggle — resolves up the scope chain from the row.
+        {
+          id: "address",
+          type: "text",
+          label: "Address",
+          visibleWhen: { not: { var: "reuseBilling" } },
+        },
+      ],
+    },
+  ],
+  submit: { endpoint: { method: "POST", url: "/api/checkout" } },
+};
+
+const EXAMPLES: Record<string, FormSchema> = { checkout: CHECKOUT, signup: SIGNUP };
+const STARTER = CHECKOUT;
 
 let currentForm: Form | null = null;
 let disposeValues: (() => void) | null = null;
@@ -154,9 +297,20 @@ function addField(): void {
   rebuild();
 }
 
+/** Load a named example into the editor and re-render. */
+function loadExample(name: string): void {
+  const schema = EXAMPLES[name];
+  if (!schema) return;
+  schemaEl.value = JSON.stringify(schema, null, 2);
+  rebuild();
+}
+
 // Wire up interactions.
 schemaEl.addEventListener("input", debounce(rebuild, 250));
 $<HTMLButtonElement>("b-add").addEventListener("click", addField);
+$<HTMLSelectElement>("example").addEventListener("change", (e) => {
+  loadExample((e.target as HTMLSelectElement).value);
+});
 
 // Boot.
 schemaEl.value = JSON.stringify(STARTER, null, 2);
