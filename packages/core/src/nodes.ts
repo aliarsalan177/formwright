@@ -28,13 +28,16 @@ function nodeValue(node: FieldNode): unknown {
 }
 
 /**
- * Aggregate children into an object. All declared fields are included (hidden
- * fields keep their value in the payload, matching native form behavior); hidden
- * fields are simply skipped by validation, not dropped from the data.
+ * Aggregate children into an object. Hidden fields KEEP their value in the
+ * payload (matching native form behavior — they're only skipped by validation).
+ * Fields flagged `omit` are excluded entirely (UI-only controls).
  */
 function collectValues(nodes: readonly FieldNode[]): Dict {
   const out: Dict = {};
-  for (const node of nodes) out[node.id] = nodeValue(node);
+  for (const node of nodes) {
+    if (node.schema.omit) continue;
+    out[node.id] = nodeValue(node);
+  }
   return out;
 }
 

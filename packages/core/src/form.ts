@@ -131,7 +131,9 @@ export class Form {
   setFieldValue(field: FieldState, value: FieldValue): void {
     field.value.set(value);
     field.touched.set(true);
-    if (field.error.peek() !== null) field.validate(); // re-validate once shown an error
+    // Real-time, field-by-field validation: validate the edited field on every
+    // change so its error shows as you type and clears the moment it's valid.
+    field.validate();
     this.emit("change", { id: field.id, value });
   }
 
