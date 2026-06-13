@@ -8,12 +8,7 @@ node_modules/
 # Build output
 dist/
 cache/
-.turbo/
-.changeset/
 *.tsbuildinfo
-
-# Turbo
-.turbo/
 
 # Coverage / test
 coverage/
