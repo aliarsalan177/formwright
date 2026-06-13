@@ -490,3 +490,5 @@ textarea#schema {
   border-radius: 12px;
   background: rgba(110, 168, 254, 0.06);
 }
+
+.brand-links { display: flex; align-items: center; gap: 16px; }

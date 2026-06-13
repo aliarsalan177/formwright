@@ -208,7 +208,49 @@ const CHECKOUT: FormSchema = {
   submit: { endpoint: { method: "POST", url: "/api/checkout" } },
 };
 
-const EXAMPLES: Record<string, FormSchema> = { checkout: CHECKOUT, signup: SIGNUP };
+// Shows off the authoring/UX features: static elements, tooltips, an iOS toggle
+// with the label at the start, a file input, multilingual fields, a custom message,
+// and configurable action buttons (submit + delete).
+const SHOWCASE: FormSchema = {
+  id: "showcase",
+  version: "1.0",
+  title: "Product",
+  locales: ["en", "ar"],
+  fields: [
+    { id: "section", type: "heading", label: "Basic details" },
+    { id: "note", type: "paragraph", content: "Fields below show tooltips, i18n, and validation." },
+    {
+      id: "name",
+      type: "text",
+      label: "Product name",
+      localized: true,
+      tooltip: "Enter the name per language",
+      validation: { kind: "string", required: true, messages: { required: "A name is required" } },
+    },
+    {
+      id: "price",
+      type: "number",
+      label: "Price (USD)",
+      tooltip: "Whole dollars",
+      validation: { kind: "number", min: 1, messages: { min: "Price must be at least $1" } },
+    },
+    { id: "div", type: "separator" },
+    { id: "section2", type: "heading", label: "Options" },
+    { id: "inStock", type: "toggle", label: "In stock", labelPosition: "start" },
+    { id: "featured", type: "toggle", label: "Feature on homepage", labelPosition: "start" },
+    { id: "image", type: "file", label: "Product image", help: "PNG or JPG", props: { accept: "image/*" } },
+  ],
+  actions: [
+    { name: "save", role: "submit", label: "Save product", variant: "primary" },
+    { name: "delete", role: "button", label: "Delete", variant: "danger", handler: "removeItem" },
+  ],
+};
+
+const EXAMPLES: Record<string, FormSchema> = {
+  checkout: CHECKOUT,
+  showcase: SHOWCASE,
+  signup: SIGNUP,
+};
 const STARTER = CHECKOUT;
 
 let currentForm: Form | null = null;
