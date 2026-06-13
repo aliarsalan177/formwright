@@ -104,11 +104,21 @@ registerWidget("select", (ctx) => {
   const select = document.createElement("select");
   select.id = commonId(field);
   select.name = field.id;
+  const placeholderText = resolve(field.schema.placeholder, form.options.providers);
   // Re-render options reactively (covers async $query options).
   scope.bind(() => {
     const options = resolveOptions(ctx);
     const current = field.value.peek();
     select.replaceChildren();
+    // A native <select> always displays its first option, which would
+    // misrepresent an empty/unset value as if it were chosen — and break any
+    // condition reading this field (e.g. `country == "US"` showing as US before
+    // the user picks anything). Prepend an empty placeholder so the control
+    // honestly shows "nothing selected" until a real choice is made.
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = typeof placeholderText === "string" ? placeholderText : "Select…";
+    select.appendChild(placeholder);
     for (const opt of options) {
       const o = document.createElement("option");
       o.value = String(opt.value);
