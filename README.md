@@ -10,9 +10,27 @@ out.
 🔗 **Live demo / playground:** https://aliarsalan177.github.io/formwright/
 📦 **npm:** [`@formwright/core`](https://www.npmjs.com/package/@formwright/core) ·
 [`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom) ·
-[`@formwright/schema`](https://www.npmjs.com/package/@formwright/schema)
+[`@formwright/schema`](https://www.npmjs.com/package/@formwright/schema) ·
+[`@formwright/ai`](https://www.npmjs.com/package/@formwright/ai)
 
 ---
+
+## What makes it powerful
+
+- 🤖 **Describe a form in English → a validated schema** — with **any** model (Claude, GPT,
+  Gemini, local). A built-in validate→repair loop guarantees the output renders.
+- 🧩 **Bring your own UI** — map any field to a **React, Vue, Svelte, or any-framework
+  component**, a custom element, or a native tag, all from the schema. The form still
+  produces one clean payload.
+- 🪆 **Nested objects + repeatable collections** — `group` and `collection` fields yield
+  `{ items: {…} }` and `[{…}, {…}]`, with add/remove rows and `min`/`max`.
+- 🔀 **Conditional logic as data** — `visibleWhen` / `enabledWhen` / `requiredWhen` resolve
+  **lexically** (sibling → outward), so an outer toggle can hide a field deep inside a
+  collection row. Hidden fields drop out of the payload automatically.
+- ⚡ **Surgical DOM** — fine-grained signals update only the exact node that changed; no
+  virtual DOM, no re-render. **Real-time, field-by-field validation** as you type.
+- 🌍 **Runs everywhere** — vanilla JS, any bundler, or straight from a CDN; the core owns
+  state independently of rendering, so web-component and framework adapters drop in.
 
 ## Why Formwright
 
@@ -24,9 +42,10 @@ Formwright inverts that:
 - **The runtime is framework-agnostic.** A fine-grained signal core renders directly to
   the DOM — when a value changes, only the exact text node / attribute that read it
   updates.
-- **It works everywhere.** Vanilla JS today; web-component + framework adapters by design.
-- **It's LLM-native.** The schema is designed to be emitted by a model, validated, and
-  repaired before it ever reaches the runtime.
+- **You own the UI.** Native inputs by default; map any field to your own component
+  (React/Vue/any) or a custom element without leaving the schema.
+- **It's LLM-native.** A model emits the schema; it's validated and repaired before it
+  ever reaches the runtime — and `@formwright/ai` does this for you with any provider.
 
 ## Install
 
@@ -191,7 +210,116 @@ a sibling in its own row.
 
 Declarative rules — `required`, `min`/`max`, `minLength`/`maxLength`, `pattern`,
 `format: "email" | "url" | "uuid"` — or bring any Standard-Schema validator (Zod / Valibot /
-ArkType).
+ArkType). Errors surface in **real time, field by field**, as the user types.
+
+## Generate a form from English — with any model
+
+`@formwright/ai` turns a description into a **validated** schema. It's provider-agnostic:
+Claude by default, GPT via your OpenAI client, or anything else through a small adapter. A
+built-in validate→repair loop feeds errors back to the model until the schema renders.
+
+```ts
+import { generateSchema, openaiProvider } from "@formwright/ai";
+import { Form } from "@formwright/core";
+import "@formwright/dom";
+
+// Claude (default — uses ANTHROPIC_API_KEY, model claude-opus-4-8)
+const { schema } = await generateSchema(
+  "a checkout form with a promo code shown only for the annual Pro plan",
+);
+new Form(schema).mount(document.getElementById("root")!);
+
+// …or GPT
+import OpenAI from "openai";
+await generateSchema("a contact form", { provider: openaiProvider({ client: new OpenAI() }) });
+```
+
+## Bring your own components (React / Vue / any)
+
+A field renders with the built-in widget for its `type`, a **custom element**, or **your own
+framework component** — chosen from the schema, wired with a tiny adapter. Whatever you set
+flows straight into the payload.
+
+```jsonc
+// Custom element — no code, pure schema:
+{ "id": "country", "type": "text", "widget": { "tag": "s-select", "event": "value-change" } }
+```
+
+```tsx
+// A React component, registered once by name:
+import { createRoot } from "react-dom/client";
+import { registerWidget } from "@formwright/dom";
+
+registerWidget("rating", {
+  mount(host, b) {
+    const root = createRoot(host);
+    b.onValue((value) => root.render(<StarRating value={value} onChange={b.setValue} />));
+    return () => root.unmount();
+  },
+});
+// schema: { id: "score", type: "number", widget: "rating" }
+```
+
+The `WidgetBinding` (`b.value()`, `b.setValue()`, `b.onValue()`, `b.onEnabled()`) is the whole
+contract — Vue, Svelte, Solid, Angular plug in the same ~8-line way. Add `toValue`/`fromValue`
+to translate between your component's shape and the stored value, or a native `file` widget for
+uploads.
+
+### StencilJS / Lit / any web component
+
+A component that compiles to a custom element (Stencil, Lit, Angular Elements…) needs **no
+adapter at all** — just point the schema at its tag, value property, and change event. The
+[playground](https://aliarsalan177.github.io/formwright/) ships a live `<fw-rating>` demo:
+
+```jsonc
+// <fw-rating value="..."> emits a `rating-change` event
+{
+  "id": "score",
+  "type": "number",
+  "widget": { "tag": "fw-rating", "event": "rating-change", "valueProp": "value" },
+}
+```
+
+```ts
+// your-rating.tsx (Stencil)
+@Component({ tag: "fw-rating" })
+export class FwRating {
+  @Prop({ mutable: true }) value = 0;
+  @Event() ratingChange: EventEmitter<{ value: number }>;
+  // …render stars; on click: this.value = n; this.ratingChange.emit({ value: n })
+}
+```
+
+### Vue, Svelte, Solid
+
+Each is the same `mount` adapter as React above — render the component into `host`, call
+`b.setValue` on change, and `b.onValue` to push updates back in. See `registerWidget` in
+[`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom).
+
+## Styling — your CSS or Tailwind, your layout
+
+The renderer ships **unstyled** with stable class hooks (`.fw-field`, `.fw-group`, `.fw-error`,
+`.fw-switch`, …) — bring your own stylesheet. Or override per field, right in the schema, with
+any classes or **Tailwind utilities**:
+
+```jsonc
+{
+  "id": "email",
+  "type": "email",
+  "label": "Email",
+  "class": "md:col-span-2",
+  "classes": {
+    "field": "rounded-xl bg-slate-50 p-3",
+    "label": "text-sm font-medium text-slate-600",
+    "control": "w-full rounded-lg border px-3 py-2 focus:ring-2",
+    "error": "text-red-600 text-xs",
+  },
+}
+```
+
+`class` lands on the field wrapper; `classes` targets the wrapper, label, control, help,
+description, and error parts individually — so you control layout (grid spans, spacing) and look
+without touching the engine.
 
 ## Imperative API
 
@@ -210,11 +338,12 @@ form.destroy();
 
 ## Packages
 
-| Package                                                                  | Description                                 |
-| ------------------------------------------------------------------------ | ------------------------------------------- |
-| [`@formwright/schema`](https://www.npmjs.com/package/@formwright/schema) | Schema types + dependency-free validator    |
-| [`@formwright/core`](https://www.npmjs.com/package/@formwright/core)     | Signal reactivity + the `Form` class        |
-| [`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom)       | Surgical direct-DOM renderer + core widgets |
+| Package                                                                  | Description                                          |
+| ------------------------------------------------------------------------ | ---------------------------------------------------- |
+| [`@formwright/schema`](https://www.npmjs.com/package/@formwright/schema) | Schema types + dependency-free validator             |
+| [`@formwright/core`](https://www.npmjs.com/package/@formwright/core)     | Signal reactivity + the `Form` class                 |
+| [`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom)       | Surgical direct-DOM renderer + widget adapters       |
+| [`@formwright/ai`](https://www.npmjs.com/package/@formwright/ai)         | Generate a validated schema from English (any model) |
 
 ## Run the playground locally
 

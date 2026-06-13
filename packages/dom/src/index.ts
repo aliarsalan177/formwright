@@ -6,5 +6,14 @@ import { domRenderer } from "./render.js";
 setDefaultRenderer(domRenderer);
 
 export { mount, domRenderer } from "./render.js";
-export { registerWidget, getWidget, type WidgetFactory, type WidgetContext } from "./widgets.js";
+export {
+  registerWidget,
+  getWidget,
+  renderControl,
+  type Widget,
+  type WidgetFactory,
+  type WidgetSpec,
+  type WidgetBinding,
+  type WidgetContext,
+} from "./widgets.js";
 export { Scope, h } from "./internal.js";

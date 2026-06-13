@@ -104,6 +104,20 @@ describe("cross-scope conditions", () => {
     expect(rowAddress.visible.peek()).toBe(false);
   });
 
+  it("excludes hidden fields from the payload, including inside groups and rows", () => {
+    const form = new Form(schema, {
+      reuseBilling: true, // hides billingAddress.note and every row's `address`
+      billingAddress: { name: "Ada", city: "London", note: "secret" },
+      contacts: [{ name: "Grace", address: "1 St" }],
+    });
+    const values = form.values.peek();
+    expect(values.billingAddress).toEqual({ name: "Ada", city: "London" }); // note hidden → gone
+    const contacts = values.contacts as Array<Record<string, unknown>>;
+    // address hidden (reuseBilling) and company hidden (relation != colleague) → both gone;
+    // relation has no condition, so it stays (empty).
+    expect(contacts[0]).toEqual({ name: "Grace", relation: "" });
+  });
+
   it("a sibling condition inside a row resolves to that row's value", () => {
     const form = new Form(schema);
     const contacts = form.tree.find((n) => n.id === "contacts") as CollectionNode;

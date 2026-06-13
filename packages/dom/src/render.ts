@@ -17,7 +17,7 @@ import type {
 } from "@formwright/core";
 import { resolve } from "@formwright/core";
 import { bindHidden, bindText, h, on, Scope } from "./internal.js";
-import { getWidget } from "./widgets.js";
+import { renderControl } from "./widgets.js";
 
 /** Render any node (leaf, group, or collection) into a fresh wrapper element. */
 function renderNode(form: Form, node: FieldNode, scope: Scope): HTMLElement {
@@ -26,26 +26,37 @@ function renderNode(form: Form, node: FieldNode, scope: Scope): HTMLElement {
   return renderLeaf(form, node, scope);
 }
 
+/** Add space-separated class tokens (e.g. Tailwind utilities) to an element. */
+function addClass(el: HTMLElement, classes: string | undefined): void {
+  if (classes) for (const c of classes.split(/\s+/)) if (c) el.classList.add(c);
+}
+
 /** A single leaf field: label, control, help, and error — each surgically bound. */
 function renderLeaf(form: Form, field: FieldState, scope: Scope): HTMLElement {
   const providers = form.options.providers;
+  const cx = field.schema.classes;
   const wrapper = h("div", { class: "fw-field", "data-field": field.id });
+  addClass(wrapper, field.schema.class);
+  addClass(wrapper, cx?.field);
 
   const labelText = resolve(field.schema.label, providers);
   const isCheckLike = field.schema.type === "checkbox" || field.schema.type === "toggle";
   if (typeof labelText === "string" && !isCheckLike) {
     const label = h("label", { for: `fw-${field.id}` });
     label.textContent = labelText;
+    addClass(label, cx?.label);
     wrapper.appendChild(label);
   }
 
-  const control = getWidget(field.schema.type)({ form, field, scope });
+  const control = renderControl({ form, field, scope });
+  addClass(control, cx?.control);
   wrapper.appendChild(control);
 
   // Check-like controls (checkbox/toggle): label sits after the control.
   if (typeof labelText === "string" && isCheckLike) {
     const label = h("label", { for: `fw-${field.id}`, class: "fw-inline-label" });
     label.textContent = labelText;
+    addClass(label, cx?.label);
     wrapper.appendChild(label);
   }
 
@@ -53,10 +64,12 @@ function renderLeaf(form: Form, field: FieldState, scope: Scope): HTMLElement {
   if (typeof help === "string") {
     const helpEl = h("small", { class: "fw-help" });
     helpEl.textContent = help;
+    addClass(helpEl, cx?.help);
     wrapper.appendChild(helpEl);
   }
 
   const errorEl = h("p", { class: "fw-error", role: "alert" });
+  addClass(errorEl, cx?.error);
   bindText(scope, errorEl, () => field.error.get() ?? "");
   scope.bind(() => {
     errorEl.hidden = field.error.get() === null;

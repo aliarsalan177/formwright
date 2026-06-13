@@ -8,7 +8,10 @@
 import { Form, effect, type FormSchema } from "@formwright/core";
 import { validateSchema } from "@formwright/schema";
 import "@formwright/dom"; // registers the default DOM renderer
+import { defineComponents } from "./components.js"; // demo <fw-rating> web component
 import "./styles.css";
+
+defineComponents();
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -91,6 +94,15 @@ const CHECKOUT: FormSchema = {
       ],
     },
     { id: "agree", type: "toggle", label: "I accept the terms of service" },
+    // A custom Web Component (StencilJS-style) mapped straight from the schema,
+    // plus a custom CSS class on the wrapper (use Tailwind utilities here too).
+    {
+      id: "satisfaction",
+      type: "number",
+      label: "How satisfied are you?",
+      widget: { tag: "fw-rating", event: "rating-change", valueProp: "value" },
+      classes: { field: "demo-highlight" },
+    },
     {
       id: "promoCode",
       type: "text",

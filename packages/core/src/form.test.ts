@@ -109,10 +109,10 @@ describe("submission pipeline", () => {
       },
     );
     await form.submit();
+    // `state` is hidden (country != "US"), so it's excluded from the payload.
     expect(send.mock.calls[0]![0]).toEqual({
       email: "a@b.com",
       country: "",
-      state: "",
       source: "web",
     });
     expect(onSuccess).toHaveBeenCalledOnce();
