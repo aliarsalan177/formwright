@@ -1,0 +1,183 @@
+/* Theme / Settings Builder demo layout */
+.builder {
+  display: grid;
+  grid-template-columns: 200px 360px 1fr;
+  gap: 16px;
+  padding: 16px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .builder {
+    grid-template-columns: 1fr;
+  }
+}
+
+.builder-rail {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+.builder-rail h2,
+.builder-settings h2,
+.stage-title {
+  margin: 0 0 12px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.builder-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.builder-nav button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-weight: 500;
+}
+.builder-nav button .ico {
+  font-size: 16px;
+}
+.builder-nav button.active {
+  border-color: var(--accent);
+  background: rgba(110, 168, 254, 0.12);
+}
+.rail-note {
+  margin: 14px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.rail-note code {
+  color: var(--accent);
+}
+
+.builder-settings {
+  position: sticky;
+  top: 16px;
+}
+
+.builder-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* The rendered "store theme" preview */
+.builder-preview {
+  --t-accent: #6ea8fe;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  color: #111;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+.t-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #eee;
+}
+.t-logo {
+  font-size: 18px;
+  color: var(--t-accent);
+}
+.t-nav {
+  display: flex;
+  gap: 14px;
+  flex: 1;
+}
+.t-nav a {
+  color: #444;
+  text-decoration: none;
+  font-size: 14px;
+}
+.t-search {
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: #111;
+  background: #fafafa;
+}
+.t-hero {
+  padding: 48px 24px;
+  background: linear-gradient(135deg, var(--t-accent), #111);
+  color: #fff;
+}
+.t-hero h1 {
+  margin: 0 0 8px;
+  font-size: 30px;
+}
+.t-hero p {
+  margin: 0 0 18px;
+  opacity: 0.9;
+}
+.t-cta {
+  background: #fff;
+  color: #111;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 22px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.t-products {
+  padding: 24px;
+}
+.t-products h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+}
+.t-grid {
+  display: grid;
+  gap: 14px;
+}
+.t-card {
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 18px;
+  text-align: center;
+  background: #fafafa;
+}
+.t-emoji {
+  font-size: 40px;
+}
+.t-name {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.t-price {
+  color: var(--t-accent);
+  font-weight: 700;
+}
+.t-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 18px;
+  border-top: 1px solid #eee;
+  font-size: 13px;
+  color: #666;
+}
+.t-social {
+  letter-spacing: 4px;
+}
+
+.builder-payload-wrap summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted);
+}
