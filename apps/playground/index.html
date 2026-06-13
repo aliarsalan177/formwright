@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Formwright Playground — build forms from a schema in real time</title>
+    <meta
+      name="description"
+      content="Edit or generate a form schema and watch it render to real, surgically-updating DOM — then submit it and see the payload."
+    />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <strong>Formwright</strong>
+        <span class="tag">Playground</span>
+      </div>
+      <a class="repo" href="https://github.com/aliarsalan177/formwright" target="_blank" rel="noreferrer">
+        GitHub ↗
+      </a>
+    </header>
+
+    <main class="layout">
+      <!-- 1. Build / generate the schema -->
+      <section class="panel">
+        <h2>1 · Schema</h2>
+        <div class="builder">
+          <input id="b-id" placeholder="field id (e.g. email)" />
+          <input id="b-label" placeholder="label (e.g. Email)" />
+          <select id="b-type">
+            <option value="text">text</option>
+            <option value="email">email</option>
+            <option value="password">password</option>
+            <option value="number">number</option>
+            <option value="textarea">textarea</option>
+            <option value="checkbox">checkbox</option>
+            <option value="select">select</option>
+            <option value="radio">radio</option>
+          </select>
+          <label class="req"><input id="b-required" type="checkbox" /> required</label>
+          <button id="b-add" type="button">+ Add field</button>
+        </div>
+        <textarea id="schema" spellcheck="false" aria-label="Schema JSON"></textarea>
+        <p id="schema-status" class="status"></p>
+      </section>
+
+      <!-- 2. The live, working form -->
+      <section class="panel">
+        <h2>2 · Live form</h2>
+        <div id="form-host" class="form-host"></div>
+      </section>
+
+      <!-- 3. The result -->
+      <section class="panel">
+        <h2>3 · Result</h2>
+        <h3>Live values</h3>
+        <pre id="values" class="result"></pre>
+        <h3>Last submitted payload</h3>
+        <pre id="payload" class="result">— submit the form —</pre>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

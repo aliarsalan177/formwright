@@ -1,0 +1,122 @@
+/**
+ * Formwright schema types — the public, serializable contract.
+ *
+ * A schema is plain data: hand-written, version-controlled, or emitted by an LLM.
+ * Everything the runtime and the codegen compiler need is expressed here as data,
+ * never as code, so a schema can round-trip through JSON.
+ */
+
+/** Primitive value a form field can hold. */
+export type FieldValue = string | number | boolean | null | undefined | FieldValue[];
+
+/** A reference to a value provided by a registered provider, expressed as a sigil object. */
+export type ProviderRef =
+  | { readonly $t: string; readonly args?: Record<string, FieldValue> } // i18n
+  | { readonly $query: string | readonly [string, Record<string, unknown>?] } // data source
+  | { readonly $theme: string }; // theme token
+
+/** A value in the schema that may be a literal or resolved through a provider at runtime. */
+export type Resolvable<T> = T | ProviderRef;
+
+/**
+ * A condition expression evaluated against current form values.
+ *
+ * Intentionally a small, sandboxed JSONLogic-style algebra — it is *data*, never
+ * `eval`. `var` reads a field value; the rest compose comparisons and booleans.
+ */
+export type Condition =
+  | boolean
+  | { readonly var: string }
+  | { readonly "==": readonly [Condition, Condition] }
+  | { readonly "!=": readonly [Condition, Condition] }
+  | { readonly ">": readonly [Condition, Condition] }
+  | { readonly ">=": readonly [Condition, Condition] }
+  | { readonly "<": readonly [Condition, Condition] }
+  | { readonly "<=": readonly [Condition, Condition] }
+  | { readonly in: readonly [Condition, Condition] }
+  | { readonly not: Condition }
+  | { readonly and: readonly Condition[] }
+  | { readonly or: readonly Condition[] }
+  // a bare literal value (string/number/bool) used as an operand
+  | FieldValue;
+
+/** Built-in field widget kinds. Extensible: any string maps to a registered widget. */
+export type FieldType =
+  | "text"
+  | "number"
+  | "email"
+  | "password"
+  | "textarea"
+  | "select"
+  | "checkbox"
+  | "radio"
+  | (string & {});
+
+/** Validation descriptor — declarative, mapped to a Standard Schema validator at runtime. */
+export interface ValidationSchema {
+  readonly kind: "string" | "number" | "boolean" | "array";
+  readonly required?: boolean;
+  readonly min?: number;
+  readonly max?: number;
+  readonly minLength?: number;
+  readonly maxLength?: number;
+  readonly pattern?: string;
+  readonly format?: "email" | "url" | "uuid";
+  readonly message?: Resolvable<string>;
+}
+
+/** A selectable option for `select` / `radio` fields. */
+export interface FieldOption {
+  readonly label: Resolvable<string>;
+  readonly value: FieldValue;
+}
+
+/** A single field in the form. Resolved to a widget by `type`, keyed by `id`. */
+export interface FieldSchema {
+  readonly id: string;
+  readonly type: FieldType;
+  readonly label?: Resolvable<string>;
+  readonly placeholder?: Resolvable<string>;
+  readonly help?: Resolvable<string>;
+  readonly defaultValue?: FieldValue;
+  readonly options?: Resolvable<readonly FieldOption[]>;
+  readonly validation?: ValidationSchema;
+  /** Field is rendered only when this condition holds (default: always). */
+  readonly visibleWhen?: Condition;
+  /** Field is interactive only when this condition holds (default: always). */
+  readonly enabledWhen?: Condition;
+  /** Field is required only when this condition holds (overrides validation.required). */
+  readonly requiredWhen?: Condition;
+  /** Arbitrary widget-specific config, passed through to the renderer. */
+  readonly props?: Record<string, unknown>;
+}
+
+/** Declares a provider the form depends on, resolved by the host at runtime. */
+export interface ProviderDecl {
+  readonly type: "i18n" | "tanstack-query" | "theme" | (string & {});
+  readonly [key: string]: unknown;
+}
+
+/** How the form submits: transform the payload, send it, handle success/error. */
+export interface SubmitSchema {
+  /** Name of a registered transform applied to values before sending. */
+  readonly transform?: string;
+  readonly endpoint?: {
+    readonly method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+    readonly url: string;
+  };
+  /** Name of a registered success handler. */
+  readonly onSuccess?: string;
+  /** Name of a registered error handler. */
+  readonly onError?: string;
+}
+
+/** The root form schema. */
+export interface FormSchema {
+  readonly id: string;
+  readonly version: string;
+  readonly title?: Resolvable<string>;
+  readonly providers?: Record<string, ProviderDecl>;
+  readonly fields: readonly FieldSchema[];
+  readonly submit?: SubmitSchema;
+}

@@ -1,0 +1,30 @@
+# Ignore cursor AI rules
+.cursor/rules/codacy.mdc
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+cache/
+.turbo/
+.changeset/
+*.tsbuildinfo
+
+# Turbo
+.turbo/
+
+# Coverage / test
+coverage/
+*.log
+
+# Editor / OS
+.DS_Store
+.idea/
+*.local
+
+# Env
+.env
+.env.*
+!.env.example

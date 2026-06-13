@@ -1,0 +1,40 @@
+{
+  "name": "@formwright/core",
+  "version": "0.0.0",
+  "description": "Signal-reactive core and the Form class for Formwright.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./reactive": {
+      "types": "./dist/reactive.d.ts",
+      "import": "./dist/reactive.js",
+      "require": "./dist/reactive.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@formwright/schema": "workspace:*",
+    "alien-signals": "^1.0.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

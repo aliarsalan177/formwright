@@ -1,0 +1,41 @@
+{
+  "name": "@formwright/dom",
+  "version": "0.0.0",
+  "description": "Surgical, virtual-DOM-free renderer and core widgets for Formwright.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "./dist/index.js",
+    "./dist/index.cjs"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@formwright/core": "workspace:*",
+    "@formwright/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
