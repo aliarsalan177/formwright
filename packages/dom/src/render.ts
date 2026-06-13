@@ -15,7 +15,7 @@ import type {
   FormRenderer,
   GroupNode,
 } from "@formwright/core";
-import { resolve } from "@formwright/core";
+import { isPresentational, resolve } from "@formwright/core";
 import { bindHidden, bindText, h, on, Scope } from "./internal.js";
 import { renderControl } from "./widgets.js";
 
@@ -23,12 +23,41 @@ import { renderControl } from "./widgets.js";
 function renderNode(form: Form, node: FieldNode, scope: Scope): HTMLElement {
   if (node.kind === "group") return renderGroup(form, node, scope);
   if (node.kind === "collection") return renderCollection(form, node, scope);
+  if (isPresentational(node.schema.type)) return renderPresentational(form, node, scope);
   return renderLeaf(form, node, scope);
 }
 
 /** Add space-separated class tokens (e.g. Tailwind utilities) to an element. */
 function addClass(el: HTMLElement, classes: string | undefined): void {
   if (classes) for (const c of classes.split(/\s+/)) if (c) el.classList.add(c);
+}
+
+/** Static, payload-free content: a section heading, a divider, or a paragraph. */
+function renderPresentational(form: Form, field: FieldState, scope: Scope): HTMLElement {
+  const providers = form.options.providers;
+  const type = field.schema.type;
+  const text = resolve(field.schema.content ?? field.schema.label, providers);
+  let el: HTMLElement;
+  if (type === "separator") {
+    el = h("hr", { class: "fw-separator", "data-field": field.id });
+  } else if (type === "heading") {
+    el = h("h3", { class: "fw-heading", "data-field": field.id });
+    el.textContent = typeof text === "string" ? text : "";
+  } else {
+    el = h("p", { class: "fw-paragraph", "data-field": field.id });
+    el.textContent = typeof text === "string" ? text : "";
+  }
+  addClass(el, field.schema.class);
+  addClass(el, field.schema.classes?.field);
+  bindHidden(scope, el, () => !field.visible.get());
+  return el;
+}
+
+/** A small info icon carrying a tooltip, placed next to a field's label. */
+function tooltipIcon(text: string): HTMLElement {
+  const icon = h("span", { class: "fw-tooltip", role: "img", "aria-label": text, title: text });
+  icon.textContent = "ⓘ";
+  return icon;
 }
 
 /** A single leaf field: label, control, help, and error — each surgically bound. */
@@ -40,11 +69,13 @@ function renderLeaf(form: Form, field: FieldState, scope: Scope): HTMLElement {
   addClass(wrapper, cx?.field);
 
   const labelText = resolve(field.schema.label, providers);
+  const tip = resolve(field.schema.tooltip, providers);
   const isCheckLike = field.schema.type === "checkbox" || field.schema.type === "toggle";
   if (typeof labelText === "string" && !isCheckLike) {
     const label = h("label", { for: `fw-${field.id}` });
     label.textContent = labelText;
     addClass(label, cx?.label);
+    if (typeof tip === "string") label.append(" ", tooltipIcon(tip));
     wrapper.appendChild(label);
   }
 
@@ -57,6 +88,7 @@ function renderLeaf(form: Form, field: FieldState, scope: Scope): HTMLElement {
     const label = h("label", { for: `fw-${field.id}`, class: "fw-inline-label" });
     label.textContent = labelText;
     addClass(label, cx?.label);
+    if (typeof tip === "string") label.append(" ", tooltipIcon(tip));
     wrapper.appendChild(label);
   }
 
@@ -214,6 +246,78 @@ function renderRow(
   return row;
 }
 
+/** A dismissible error summary shown at the top of the form on a failed submit. */
+function renderAlert(form: Form, scope: Scope): HTMLElement {
+  const alert = h("div", { class: "fw-alert", role: "alert", hidden: "" });
+  const body = h("div", { class: "fw-alert-body" });
+  const close = h("button", { type: "button", class: "fw-alert-close", "aria-label": "Dismiss" });
+  close.textContent = "×";
+  alert.append(body, close);
+  alert.hidden = true;
+  alert.style.display = "none";
+
+  const show = (message: string) => {
+    body.textContent = message;
+    alert.hidden = false;
+    alert.style.display = "";
+  };
+  const hide = () => {
+    alert.hidden = true;
+    alert.style.display = "none";
+  };
+  on(scope, close, "click", hide);
+  scope.add(form.on("error", (err) => show(errorMessage(err))));
+  scope.add(form.on("success", hide));
+  return alert;
+}
+
+/** Human-readable summary of a submission error. */
+function errorMessage(err: unknown): string {
+  const errors = (err as { errors?: Record<string, string | null> })?.errors;
+  if (errors) {
+    const messages = Object.values(errors).filter((m): m is string => !!m);
+    return messages.length
+      ? `Please fix ${messages.length} field${messages.length === 1 ? "" : "s"}: ${messages.join("; ")}`
+      : "Please fix the errors above.";
+  }
+  return err instanceof Error ? err.message : "Something went wrong. Please try again.";
+}
+
+/** Render the configurable action buttons (or a single default Submit). */
+function renderActions(form: Form, scope: Scope): HTMLElement {
+  const bar = h("div", { class: "fw-actions" });
+  const providers = form.options.providers;
+  const actions = form.schema.actions;
+
+  if (!actions || actions.length === 0) {
+    const submit = h("button", { type: "submit", class: "fw-submit" });
+    submit.textContent = "Submit";
+    scope.bind(() => {
+      submit.disabled = form.isSubmitting.get();
+      submit.textContent = form.isSubmitting.get() ? "Submitting…" : "Submit";
+    });
+    bar.appendChild(submit);
+    return bar;
+  }
+
+  for (const def of actions) {
+    const role = def.role ?? "button";
+    const btn = h("button", { type: role === "submit" ? "submit" : "button", class: "fw-action" });
+    if (def.variant) btn.classList.add(`fw-action-${def.variant}`);
+    const label = resolve(def.label, providers);
+    btn.textContent = typeof label === "string" ? label : def.name;
+    if (role === "submit") {
+      scope.bind(() => (btn.disabled = form.isSubmitting.get()));
+    } else if (role === "reset") {
+      on(scope, btn, "click", () => form.reset());
+    } else {
+      on(scope, btn, "click", () => form.action(def.name));
+    }
+    bar.appendChild(btn);
+  }
+  return bar;
+}
+
 /** Mount a form into `host`. Returns a disposer that removes the form and tears down bindings. */
 export function mount(form: Form, host: Element): Dispose {
   const scope = new Scope();
@@ -226,20 +330,14 @@ export function mount(form: Form, host: Element): Dispose {
     formEl.appendChild(heading);
   }
 
+  formEl.appendChild(renderAlert(form, scope));
   for (const node of form.tree) formEl.appendChild(renderNode(form, node, scope));
-
-  const submitBtn = h("button", { type: "submit", class: "fw-submit" });
-  submitBtn.textContent = "Submit";
-  scope.bind(() => {
-    submitBtn.disabled = form.isSubmitting.get();
-    submitBtn.textContent = form.isSubmitting.get() ? "Submitting…" : "Submit";
-  });
-  formEl.appendChild(submitBtn);
+  formEl.appendChild(renderActions(form, scope));
 
   on(scope, formEl, "submit", (ev) => {
     ev.preventDefault();
     void form.submit().catch(() => {
-      /* error surfaced via field errors + the form's "error" event */
+      /* error surfaced via field errors + the form's "error" event + the alert */
     });
   });
 

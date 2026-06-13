@@ -10,7 +10,12 @@
  * delegates to a registered renderer (e.g. `@formwright/dom`), so the same
  * instance can drive the DOM, a web component, or a framework adapter.
  */
-import { parseSchema, type FieldValue, type FormSchema } from "@formwright/schema";
+import {
+  parseSchema,
+  type FieldSchema,
+  type FieldValue,
+  type FormSchema,
+} from "@formwright/schema";
 import { batch, computed, signal, untrack, type Dispose, type ReadSignal } from "./reactive.js";
 import { FieldState } from "./model.js";
 import {
@@ -27,6 +32,11 @@ import type { Providers } from "./providers.js";
 /** Form values — nested for `group` (object) and `collection` (array) fields. */
 export type FormValues = Record<string, unknown>;
 export type FormErrors = Record<string, string | null>;
+
+/** The outcome of {@link Form.submit} — resolved for both success and failure. */
+export type SubmitResult =
+  | { readonly ok: true; readonly data: unknown }
+  | { readonly ok: false; readonly error: unknown; readonly errors?: FormErrors };
 
 /** A transform applied to values before submission. */
 export type Transform = (values: FormValues, form: Form) => unknown;
@@ -47,7 +57,7 @@ export interface FormRenderer {
   mount(form: Form, host: Element): Dispose;
 }
 
-type EventName = "submit" | "success" | "error" | "change";
+type EventName = "submit" | "success" | "error" | "change" | "action";
 type Listener = (payload: unknown) => void;
 
 let defaultRenderer: FormRenderer | null = null;
@@ -89,10 +99,14 @@ export class Form {
     this.options = options;
     this.initialValues = initialValues;
 
-    const tree = buildTree(this.schema.fields, initialValues);
+    // Expand `localized` fields into per-locale groups → payload `{ en, ar }`.
+    const fields = this.schema.locales?.length
+      ? expandLocalized(this.schema.fields, this.schema.locales)
+      : this.schema.fields;
+    const tree = buildTree(fields, initialValues);
     this.tree = tree.nodes;
     this.rootByName = tree.byName;
-    this.order = this.schema.fields.map((f) => f.id);
+    this.order = fields.map((f) => f.id);
 
     this.values = computed(() => collectTree(this.tree));
     this.initialSnapshot = JSON.stringify(untrack(() => this.values.peek()));
@@ -166,29 +180,39 @@ export class Form {
     });
   }
 
-  /** Run the submission pipeline: validate → transform → send → onSuccess/onError. */
-  async submit(): Promise<unknown> {
+  /**
+   * Run the submission pipeline: validate → transform → send → onSuccess/onError.
+   * Pass an inline `transform` to shape the final payload, e.g.
+   * `form.submit((values) => ({ ...values, source: "web" }))`.
+   *
+   * Always **resolves** with a {@link SubmitResult} — never throws — so you can
+   * handle both outcomes from the API in one place:
+   * `const res = await form.submit(); res.ok ? res.data : res.error`.
+   */
+  async submit(transform?: (values: FormValues, form: Form) => unknown): Promise<SubmitResult> {
     if (!this.validate()) {
-      const error = new FormValidationError(this.collectErrors());
+      const errors = this.collectErrors();
+      const error = new FormValidationError(errors);
       this.runErrorHandler(error);
       this.emit("error", error);
-      throw error;
+      return { ok: false, error, errors };
     }
 
     this.submitting.set(true);
     const values = untrack(() => this.values.peek());
-    const payload = this.applyTransform(values);
+    const named = this.applyTransform(values);
+    const payload = transform ? transform(named as FormValues, this) : named;
     this.emit("submit", payload);
 
     try {
-      const result = await this.send(payload);
-      this.runSuccessHandler(result);
-      this.emit("success", result);
-      return result;
+      const data = await this.send(payload);
+      this.runSuccessHandler(data);
+      this.emit("success", data);
+      return { ok: true, data };
     } catch (error) {
       this.runErrorHandler(error);
       this.emit("error", error);
-      throw error;
+      return { ok: false, error };
     } finally {
       this.submitting.set(false);
     }
@@ -198,6 +222,14 @@ export class Form {
     batch(() => {
       resetNodes(this.tree, values as Record<string, unknown>);
     });
+  }
+
+  /** Trigger a named form action: runs its handler (from options) and emits "action". */
+  action(name: string): void {
+    const def = this.schema.actions?.find((a) => a.name === name);
+    const handler = def?.handler ? this.options.handlers?.[def.handler] : undefined;
+    (handler as ((form: Form) => void) | undefined)?.(this);
+    this.emit("action", { name });
   }
 
   /** Mount into a host element using the given renderer (or the registered default). */
@@ -289,6 +321,41 @@ export class FormValidationError extends Error {
 /** Aggregate the tree into a nested values object (subscribes to all values). */
 function collectTree(tree: readonly FieldNode[]): FormValues {
   return collectValues(tree) as FormValues;
+}
+
+/**
+ * Rewrite each `localized` field into a group with one child per locale, so its
+ * value becomes `{ en: …, ar: … }`. Recurses into groups/collections. Pure data.
+ */
+function expandLocalized(
+  fields: readonly FieldSchema[],
+  locales: readonly string[],
+): readonly FieldSchema[] {
+  return fields.map((f): FieldSchema => {
+    if (f.localized) {
+      const leafType = f.type === "group" || f.type === "collection" ? "text" : f.type;
+      const child = (loc: string): FieldSchema => {
+        const c: Record<string, unknown> = { id: loc, type: leafType, label: loc };
+        if (f.placeholder !== undefined) c["placeholder"] = f.placeholder;
+        if (f.validation !== undefined) c["validation"] = f.validation;
+        if (f.options !== undefined) c["options"] = f.options;
+        if (f.widget !== undefined) c["widget"] = f.widget;
+        if (f.tooltip !== undefined) c["tooltip"] = f.tooltip;
+        return c as unknown as FieldSchema;
+      };
+      const group: Record<string, unknown> = {
+        id: f.id,
+        type: "group",
+        fields: locales.map(child),
+      };
+      for (const key of ["label", "visibleWhen", "enabledWhen", "class", "classes"] as const) {
+        if (f[key] !== undefined) group[key] = f[key];
+      }
+      return group as unknown as FieldSchema;
+    }
+    if (f.fields) return { ...f, fields: expandLocalized(f.fields, locales) };
+    return f;
+  });
 }
 
 /** Flatten all leaf fields, keyed by dotted path (`group.child`, `coll.0.child`). */

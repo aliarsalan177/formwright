@@ -12,6 +12,7 @@ export type {
   FieldSchema,
   ProviderDecl,
   SubmitSchema,
+  FormAction,
   FormSchema,
 } from "./types.js";
 

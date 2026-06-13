@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Form } from "@formwright/core";
 import type { FormSchema } from "@formwright/core";
 import { mount, registerWidget } from "./index.js";
@@ -120,5 +120,67 @@ describe("widget adapters", () => {
     const input = host.querySelector("input[type='file']") as HTMLInputElement;
     expect(input).toBeTruthy();
     expect(input.accept).toBe("image/*");
+  });
+});
+
+describe("authoring elements", () => {
+  it("renders presentational heading / separator / paragraph and a tooltip", () => {
+    const { host } = setup({
+      id: "f",
+      version: "1.0",
+      fields: [
+        { id: "h", type: "heading", label: "Contact" },
+        { id: "hr", type: "separator" },
+        { id: "p", type: "paragraph", content: "We never share your email." },
+        { id: "email", type: "email", label: "Email", tooltip: "Use your work email" },
+      ],
+    });
+    expect((host.querySelector("h3.fw-heading") as HTMLElement).textContent).toBe("Contact");
+    expect(host.querySelector("hr.fw-separator")).toBeTruthy();
+    expect((host.querySelector("p.fw-paragraph") as HTMLElement).textContent).toBe(
+      "We never share your email.",
+    );
+    const tip = host.querySelector(".fw-tooltip") as HTMLElement;
+    expect(tip.getAttribute("title")).toBe("Use your work email");
+  });
+
+  it("renders configurable action buttons and fires a custom action", () => {
+    const onDelete = vi.fn();
+    const host = document.createElement("div");
+    const form = new Form(
+      {
+        id: "f",
+        version: "1.0",
+        fields: [{ id: "name", type: "text" }],
+        actions: [
+          { name: "save", role: "submit", label: "Save" },
+          { name: "delete", role: "button", variant: "danger", label: "Delete", handler: "rm" },
+        ],
+      },
+      {},
+      { handlers: { rm: onDelete } },
+    );
+    mount(form, host);
+    const buttons = host.querySelectorAll(".fw-action");
+    expect(buttons.length).toBe(2);
+    const del = host.querySelector(".fw-action-danger") as HTMLButtonElement;
+    del.click();
+    expect(onDelete).toHaveBeenCalledOnce();
+  });
+
+  it("shows a dismissible error alert when submit fails validation", async () => {
+    const host = document.createElement("div");
+    const form = new Form({
+      id: "f",
+      version: "1.0",
+      fields: [{ id: "email", type: "email", validation: { kind: "string", required: true } }],
+    });
+    mount(form, host);
+    const alert = host.querySelector(".fw-alert") as HTMLElement;
+    expect(alert.hidden).toBe(true);
+    await form.submit().catch(() => undefined);
+    expect(alert.hidden).toBe(false);
+    (host.querySelector(".fw-alert-close") as HTMLButtonElement).click();
+    expect(alert.hidden).toBe(true);
   });
 });
