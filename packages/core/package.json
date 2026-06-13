@@ -31,8 +31,7 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@formwright/schema": "workspace:*",
-    "alien-signals": "^1.0.4"
+    "@formwright/schema": "workspace:*"
   },
   "publishConfig": {
     "access": "public"
