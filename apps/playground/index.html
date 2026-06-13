@@ -24,6 +24,13 @@
       <!-- 1. Build / generate the schema -->
       <section class="panel">
         <h2>1 · Schema</h2>
+        <div class="examples">
+          <label for="example">Example</label>
+          <select id="example">
+            <option value="checkout">Checkout — group + collection + conditions</option>
+            <option value="signup">Sign up — simple conditional form</option>
+          </select>
+        </div>
         <div class="builder">
           <input id="b-id" placeholder="field id (e.g. email)" />
           <input id="b-label" placeholder="label (e.g. Email)" />
@@ -34,6 +41,7 @@
             <option value="number">number</option>
             <option value="textarea">textarea</option>
             <option value="checkbox">checkbox</option>
+            <option value="toggle">toggle</option>
             <option value="select">select</option>
             <option value="radio">radio</option>
           </select>

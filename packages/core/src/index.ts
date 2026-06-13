@@ -30,7 +30,18 @@ export {
 } from "./providers.js";
 
 // Model
-export { FieldState } from "./model.js";
+export { FieldState, defaultValueFor } from "./model.js";
+
+// Nested node tree
+export {
+  GroupNode,
+  CollectionNode,
+  buildTree,
+  eachLeaf,
+  type FieldNode,
+  type CollectionItem,
+  type Scope,
+} from "./nodes.js";
 
 // Form
 export {
