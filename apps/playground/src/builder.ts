@@ -98,8 +98,18 @@ const SECTIONS: readonly Section[] = [
             { label: "On sale", value: "sale" },
           ],
         },
-        { id: "columns", type: "number", label: "Columns", validation: { kind: "number", min: 1, max: 4 } },
-        { id: "count", type: "number", label: "How many", validation: { kind: "number", min: 1, max: 8 } },
+        {
+          id: "columns",
+          type: "number",
+          label: "Columns",
+          validation: { kind: "number", min: 1, max: 4 },
+        },
+        {
+          id: "count",
+          type: "number",
+          label: "How many",
+          validation: { kind: "number", min: 1, max: 8 },
+        },
       ],
     },
   },
@@ -123,11 +133,21 @@ type Values = Record<string, unknown>;
 
 // The theme's current settings — this is the "payload" that drives the preview.
 const settings: Record<SectionId, Values> = {
-  header: { logo: "ACME", accent: "#6ea8fe", showSearch: true, nav: [
-    { label: "Shop", url: "/shop" },
-    { label: "About", url: "/about" },
-  ] },
-  hero: { heading: "Summer Sale", subheading: "Up to 50% off everything.", cta: "Shop now", align: "center" },
+  header: {
+    logo: "ACME",
+    accent: "#6ea8fe",
+    showSearch: true,
+    nav: [
+      { label: "Shop", url: "/shop" },
+      { label: "About", url: "/about" },
+    ],
+  },
+  hero: {
+    heading: "Summer Sale",
+    subheading: "Up to 50% off everything.",
+    cta: "Shop now",
+    align: "center",
+  },
   products: { title: "Featured products", source: "featured", columns: 3, count: 6 },
   footer: { text: "© 2026 ACME, Inc. All rights reserved.", showSocial: true },
 };
@@ -184,7 +204,10 @@ function renderNav(): void {
 }
 
 function esc(v: unknown): string {
-  return String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+  return String(v ?? "").replace(
+    /[&<>"]/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!,
+  );
 }
 
 function renderPreview(): void {
@@ -200,7 +223,10 @@ function renderPreview(): void {
   const source = String(p["source"] ?? "featured");
   const count = Math.max(1, Number(p["count"]) || 6);
   const columns = Math.min(4, Math.max(1, Number(p["columns"]) || 3));
-  const items = MOCK_PRODUCTS.filter((x) => source === "featured" || x.tag === source).slice(0, count);
+  const items = MOCK_PRODUCTS.filter((x) => source === "featured" || x.tag === source).slice(
+    0,
+    count,
+  );
   const productsHtml = items
     .map(
       (x) => `<div class="t-card"><div class="t-emoji">${x.emoji}</div>

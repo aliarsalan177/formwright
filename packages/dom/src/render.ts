@@ -60,37 +60,103 @@ function tooltipIcon(text: string): HTMLElement {
   return icon;
 }
 
-/** A single leaf field: label, control, help, and error — each surgically bound. */
+/** Build the label element (with optional tooltip icon) for a field. */
+function buildLabel(
+  form: Form,
+  field: FieldState,
+  inline: boolean,
+): HTMLElement | null {
+  const labelText = resolve(field.schema.label, form.options.providers);
+  if (typeof labelText !== "string") return null;
+  const label = h("label", inline ? { for: `fw-${field.id}`, class: "fw-inline-label" } : { for: `fw-${field.id}` });
+  label.textContent = labelText;
+  addClass(label, field.schema.classes?.label);
+  const tip = resolve(field.schema.tooltip, form.options.providers);
+  if (typeof tip === "string") label.append(" ", tooltipIcon(tip));
+  return label;
+}
+
+/** Wrap a control with decorative prefix/suffix slots (icons, currency symbols, …). */
+function withSlots(form: Form, field: FieldState, control: HTMLElement): HTMLElement {
+  const slots = field.schema.slots;
+  if (!slots || (!slots.start && !slots.end)) return control;
+  const group = h("div", { class: "fw-input-group" });
+  const affix = (slot: unknown, side: string) => {
+    if (typeof slot === "string") {
+      const span = h("span", { class: `fw-affix fw-affix-${side}` });
+      span.textContent = resolveString(slot, form) ?? slot;
+      group.appendChild(span);
+    }
+  };
+  affix(slots.start, "start");
+  group.appendChild(control);
+  affix(slots.end, "end");
+  return group;
+}
+
+function resolveString(v: unknown, form: Form): string | undefined {
+  const r = resolve(v as never, form.options.providers);
+  return typeof r === "string" ? r : undefined;
+}
+
+/** A single leaf field. The wrapper persists; its inner content re-renders when the
+ *  field's schema is patched at runtime (`form.setFieldSchema` / `form.patch`). */
 function renderLeaf(form: Form, field: FieldState, scope: Scope): HTMLElement {
-  const providers = form.options.providers;
-  const cx = field.schema.classes;
   const wrapper = h("div", { class: "fw-field", "data-field": field.id });
   addClass(wrapper, field.schema.class);
-  addClass(wrapper, cx?.field);
+  addClass(wrapper, field.schema.classes?.field);
 
-  const labelText = resolve(field.schema.label, providers);
-  const tip = resolve(field.schema.tooltip, providers);
+  let inner: Scope | null = null;
+  scope.bind(() => {
+    field.revision.get(); // re-render on runtime schema patch (e.g. select → text)
+    inner?.dispose();
+    inner = new Scope();
+    wrapper.replaceChildren();
+    renderLeafContent(form, field, inner, wrapper);
+  });
+  scope.add(() => inner?.dispose());
+
+  bindHidden(scope, wrapper, () => !field.visible.get());
+  return wrapper;
+}
+
+/** Build a leaf field's inner content (label, control, help, error) into `wrapper`. */
+function renderLeafContent(form: Form, field: FieldState, scope: Scope, wrapper: HTMLElement): void {
+  const providers = form.options.providers;
+  const cx = field.schema.classes;
+
   const isCheckLike = field.schema.type === "checkbox" || field.schema.type === "toggle";
-  if (typeof labelText === "string" && !isCheckLike) {
-    const label = h("label", { for: `fw-${field.id}` });
-    label.textContent = labelText;
-    addClass(label, cx?.label);
-    if (typeof tip === "string") label.append(" ", tooltipIcon(tip));
+  const labelStart = field.schema.labelPosition === "start";
+
+  // Description, positioned relative to the label or the field.
+  const descText = resolve(field.schema.description, providers);
+  const descEl =
+    typeof descText === "string"
+      ? (() => {
+          const d = h("small", { class: "fw-description" });
+          d.textContent = descText;
+          addClass(d, cx?.description);
+          return d;
+        })()
+      : null;
+  const descBelowField = field.schema.descriptionPosition === "below-field";
+
+  // Label first (non-check fields, or check-like with labelPosition: "start").
+  const label = buildLabel(form, field, isCheckLike);
+  if (label && (!isCheckLike || labelStart)) {
+    if (isCheckLike && labelStart) wrapper.classList.add("fw-field-between");
     wrapper.appendChild(label);
   }
+  if (descEl && !descBelowField) wrapper.appendChild(descEl);
 
-  const control = renderControl({ form, field, scope });
+  const control = withSlots(form, field, renderControl({ form, field, scope }));
   addClass(control, cx?.control);
   wrapper.appendChild(control);
 
-  // Check-like controls (checkbox/toggle): label sits after the control.
-  if (typeof labelText === "string" && isCheckLike) {
-    const label = h("label", { for: `fw-${field.id}`, class: "fw-inline-label" });
-    label.textContent = labelText;
-    addClass(label, cx?.label);
-    if (typeof tip === "string") label.append(" ", tooltipIcon(tip));
-    wrapper.appendChild(label);
-  }
+  // Check-like controls (checkbox/toggle): label sits after the control by default.
+  if (label && isCheckLike && !labelStart) wrapper.appendChild(label);
+
+  if (descEl && descBelowField) wrapper.appendChild(descEl);
 
   const help = resolve(field.schema.help, providers);
   if (typeof help === "string") {
@@ -108,9 +174,6 @@ function renderLeaf(form: Form, field: FieldState, scope: Scope): HTMLElement {
     wrapper.classList.toggle("fw-invalid", field.error.get() !== null);
   });
   wrapper.appendChild(errorEl);
-
-  bindHidden(scope, wrapper, () => !field.visible.get());
-  return wrapper;
 }
 
 /** Render the inner fields of a group/row into a host, returning their wrappers. */
