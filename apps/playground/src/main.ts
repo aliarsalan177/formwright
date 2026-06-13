@@ -135,7 +135,8 @@ function addField(): void {
 
   const field: Record<string, unknown> = { id, type };
   if (label) field["label"] = label;
-  if (required) field["validation"] = { kind: type === "number" ? "number" : "string", required: true };
+  if (required)
+    field["validation"] = { kind: type === "number" ? "number" : "string", required: true };
   if (type === "select" || type === "radio") {
     field["options"] = [
       { label: "Option A", value: "a" },
