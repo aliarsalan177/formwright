@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "description": "Surgical, virtual-DOM-free renderer and core widgets for Formwright.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aliarsalan177/formwright.git",
+    "directory": "packages/dom"
+  },
+  "homepage": "https://github.com/aliarsalan177/formwright#readme",
+  "bugs": "https://github.com/aliarsalan177/formwright/issues",
   "type": "module",
   "sideEffects": [
     "./dist/index.js",

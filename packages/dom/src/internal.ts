@@ -42,10 +42,17 @@ export function bindText(scope: Scope, node: Node, fn: () => string): void {
   });
 }
 
-/** Reactively toggle the `hidden` attribute. */
+/**
+ * Reactively hide/show an element. Sets both the `hidden` attribute (semantics,
+ * a11y) and inline `display` — the latter guards against app CSS that puts a
+ * `display` rule on the wrapper, which would otherwise out-specify `[hidden]`
+ * and leave a conditional field visible when it should be hidden.
+ */
 export function bindHidden(scope: Scope, el: HTMLElement, isHidden: () => boolean): void {
   scope.bind(() => {
-    el.hidden = isHidden();
+    const hidden = isHidden();
+    el.hidden = hidden;
+    el.style.display = hidden ? "none" : "";
   });
 }
 
