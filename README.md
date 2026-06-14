@@ -22,7 +22,7 @@ library, conditional-logic library, and per-framework bindings.
 
 ## What makes it powerful
 
-- **Generate from natural language** — describe a form in plain English and get a validated
+- **Generate from natural language** — describe a form in plain language (any language) and get a validated
   schema, with any model (Claude, GPT, Gemini, local). A built-in validate-and-repair loop
   guarantees the output renders.
 - **Bring your own UI** — map any field to a React, Vue, Svelte, or any-framework component, a
@@ -62,7 +62,7 @@ One schema, one engine — no add-on libraries required:
   `submit(transform)`, configurable **submit/reset/delete action buttons**, and server-error
   mapping.
 - **Smart payload** — nested output, hidden and `omit` fields automatically excluded.
-- **AI-native** — `@formwright/ai` turns English into a validated schema with **any** model.
+- **AI-native** — `@formwright/ai` turns a description in any language into a validated schema with **any** model.
 
 ## Why Formwright
 
@@ -244,11 +244,12 @@ Declarative rules — `required`, `min`/`max`, `minLength`/`maxLength`, `pattern
 `format: "email" | "url" | "uuid"` — or bring any Standard-Schema validator (Zod / Valibot /
 ArkType). Errors surface in **real time, field by field**, as the user types.
 
-## Generate a form from English — with any model
+## Generate a form from natural language — with any model
 
-`@formwright/ai` turns a description into a **validated** schema. It's provider-agnostic:
-Claude by default, GPT via your OpenAI client, or anything else through a small adapter. A
-built-in validate→repair loop feeds errors back to the model until the schema renders.
+`@formwright/ai` turns a description in **any language** into a **validated** schema. It's
+provider-agnostic: Claude by default, GPT via your OpenAI client, or anything else through a
+small adapter. A built-in validate→repair loop feeds errors back to the model until the schema
+renders.
 
 ```ts
 import { generateSchema, openaiProvider } from "@formwright/ai";
@@ -370,15 +371,15 @@ form.destroy();
 
 ## Packages
 
-| Package                                                                  | Description                                          |
-| ------------------------------------------------------------------------ | ---------------------------------------------------- | ---------------- |
-| Package                                                                  | Description                                          | Size (min+gzip)  |
-| ------------------------------------------------------------------------ | ---------------------------------------------------- | ---------------- |
-| [`@formwright/schema`](https://www.npmjs.com/package/@formwright/schema) | Schema types + dependency-free validator             | ~1.2 KB          |
-| [`@formwright/core`](https://www.npmjs.com/package/@formwright/core)     | Signal reactivity + the `Form` class                 | ~5.8 KB          |
-| [`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom)       | Surgical direct-DOM renderer + widget adapters       | ~4.8 KB          |
-| [`@formwright/ai`](https://www.npmjs.com/package/@formwright/ai)         | Generate a validated schema from English (any model) | optional, server |
-| **Full runtime** (`schema` + `core` + `dom`)                             | Everything above to render & submit a form           | **~12 KB**       |
+| Package                                                                  | Description                                                   |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------- | ---------------- |
+| Package                                                                  | Description                                                   | Size (min+gzip)  |
+| ------------------------------------------------------------------------ | ----------------------------------------------------          | ---------------- |
+| [`@formwright/schema`](https://www.npmjs.com/package/@formwright/schema) | Schema types + dependency-free validator                      | ~1.2 KB          |
+| [`@formwright/core`](https://www.npmjs.com/package/@formwright/core)     | Signal reactivity + the `Form` class                          | ~5.8 KB          |
+| [`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom)       | Surgical direct-DOM renderer + widget adapters                | ~4.8 KB          |
+| [`@formwright/ai`](https://www.npmjs.com/package/@formwright/ai)         | Generate a validated schema from a description (any language) | optional, server |
+| **Full runtime** (`schema` + `core` + `dom`)                             | Everything above to render & submit a form                    | **~12 KB**       |
 
 **Zero runtime dependencies.** Tree-shakeable subpath exports — pull only what you use. Ships
 ESM + CJS + types, and works straight from a CDN (`esm.sh`) with no build step. For comparison,
@@ -414,7 +415,7 @@ pnpm + Turborepo monorepo; releases automated with
 - `@formwright/wc` web component + `@formwright/react` / `/vue` adapters
 - `@formwright/codegen` — compile a schema to idiomatic React / Vue / HTML source
 - First-party providers (i18n, TanStack Query, theming)
-- `@formwright/ai` — describe a form in English → validated schema
+- `@formwright/ai` — describe a form in any language → validated schema
 
 ## License
 

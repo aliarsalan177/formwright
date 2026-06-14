@@ -15,7 +15,7 @@ import type {
   FormRenderer,
   GroupNode,
 } from "@formwright/core";
-import { isPresentational, resolve } from "@formwright/core";
+import { isPresentational, resolve, signal } from "@formwright/core";
 import { bindHidden, bindText, h, on, Scope } from "./internal.js";
 import { renderControl } from "./widgets.js";
 
@@ -190,8 +190,69 @@ function renderFields(
   for (const child of nodes) host.appendChild(renderNode(form, child, scope));
 }
 
+const RTL_LOCALES = new Set(["ar", "he", "fa", "ur", "ps", "sd", "yi", "dv", "ckb"]);
+
+/** A `localized` field: one input bound to the active locale, with a language switcher. */
+function renderLocalized(form: Form, group: GroupNode, scope: Scope): HTMLElement {
+  const providers = form.options.providers;
+  const locales = group.children.map((c) => c.id);
+  const def = group.schema.defaultLocale;
+  const startLocale = def && locales.includes(def) ? def : (locales[0] ?? "");
+  const rtlOverride = form.schema.rtlLocales;
+  const isRtl = (loc: string) =>
+    rtlOverride ? rtlOverride.includes(loc) : RTL_LOCALES.has(loc.split("-")[0]!);
+
+  const wrapper = h("div", { class: "fw-field fw-localized", "data-field": group.id });
+  addClass(wrapper, group.schema.class);
+  const label = buildLabel(form, group as unknown as FieldState, false);
+  if (label) wrapper.appendChild(label);
+
+  const row = h("div", { class: "fw-input-group fw-localized-row" });
+  const controlHost = h("div", { class: "fw-localized-control" });
+  const switcher = h("div", { class: "fw-lang-switch", role: "tablist" });
+  row.append(controlHost, switcher);
+  wrapper.appendChild(row);
+
+  const active = signal(startLocale);
+
+  // Language switcher buttons (the "slot" at the end of the input).
+  for (const loc of locales) {
+    const tab = h("button", { type: "button", class: "fw-lang-tab", "data-loc": loc });
+    tab.textContent = loc.toUpperCase();
+    on(scope, tab, "click", () => active.set(loc));
+    switcher.appendChild(tab);
+  }
+  scope.bind(() => {
+    const loc = active.get();
+    for (const tab of switcher.children) {
+      (tab as HTMLElement).classList.toggle("active", (tab as HTMLElement).dataset["loc"] === loc);
+    }
+  });
+
+  // Re-render the single control whenever the active locale changes.
+  let inner: Scope | null = null;
+  scope.bind(() => {
+    const loc = active.get();
+    inner?.dispose();
+    inner = new Scope();
+    controlHost.replaceChildren();
+    const child = group.byName.get(loc);
+    if (child && child.kind === "field") {
+      const control = renderControl({ form, field: child, scope: inner });
+      control.setAttribute("dir", isRtl(loc) ? "rtl" : "ltr");
+      controlHost.appendChild(control);
+    }
+  });
+  scope.add(() => inner?.dispose());
+
+  bindHidden(scope, wrapper, () => !group.visible.get());
+  return wrapper;
+}
+
 /** A `group` object: a titled section (fieldset or accordion) of nested fields. */
 function renderGroup(form: Form, group: GroupNode, scope: Scope): HTMLElement {
+  if (group.schema.localized) return renderLocalized(form, group, scope);
+
   const providers = form.options.providers;
   const title = resolve(group.schema.label, providers);
 
@@ -352,7 +413,8 @@ function errorMessage(err: unknown): string {
 
 /** Render the configurable action buttons (or a single default Submit). */
 function renderActions(form: Form, scope: Scope): HTMLElement {
-  const bar = h("div", { class: "fw-actions" });
+  const align = form.schema.actionsAlign ?? "start";
+  const bar = h("div", { class: `fw-actions fw-actions-${align}` });
   const providers = form.options.providers;
   const actions = form.schema.actions;
 
@@ -371,6 +433,7 @@ function renderActions(form: Form, scope: Scope): HTMLElement {
     const role = def.role ?? "button";
     const btn = h("button", { type: role === "submit" ? "submit" : "button", class: "fw-action" });
     if (def.variant) btn.classList.add(`fw-action-${def.variant}`);
+    if (def.fullWidth) btn.classList.add("fw-action-block");
     const label = resolve(def.label, providers);
     btn.textContent = typeof label === "string" ? label : def.name;
     if (role === "submit") {

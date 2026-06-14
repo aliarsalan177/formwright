@@ -184,6 +184,61 @@ describe("authoring elements", () => {
     expect(host.querySelector("[data-field='state'] input[type='text']")).toBeTruthy();
   });
 
+  it("renders a drag-and-drop file uploader (multiple + accept)", () => {
+    const { host } = setup({
+      id: "f",
+      version: "1.0",
+      fields: [{ id: "gallery", type: "file", props: { multiple: true, accept: "image/*" } }],
+    });
+    const zone = host.querySelector(".fw-dropzone") as HTMLElement;
+    expect(zone).toBeTruthy();
+    const input = zone.querySelector("input[type='file']") as HTMLInputElement;
+    expect(input.multiple).toBe(true);
+    expect(input.accept).toBe("image/*");
+    expect(zone.querySelector(".fw-file-previews")).toBeTruthy();
+  });
+
+  it("renders a localized field as one input + a language switcher with RTL", () => {
+    const { host, form } = setup({
+      id: "f",
+      version: "1.0",
+      locales: ["en", "ar"],
+      fields: [{ id: "name", type: "text", localized: true, label: "Name", defaultLocale: "ar" }],
+    });
+    const wrap = host.querySelector(".fw-localized") as HTMLElement;
+    expect(wrap).toBeTruthy();
+    const tabs = wrap.querySelectorAll(".fw-lang-tab");
+    expect(tabs.length).toBe(2);
+    // defaultLocale "ar" is active and RTL.
+    const control = wrap.querySelector(".fw-localized-control input") as HTMLInputElement;
+    expect(control.getAttribute("dir")).toBe("rtl");
+    control.value = "بوابة";
+    control.dispatchEvent(new Event("input"));
+    expect((form.values.peek().name as Record<string, unknown>).ar).toBe("بوابة");
+    // Switch to English → LTR.
+    (wrap.querySelector(".fw-lang-tab[data-loc='en']") as HTMLButtonElement).click();
+    expect(
+      (wrap.querySelector(".fw-localized-control input") as HTMLElement).getAttribute("dir"),
+    ).toBe("ltr");
+  });
+
+  it("aligns action buttons and supports full-width", () => {
+    const host = document.createElement("div");
+    const form = new Form({
+      id: "f",
+      version: "1.0",
+      fields: [{ id: "name", type: "text" }],
+      actionsAlign: "between",
+      actions: [
+        { name: "save", role: "submit", label: "Save", fullWidth: true },
+        { name: "del", role: "button", label: "Delete", variant: "danger" },
+      ],
+    });
+    mount(form, host);
+    expect(host.querySelector(".fw-actions.fw-actions-between")).toBeTruthy();
+    expect(host.querySelector(".fw-action.fw-action-block")).toBeTruthy();
+  });
+
   it("shows a dismissible error alert when submit fails validation", async () => {
     const host = document.createElement("div");
     const form = new Form({

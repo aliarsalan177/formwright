@@ -284,27 +284,92 @@ registerWidget("select", (ctx) => {
 
 // Native file input. The payload gets the file name(s) by default (serializable);
 // override with a custom `mount` widget to store a File, base64, or upload result.
+// File uploader with drag-and-drop, type filtering, multiple/single, and thumbnail
+// previews. The payload gets file name(s) by default (serializable); override with a
+// custom `mount` widget to store File objects, base64, or an upload result.
 registerWidget("file", (ctx) => {
   const { form, field, scope } = ctx;
+  const props = field.schema.props ?? {};
+  const multiple = props["multiple"] === true;
+  const accept = typeof props["accept"] === "string" ? props["accept"] : undefined;
+
+  const zone = document.createElement("div");
+  zone.className = "fw-dropzone";
+
   const input = document.createElement("input");
   input.type = "file";
+  input.className = "fw-file-input";
   input.id = commonId(field);
   input.name = field.id;
-  const props = field.schema.props ?? {};
-  if (typeof props["accept"] === "string") input.accept = props["accept"];
-  const multiple = props["multiple"] === true;
   input.multiple = multiple;
-  on(scope, input, "change", () => {
-    const files = input.files;
-    if (!files || files.length === 0) {
+  if (accept) input.accept = accept;
+
+  const prompt = document.createElement("div");
+  prompt.className = "fw-dropzone-prompt";
+  prompt.innerHTML = `<span class="fw-dropzone-icon">⬆</span><span>Drag ${
+    multiple ? "files" : "a file"
+  } here, or <strong>browse</strong></span>${
+    accept ? `<small class="fw-dropzone-hint">${accept}</small>` : ""
+  }`;
+
+  const previews = document.createElement("div");
+  previews.className = "fw-file-previews";
+  zone.append(input, prompt, previews);
+
+  function renderPreviews(list: readonly File[]): void {
+    previews.replaceChildren();
+    for (const f of list) {
+      const chip = document.createElement("div");
+      chip.className = "fw-file-chip";
+      if (f.type.startsWith("image/")) {
+        const img = document.createElement("img");
+        img.className = "fw-file-thumb";
+        img.src = URL.createObjectURL(f);
+        img.addEventListener("load", () => URL.revokeObjectURL(img.src));
+        chip.appendChild(img);
+      } else {
+        const ic = document.createElement("span");
+        ic.className = "fw-file-icon";
+        ic.textContent = "📄";
+        chip.appendChild(ic);
+      }
+      const name = document.createElement("span");
+      name.className = "fw-file-name";
+      name.textContent = f.name;
+      chip.appendChild(name);
+      previews.appendChild(chip);
+    }
+  }
+
+  function setFiles(files: FileList | null): void {
+    const list = files ? Array.from(files) : [];
+    if (list.length === 0) {
       form.setFieldValue(field, undefined);
+      previews.replaceChildren();
       return;
     }
-    const names = Array.from(files).map((f) => f.name);
+    const names = list.map((f) => f.name);
     form.setFieldValue(field, multiple ? (names as FieldValue) : names[0]!);
+    renderPreviews(list);
+  }
+
+  on(scope, input, "change", () => setFiles(input.files));
+  on(scope, zone, "dragover", (e) => {
+    e.preventDefault();
+    zone.classList.add("fw-dragover");
+  });
+  on(scope, zone, "dragleave", () => zone.classList.remove("fw-dragover"));
+  on(scope, zone, "drop", (e) => {
+    e.preventDefault();
+    zone.classList.remove("fw-dragover");
+    const dt = (e as DragEvent).dataTransfer;
+    if (dt?.files?.length) {
+      input.files = dt.files;
+      setFiles(dt.files);
+    }
   });
   bindDisabled(scope, input, () => !field.enabled.get());
-  return input;
+  return zone;
 });
 
 registerWidget("radio", (ctx) => {

@@ -143,9 +143,12 @@ export interface FieldSchema {
   readonly tooltip?: Resolvable<string>;
   /**
    * Capture a value per locale → payload `{ en: "...", ar: "..." }`. Requires
-   * the form's `locales`. Reshape to `translations: { en: {...} }` in submit if needed.
+   * the form's `locales`. Renders as one input with a language switcher; reshape to
+   * `translations: { en: {...} }` in submit if needed.
    */
   readonly localized?: boolean;
+  /** The locale shown first for a `localized` field (default: the form's first locale). */
+  readonly defaultLocale?: string;
   /** Longer descriptive text, positioned by {@link descriptionPosition}. */
   readonly description?: Resolvable<string>;
   /** Where to render `description` (default `"below-label"`). */
@@ -208,6 +211,8 @@ export interface FormAction {
   /** `"submit"` triggers submission, `"reset"` resets, `"button"` (default) emits an action event. */
   readonly role?: "submit" | "reset" | "button";
   readonly variant?: "primary" | "secondary" | "danger";
+  /** Render this button full-width (stretches to fill the action bar). */
+  readonly fullWidth?: boolean;
   /** Name of a handler in `options.handlers`, called with the form on click. */
   readonly handler?: string;
 }
@@ -236,6 +241,10 @@ export interface FormSchema {
   readonly submit?: SubmitSchema;
   /** Locales for `localized` fields — each captures a value per locale. */
   readonly locales?: readonly string[];
+  /** Locales rendered right-to-left (defaults to the common RTL set: ar, he, fa, ur, …). */
+  readonly rtlLocales?: readonly string[];
   /** Action buttons rendered at the bottom of the form (defaults to a single Submit). */
   readonly actions?: readonly FormAction[];
+  /** How action buttons are aligned: `"start"` (default), `"end"`, or `"between"`. */
+  readonly actionsAlign?: "start" | "end" | "between";
 }
