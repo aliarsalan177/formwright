@@ -358,9 +358,21 @@ function expandLocalized(
       const group: Record<string, unknown> = {
         id: f.id,
         type: "group",
+        // Keep the `localized` flag so the renderer shows ONE input + a language
+        // switcher (instead of one input per locale). Value stays `{ en, ar }`.
+        localized: true,
         fields: locales.map(child),
       };
-      for (const key of ["label", "visibleWhen", "enabledWhen", "class", "classes"] as const) {
+      if (f.defaultLocale !== undefined) group["defaultLocale"] = f.defaultLocale;
+      for (const key of [
+        "label",
+        "visibleWhen",
+        "enabledWhen",
+        "class",
+        "classes",
+        "help",
+        "tooltip",
+      ] as const) {
         if (f[key] !== undefined) group[key] = f[key];
       }
       return group as unknown as FieldSchema;
