@@ -76,7 +76,7 @@ export function getWidget(type: string): Widget {
 }
 
 function commonId(field: FieldState): string {
-  return `fw-${field.id}`;
+  return field.domId; // globally unique (collection rows reuse `field.id`)
 }
 
 /** Resolve and build a field's control, honoring a per-field `widget` override. */
@@ -193,8 +193,24 @@ function textWidget(ctx: WidgetContext, type: string): HTMLElement {
   input.name = ctx.field.id;
   const placeholder = resolve(ctx.field.schema.placeholder, ctx.form.options.providers);
   if (typeof placeholder === "string") input.placeholder = placeholder;
+  // Autocomplete: explicit token, else a sensible default per type (a11y).
+  input.setAttribute(
+    "autocomplete",
+    ctx.field.schema.autocomplete ?? defaultAutocomplete(ctx.field.schema.type),
+  );
   wireInput(ctx, input);
   return input;
+}
+
+function defaultAutocomplete(type: string): string {
+  switch (type) {
+    case "email":
+      return "email";
+    case "password":
+      return "current-password";
+    default:
+      return "on";
+  }
 }
 
 function resolveOptions(ctx: WidgetContext): readonly FieldOption[] {
@@ -213,6 +229,48 @@ registerWidget("text", (ctx) => textWidget(ctx, "text"));
 registerWidget("email", (ctx) => textWidget(ctx, "email"));
 registerWidget("password", (ctx) => textWidget(ctx, "password"));
 registerWidget("number", (ctx) => textWidget(ctx, "number"));
+// Native date / time pickers.
+registerWidget("date", (ctx) => textWidget(ctx, "date"));
+registerWidget("time", (ctx) => textWidget(ctx, "time"));
+registerWidget("datetime", (ctx) => textWidget(ctx, "datetime-local"));
+
+// A from/to range, with or without time (`props.time: true`). Value: `{ from, to }`.
+registerWidget("daterange", (ctx) => {
+  const { form, field, scope } = ctx;
+  const withTime = field.schema.props?.["time"] === true;
+  const type = withTime ? "datetime-local" : "date";
+  const group = document.createElement("div");
+  group.className = "fw-input-group fw-daterange";
+
+  const from = document.createElement("input");
+  from.type = type;
+  from.id = commonId(field);
+  from.setAttribute("autocomplete", "off");
+  const to = document.createElement("input");
+  to.type = type;
+  to.setAttribute("autocomplete", "off");
+  const sep = document.createElement("span");
+  sep.className = "fw-slot fw-range-sep";
+  sep.textContent = "→";
+
+  scope.bind(() => {
+    const v = field.value.get() as { from?: string; to?: string } | undefined;
+    from.value = v?.from ?? "";
+    to.value = v?.to ?? "";
+  });
+  const commit = () =>
+    form.setFieldValue(field, {
+      from: from.value || undefined,
+      to: to.value || undefined,
+    } as unknown as FieldValue);
+  on(scope, from, "input", commit);
+  on(scope, to, "input", commit);
+  bindDisabled(scope, from, () => !field.enabled.get());
+  bindDisabled(scope, to, () => !field.enabled.get());
+
+  group.append(from, sep, to);
+  return group;
+});
 
 registerWidget("textarea", (ctx) => {
   const ta = document.createElement("textarea");

@@ -32,6 +32,12 @@ function addClass(el: HTMLElement, classes: string | undefined): void {
   if (classes) for (const c of classes.split(/\s+/)) if (c) el.classList.add(c);
 }
 
+/** Apply a field's grid column span (for side-by-side layouts). */
+function applyColSpan(el: HTMLElement, field: FieldState | GroupNode | CollectionNode): void {
+  const span = field.schema.colSpan;
+  if (typeof span === "number") el.style.gridColumn = `span ${span}`;
+}
+
 /** Static, payload-free content: a section heading, a divider, or a paragraph. */
 function renderPresentational(form: Form, field: FieldState, scope: Scope): HTMLElement {
   const providers = form.options.providers;
@@ -49,6 +55,7 @@ function renderPresentational(form: Form, field: FieldState, scope: Scope): HTML
   }
   addClass(el, field.schema.class);
   addClass(el, field.schema.classes?.field);
+  applyColSpan(el, field);
   bindHidden(scope, el, () => !field.visible.get());
   return el;
 }
@@ -60,16 +67,35 @@ function tooltipIcon(text: string): HTMLElement {
   return icon;
 }
 
-/** Build the label element (with optional tooltip icon) for a field. */
-function buildLabel(form: Form, field: FieldState, inline: boolean): HTMLElement | null {
+/** Build the label element (with a required marker + optional tooltip) for a field. */
+function buildLabel(
+  form: Form,
+  field: FieldState,
+  inline: boolean,
+  scope?: Scope,
+): HTMLElement | null {
   const labelText = resolve(field.schema.label, form.options.providers);
   if (typeof labelText !== "string") return null;
-  const label = h(
-    "label",
-    inline ? { for: `fw-${field.id}`, class: "fw-inline-label" } : { for: `fw-${field.id}` },
-  );
-  label.textContent = labelText;
+  const forId = field.domId ?? `fw-${field.id}`;
+  const label = h("label", inline ? { for: forId, class: "fw-inline-label" } : { for: forId });
+  const text = document.createElement("span");
+  text.textContent = labelText;
+  label.appendChild(text);
   addClass(label, field.schema.classes?.label);
+
+  // Reactive "required" marker — only on fields that can be required (keeps other
+  // labels' text clean), and reflects `requiredWhen`.
+  const canRequire =
+    field.schema.validation?.required === true || field.schema.requiredWhen !== undefined;
+  if (scope && field.required && canRequire) {
+    const req = h("span", { class: "fw-required", "aria-hidden": "true" });
+    req.textContent = "*";
+    scope.bind(() => {
+      req.hidden = !field.required.get();
+    });
+    label.append(" ", req);
+  }
+
   const tip = resolve(field.schema.tooltip, form.options.providers);
   if (typeof tip === "string") label.append(" ", tooltipIcon(tip));
   return label;
@@ -104,6 +130,7 @@ function renderLeaf(form: Form, field: FieldState, scope: Scope): HTMLElement {
   const wrapper = h("div", { class: "fw-field", "data-field": field.id });
   addClass(wrapper, field.schema.class);
   addClass(wrapper, field.schema.classes?.field);
+  applyColSpan(wrapper, field);
 
   let inner: Scope | null = null;
   scope.bind(() => {
@@ -146,7 +173,7 @@ function renderLeafContent(
       : null;
   const descBelowField = field.schema.descriptionPosition === "below-field";
 
-  const label = buildLabel(form, field, isCheckLike && !between);
+  const label = buildLabel(form, field, isCheckLike && !between, scope);
   const control = withSlots(form, field, renderControl({ form, field, scope }));
   addClass(control, cx?.control);
 
@@ -210,7 +237,8 @@ function renderLocalized(form: Form, group: GroupNode, scope: Scope): HTMLElemen
 
   const wrapper = h("div", { class: "fw-field fw-localized", "data-field": group.id });
   addClass(wrapper, group.schema.class);
-  const label = buildLabel(form, group as unknown as FieldState, false);
+  applyColSpan(wrapper, group);
+  const label = buildLabel(form, group as unknown as FieldState, false, scope);
   if (label) wrapper.appendChild(label);
 
   // One unified control: the input + a language dropdown rendered INSIDE it.
@@ -265,6 +293,7 @@ function renderGroup(form: Form, group: GroupNode, scope: Scope): HTMLElement {
       "data-field": group.id,
       open: "",
     });
+    applyColSpan(details, group);
     const summary = h("summary", { class: "fw-accordion-head" });
     summary.textContent = typeof title === "string" ? title : group.id;
     details.appendChild(summary);
@@ -276,6 +305,7 @@ function renderGroup(form: Form, group: GroupNode, scope: Scope): HTMLElement {
   }
 
   const fieldset = h("fieldset", { class: "fw-group", "data-field": group.id });
+  applyColSpan(fieldset, group);
   if (typeof title === "string") {
     const legend = h("legend", { class: "fw-legend" });
     legend.textContent = title;
@@ -294,6 +324,7 @@ function renderCollection(form: Form, collection: CollectionNode, scope: Scope):
     class: `fw-collection fw-collection-${layout}`,
     "data-field": collection.id,
   });
+  applyColSpan(wrapper, collection);
 
   const title = resolve(collection.schema.label, providers);
   if (typeof title === "string") {

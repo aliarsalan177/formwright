@@ -93,7 +93,10 @@ export function defineIconPicker(icons: readonly string[] = DEFAULT_ICONS): void
 
       const pop = document.createElement("div");
       pop.className = "fw-iconpick-pop";
-      pop.hidden = true;
+      // Toggle via inline display so a `display` CSS rule can't override `[hidden]`.
+      const setOpen = (open: boolean) => (pop.style.display = open ? "grid" : "none");
+      setOpen(false);
+
       for (const ic of icons) {
         const cell = document.createElement("button");
         cell.type = "button";
@@ -101,20 +104,20 @@ export function defineIconPicker(icons: readonly string[] = DEFAULT_ICONS): void
         cell.textContent = ic;
         cell.addEventListener("click", () => {
           b.setValue(ic);
-          pop.hidden = true;
+          setOpen(false);
         });
         pop.appendChild(cell);
       }
 
       trigger.addEventListener("click", (e) => {
         e.stopPropagation();
-        pop.hidden = !pop.hidden;
+        setOpen(pop.style.display === "none");
       });
       b.onValue((v) => (trigger.textContent = typeof v === "string" && v ? v : "＋"));
 
       // Close when clicking anywhere outside the picker.
       const onDocClick = (e: MouseEvent) => {
-        if (!host.contains(e.target as Node)) pop.hidden = true;
+        if (!host.contains(e.target as Node)) setOpen(false);
       };
       document.addEventListener("click", onDocClick);
 

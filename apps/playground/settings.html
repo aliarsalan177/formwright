@@ -6,7 +6,7 @@
     <title>Formwright — Settings Builder</title>
     <meta
       name="description"
-      content="An iPad-style settings app built from Formwright: a sidebar of sections, each rendering its settings schema as a form, with nested groups and static data."
+      content="An iOS-style settings app built from Formwright: a sidebar of sections, drill-down sub-sections, per-field save endpoints, and a complete payload."
     />
   </head>
   <body>
@@ -19,25 +19,29 @@
     </header>
 
     <main class="settings">
-      <!-- Sidebar of sections (could load from your settings API) -->
+      <!-- Top-level sections (could load from your settings API) -->
       <aside class="settings-rail">
         <div class="settings-search">Settings</div>
         <div id="settings-nav" class="settings-nav"></div>
       </aside>
 
-      <!-- The selected section's settings, rendered as a Formwright form -->
+      <!-- The current section: breadcrumb/back, its form, and drill-down sub-sections -->
       <section class="settings-detail">
+        <div id="settings-head" class="settings-head"></div>
         <div id="settings-panel" class="form-host"></div>
+        <div id="settings-children" class="settings-children"></div>
       </section>
 
-      <!-- The settings payload for the active section -->
+      <!-- Per-field saves (each toggle PATCHes its own endpoint) + the complete payload -->
       <aside class="settings-side">
-        <h2>Payload</h2>
+        <h2>Save activity</h2>
+        <pre id="settings-saves" class="result"></pre>
+        <h2 style="margin-top: 16px">Section payload</h2>
         <pre id="settings-payload" class="result"></pre>
         <p class="settings-note">
-          Each section is a Formwright form. Its schema can load from an API or be generated with
-          <code>@formwright/ai</code>; changes bind to this payload (or a per-section save
-          endpoint).
+          Each change PATCHes its own endpoint
+          (<code>/api/settings/&lt;path&gt;/&lt;field&gt;</code>);
+          <strong>Save all</strong> PUTs the complete section payload.
         </p>
       </aside>
     </main>

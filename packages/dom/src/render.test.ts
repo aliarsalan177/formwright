@@ -44,7 +44,12 @@ describe("mount", () => {
     const { host } = setup();
     expect(host.querySelector(".fw-title")?.textContent).toBe("Sign up");
     expect(host.querySelectorAll(".fw-field").length).toBe(3);
-    expect(host.querySelector("label[for='fw-email']")?.textContent).toBe("Email");
+    // label (text span) is associated with the (uniquely-id'd) email input.
+    const emailInput = host.querySelector("input[type='email']") as HTMLInputElement;
+    const emailLabel = host.querySelector("[data-field='email'] label") as HTMLLabelElement;
+    expect((emailLabel.querySelector("span") as HTMLElement).textContent).toBe("Email");
+    expect(emailLabel.htmlFor).toBe(emailInput.id);
+    expect(emailInput.id).toBeTruthy();
     expect(host.querySelector("input[type='email']")).toBeTruthy();
     // 2 options + a leading empty placeholder.
     expect(host.querySelector("select[name='country']")?.children.length).toBe(3);
