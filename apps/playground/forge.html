@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Formwright Forge — visual form builder</title>
+  </head>
+  <body>
+    <header class="forge-top">
+      <div class="forge-brand">
+        <strong>Formwright Forge</strong>
+        <span>Drag fields onto the canvas — the schema and live form build themselves.</span>
+      </div>
+      <nav class="forge-nav">
+        <a href="./index.html">Playground</a>
+        <a href="./builder.html">Theme</a>
+        <a href="./settings.html">Settings</a>
+        <button id="forge-clear" type="button" class="forge-ghost">Clear</button>
+        <button id="forge-export" type="button" class="forge-primary">Export schema</button>
+      </nav>
+    </header>
+
+    <main class="forge">
+      <!-- Palette: draggable field types -->
+      <aside class="forge-palette" id="forge-palette" aria-label="Field palette"></aside>
+
+      <!-- Canvas: drop target + ordered field cards -->
+      <section class="forge-canvas-wrap">
+        <div class="forge-canvas-head">
+          <h2>Canvas</h2>
+          <p>Drag to reorder · click to edit · toggle ½ for side-by-side</p>
+        </div>
+        <div class="forge-canvas" id="forge-canvas"></div>
+      </section>
+
+      <!-- Right rail: inspector + live preview + schema -->
+      <aside class="forge-rail">
+        <div class="forge-tabs" role="tablist">
+          <button class="forge-tab is-active" data-tab="inspect" type="button">Inspector</button>
+          <button class="forge-tab" data-tab="preview" type="button">Live preview</button>
+          <button class="forge-tab" data-tab="schema" type="button">Schema</button>
+        </div>
+        <div class="forge-panel" id="forge-inspect" data-panel="inspect"></div>
+        <div class="forge-panel form-host" id="forge-preview" data-panel="preview" hidden></div>
+        <div class="forge-panel" id="forge-schema" data-panel="schema" hidden>
+          <pre id="forge-schema-json"></pre>
+        </div>
+      </aside>
+    </main>
+
+    <script type="module" src="/src/forge.ts"></script>
+  </body>
+</html>

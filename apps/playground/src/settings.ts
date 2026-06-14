@@ -173,6 +173,13 @@ const SECTIONS: readonly Section[] = [
           ],
         },
         { id: "accent", type: "color", label: "Accent color", placeholder: "#6ea8fe" },
+        {
+          id: "brightness",
+          type: "range",
+          label: "Brightness",
+          labelPosition: "start",
+          props: { min: 0, max: 100, unit: "%" },
+        },
         { id: "reduceMotion", type: "toggle", label: "Reduce motion", labelPosition: "start" },
       ],
     },
@@ -246,7 +253,7 @@ const values: Record<string, Record<string, unknown>> = {
   about: { autoUpdate: true, channel: "stable" },
   legal: { analytics: false },
   datetime: { auto: true, h24: false },
-  appearance: { theme: "dark", accent: "#6ea8fe", reduceMotion: false },
+  appearance: { theme: "dark", accent: "#6ea8fe", brightness: 80, reduceMotion: false },
   notifications: { digest: true, mentions: true, push: false, frequency: "daily" },
   security: { twofa: true, timeout: 30 },
 };
@@ -262,6 +269,9 @@ const payloadEl = $<HTMLPreElement>("settings-payload");
 let currentForm: Form | null = null;
 let path: Section[] = [];
 const saveLog: string[] = [];
+// iOS-style instant apply (each change persists immediately, no Save button) vs.
+// a manual "review & save" flow (changes buffer until you press Save all).
+let instantApply = true;
 
 function pushSave(line: string): void {
   saveLog.unshift(line);
@@ -278,51 +288,91 @@ function open(section: Section, stack: Section[]): void {
   panelEl.replaceChildren();
   childrenEl.replaceChildren();
 
-  // Header: back button + breadcrumb + Save all
+  // iOS-style nav bar: a leading Back button (chevron + parent title), a
+  // centered title, and a trailing mode switch.
   headEl.replaceChildren();
-  const crumb = document.createElement("div");
-  crumb.className = "settings-crumb";
+  const bar = document.createElement("div");
+  bar.className = "settings-navbar";
+
+  const lead = document.createElement("div");
+  lead.className = "settings-navbar-lead";
   if (path.length > 1) {
     const back = document.createElement("button");
     back.type = "button";
     back.className = "settings-back";
-    back.textContent = `‹ ${path[path.length - 2]!.title}`;
+    back.innerHTML = `<span class="settings-back-chev" aria-hidden="true">‹</span><span>${path[path.length - 2]!.title}</span>`;
     back.addEventListener("click", () => open(path[path.length - 2]!, path.slice(0, -1)));
-    crumb.appendChild(back);
+    lead.appendChild(back);
   }
+  bar.appendChild(lead);
+
   const title = document.createElement("h2");
   title.className = "settings-title";
   title.textContent = section.title;
-  crumb.appendChild(title);
-  headEl.appendChild(crumb);
+  bar.appendChild(title);
+
+  // Trailing segmented control: Instant vs Manual save.
+  const seg = document.createElement("div");
+  seg.className = "settings-seg";
+  for (const [label, instant] of [
+    ["Instant", true],
+    ["Save", false],
+  ] as const) {
+    const opt = document.createElement("button");
+    opt.type = "button";
+    opt.className = "settings-seg-opt" + (instantApply === instant ? " is-on" : "");
+    opt.textContent = label;
+    opt.title = instant
+      ? "Apply each change immediately (iOS-style)"
+      : "Buffer changes until you press Save all";
+    opt.addEventListener("click", () => {
+      if (instantApply === instant) return;
+      instantApply = instant;
+      open(section, stack); // re-render in the new mode
+    });
+    seg.appendChild(opt);
+  }
+  bar.appendChild(seg);
+  headEl.appendChild(bar);
 
   if (section.schema) {
     const sectionPath = pathString();
-    const form = new Form(section.schema, values[section.id], {
+    // `actions: []` suppresses the renderer's default Submit button — settings
+    // apply instantly or via our own "Save all" control below, never both.
+    const form = new Form({ ...section.schema, actions: [] }, values[section.id], {
       // "Save all" — PUT the complete section payload.
       send: async (payload) => {
         pushSave(`PUT  /api/settings/${sectionPath}  ←  ${JSON.stringify(payload)}`);
         return payload;
       },
     });
-    // Per-field save — each change PATCHes its own endpoint.
     form.on("change", (p) => {
       const { id, value } = p as { id: string; value: unknown };
       values[section.id] = form.values.peek() as Record<string, unknown>;
-      pushSave(`PATCH /api/settings/${sectionPath}/${id}  ←  ${JSON.stringify(value)}`);
       payloadEl.textContent = JSON.stringify({ [section.id]: values[section.id] }, null, 2);
+      // Instant mode: each change PATCHes its own endpoint right away. Manual
+      // mode: changes only update the local payload until you press Save all.
+      if (instantApply) {
+        pushSave(`PATCH /api/settings/${sectionPath}/${id}  ←  ${JSON.stringify(value)}`);
+      }
     });
     form.mount(panelEl);
     currentForm = form;
     payloadEl.textContent = JSON.stringify({ [section.id]: values[section.id] }, null, 2);
 
-    // "Save all" button under the form.
-    const saveAll = document.createElement("button");
-    saveAll.type = "button";
-    saveAll.className = "settings-saveall";
-    saveAll.textContent = "Save all";
-    saveAll.addEventListener("click", () => void form.submit());
-    panelEl.appendChild(saveAll);
+    if (instantApply) {
+      const note = document.createElement("p");
+      note.className = "settings-instant-note";
+      note.textContent = "Changes apply instantly.";
+      panelEl.appendChild(note);
+    } else {
+      const saveAll = document.createElement("button");
+      saveAll.type = "button";
+      saveAll.className = "settings-saveall";
+      saveAll.textContent = "Save all";
+      saveAll.addEventListener("click", () => void form.submit());
+      panelEl.appendChild(saveAll);
+    }
   }
 
   // Drill-down rows for sub-sections.

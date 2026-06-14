@@ -42,26 +42,36 @@ library, conditional-logic library, and per-framework bindings.
 One schema, one engine — no add-on libraries required:
 
 - **Fields** — text, email, password, number, textarea, select, radio, checkbox, **toggle**,
-  native **file** upload, nested **group** (object), repeatable **collection** (array,
-  add/remove, `min`/`max`), plus any custom type.
-- **Authoring elements** — `heading`, `separator`, `paragraph`, per-field **tooltips**, and a
-  dismissible **top-of-form error alert** — enough to build forms in a Shopify/Magento-style
-  editor.
+  **color** (swatch + hex), **range** (slider with live value bubble),
+  **date / time / datetime / daterange** (with or without time), drag-and-drop **file** upload
+  (multi/single, accept, thumbnails), nested **group** (object), repeatable **collection**
+  (array, add/remove, `min`/`max`), plus any custom type.
+- **Authoring & layout** — `heading`, `separator`, `paragraph`, per-field **tooltips** and
+  `description`, **required marker** next to the label, side-by-side fields via **`colSpan`**,
+  in-input **slots** (start/end), iPad-style **`labelPosition: "start"`** rows, and a dismissible
+  **top-of-form error alert** — enough to build forms in a Shopify/Magento-style editor.
 - **Conditional logic as data** — `visibleWhen` / `enabledWhen` / `requiredWhen` with a
   sandboxed JSONLogic algebra (`==`,`>`,`in`,`and`,`or`,`not`,`var`), resolved **lexically**
   across groups and collection rows.
-- **Validation** — declarative rules + formats, **real-time field-by-field** as you type, or
-  any Standard-Schema validator (Zod/Valibot/ArkType).
+- **Validation** — declarative rules + formats, **real-time field-by-field** as you type, with
+  **per-rule message overrides** (`validation.messages`).
+- **Runtime patching** — `form.setFieldSchema(id, partial)` / `form.patch(...)` re-render fields
+  in place (swap type, options, validation) without rebuilding the form.
 - **Bring-your-own UI** — map any field to a **React/Vue/Svelte/any** component, a custom
   element, or a native tag, with `toValue`/`fromValue` transformers — straight from the schema.
 - **Styling** — unstyled with stable hooks; override any part with your CSS or **Tailwind**
   utilities (`class` + `classes`).
-- **Internationalisation** — `localized` fields → `{ en, ar, … }` payload; provider sigils for
-  i18n, async data (`$query`), and theming.
+- **Internationalisation** — `localized` fields → `{ en, ar, … }` payload with a single input +
+  in-input language switcher, `defaultLocale`, and **RTL/LTR**; provider sigils for i18n, async
+  data (`$query`), and theming.
+- **Accessibility** — globally-unique field ids, correct `label[for]`, and per-field or
+  type-default **`autocomplete`**.
+- **Form caching** — set `persistKey` to keep entered values across a refresh; cleared on a
+  successful submit.
 - **Submission** — `validate → transform → send → onSuccess/onError`, an inline
-  `submit(transform)`, configurable **submit/reset/delete action buttons**, and server-error
-  mapping.
-- **Smart payload** — nested output, hidden and `omit` fields automatically excluded.
+  `submit(transform)` that resolves with `{ ok, data | error, errors }`, configurable
+  **submit/reset/delete action buttons**, and server-error mapping.
+- **Smart payload** — nested output; hidden, `omit`, and presentational fields automatically excluded.
 - **AI-native** — `@formwright/ai` turns a description in any language into a validated schema with **any** model.
 
 ## Why Formwright
@@ -190,7 +200,9 @@ A field is resolved to a widget by `type` and keyed by `id`.
 ### Field types
 
 `text` · `email` · `password` · `number` · `textarea` · `select` · `radio` · `checkbox` ·
-`toggle` · `group` (nested object) · `collection` (repeatable list) —
+`toggle` · `color` · `range` · `date` · `time` · `datetime` · `daterange` · `file` ·
+`heading` · `separator` · `paragraph` (presentational) ·
+`group` (nested object) · `collection` (repeatable list) —
 plus any custom type via `registerWidget`.
 
 ### Conditional logic (as data)
@@ -388,10 +400,9 @@ logic, nesting, i18n, custom widgets, and the submission pipeline in the box.
 
 ## Run the playground locally
 
-```bash
+````bash
 pnpm install
-pnpm --filter @formwright/playground dev
-```
+fw-group fw-accordion```
 
 Edit a schema on the left, watch the form render live in the middle, and see the live
 values + submitted payload on the right.
@@ -404,7 +415,7 @@ pnpm build       # build all packages (turbo)
 pnpm test        # run unit tests
 pnpm typecheck   # type-check all packages
 pnpm format      # prettier
-```
+````
 
 pnpm + Turborepo monorepo; releases automated with
 [changesets](https://github.com/changesets/changesets). See

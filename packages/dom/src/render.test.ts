@@ -56,6 +56,14 @@ describe("mount", () => {
     expect(host.querySelector(".fw-submit")).toBeTruthy();
   });
 
+  it("an explicit empty actions:[] suppresses the default submit button", () => {
+    const host = document.createElement("div");
+    const form = new Form({ ...schema, actions: [] });
+    mount(form, host);
+    expect(host.querySelector(".fw-submit")).toBeNull();
+    expect(host.querySelector(".fw-actions")).toBeTruthy(); // bar still present, just empty
+  });
+
   it("hides conditional fields until their condition holds", () => {
     const { host, form } = setup();
     const stateField = host.querySelector("[data-field='state']") as HTMLElement;
