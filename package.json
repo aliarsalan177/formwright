@@ -16,12 +16,16 @@
     "test:watch": "vitest",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css,html}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\"",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "turbo run build && changeset publish",
+    "prepare": "husky",
     "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,json,md,css,html,yml,yaml}": "prettier --write"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -32,6 +36,8 @@
     "@changesets/cli": "^2.27.9",
     "@types/node": "^22.10.0",
     "@vitest/coverage-v8": "^2.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.10",
     "prettier": "^3.4.2",
     "tsup": "^8.3.5",
     "turbo": "^2.3.3",

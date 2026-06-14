@@ -61,14 +61,13 @@ function tooltipIcon(text: string): HTMLElement {
 }
 
 /** Build the label element (with optional tooltip icon) for a field. */
-function buildLabel(
-  form: Form,
-  field: FieldState,
-  inline: boolean,
-): HTMLElement | null {
+function buildLabel(form: Form, field: FieldState, inline: boolean): HTMLElement | null {
   const labelText = resolve(field.schema.label, form.options.providers);
   if (typeof labelText !== "string") return null;
-  const label = h("label", inline ? { for: `fw-${field.id}`, class: "fw-inline-label" } : { for: `fw-${field.id}` });
+  const label = h(
+    "label",
+    inline ? { for: `fw-${field.id}`, class: "fw-inline-label" } : { for: `fw-${field.id}` },
+  );
   label.textContent = labelText;
   addClass(label, field.schema.classes?.label);
   const tip = resolve(field.schema.tooltip, form.options.providers);
@@ -121,7 +120,12 @@ function renderLeaf(form: Form, field: FieldState, scope: Scope): HTMLElement {
 }
 
 /** Build a leaf field's inner content (label, control, help, error) into `wrapper`. */
-function renderLeafContent(form: Form, field: FieldState, scope: Scope, wrapper: HTMLElement): void {
+function renderLeafContent(
+  form: Form,
+  field: FieldState,
+  scope: Scope,
+  wrapper: HTMLElement,
+): void {
   const providers = form.options.providers;
   const cx = field.schema.classes;
 
