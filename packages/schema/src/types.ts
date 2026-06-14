@@ -55,6 +55,7 @@ export type FieldType =
   | "datetime" // native date + time picker
   | "daterange" // a from/to range (with or without time)
   | "color" // color picker (swatch + hex input)
+  | "range" // a slider (e.g. brightness) with live value bubble
   | "file" // native file input (override with a custom widget for uploads)
   | "group" // a nested object: produces `{ ...child values }`
   | "collection" // a repeatable list of groups: produces `[{ ... }, { ... }]`

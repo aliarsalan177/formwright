@@ -452,7 +452,11 @@ function renderActions(form: Form, scope: Scope): HTMLElement {
   const providers = form.options.providers;
   const actions = form.schema.actions;
 
-  if (!actions || actions.length === 0) {
+  // An explicit empty `actions: []` opts out of buttons entirely (e.g. a
+  // settings panel that applies instantly or supplies its own Save control).
+  if (actions && actions.length === 0) return bar;
+
+  if (!actions) {
     const submit = h("button", { type: "submit", class: "fw-submit" });
     submit.textContent = "Submit";
     scope.bind(() => {

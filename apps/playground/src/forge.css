@@ -1,0 +1,348 @@
+/* Formwright Forge — visual builder chrome. Uses the dark design tokens from styles.css. */
+
+.forge-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+.forge-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.forge-brand strong {
+  font-size: 16px;
+  color: var(--text);
+}
+.forge-brand span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.forge-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.forge-nav a {
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: none;
+}
+.forge-nav a:hover {
+  color: var(--text);
+}
+
+.forge-primary,
+.forge-ghost {
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.forge-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0b0d12;
+  font-weight: 600;
+}
+.forge-primary:hover {
+  filter: brightness(1.05);
+}
+.forge-ghost {
+  background: var(--panel-2);
+  color: var(--text);
+}
+.forge-ghost:hover {
+  border-color: var(--accent);
+}
+
+/* Three-column workspace. */
+.forge {
+  display: grid;
+  grid-template-columns: 210px 1fr 330px;
+  gap: 0;
+  height: calc(100vh - 64px);
+}
+.forge-palette,
+.forge-rail {
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--panel);
+}
+.forge-palette {
+  border-right: 1px solid var(--border);
+}
+.forge-rail {
+  border-left: 1px solid var(--border);
+}
+.forge-palette h2,
+.forge-canvas-head h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+.forge-pal-item {
+  padding: 9px 12px;
+  margin-bottom: 7px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 13px;
+  cursor: grab;
+  user-select: none;
+}
+.forge-pal-item:hover {
+  border-color: var(--accent);
+}
+.forge-pal-item:active {
+  cursor: grabbing;
+}
+
+/* Canvas. */
+.forge-canvas-wrap {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+.forge-canvas-head {
+  padding: 16px 22px 8px;
+}
+.forge-canvas-head p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.forge-canvas {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 22px 40px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  align-content: start;
+}
+.forge-canvas.is-drop {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.forge-empty {
+  grid-column: 1 / -1;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 48px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.forge-card {
+  grid-column: 1 / -1; /* full width by default */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+}
+.forge-card.is-half {
+  grid-column: span 1;
+}
+.forge-card.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.forge-card.is-dragging {
+  opacity: 0.4;
+}
+.forge-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.forge-card-title {
+  font-size: 14px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.forge-card-type {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.forge-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.forge-chip {
+  font: inherit;
+  font-size: 12px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.forge-chip:hover {
+  border-color: var(--accent);
+}
+.forge-chip.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0b0d12;
+}
+.forge-chip-danger:hover {
+  border-color: var(--err);
+  color: var(--err);
+}
+
+/* Right rail: tabs + panels. */
+.forge-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 4px;
+}
+.forge-tab {
+  flex: 1;
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.forge-tab.is-active {
+  background: var(--accent);
+  color: #0b0d12;
+  font-weight: 600;
+}
+
+.forge-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.forge-row input[type="text"],
+.forge-row select {
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  width: 100%;
+}
+.forge-row input[type="text"]:focus,
+.forge-row select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.forge-row-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.forge-row-inline span {
+  font-size: 13px;
+  color: var(--text);
+}
+.forge-options {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.forge-opt {
+  display: flex;
+  gap: 6px;
+}
+.forge-opt input {
+  flex: 1;
+}
+.forge-add-opt {
+  align-self: flex-start;
+  font-size: 12px;
+  padding: 5px 10px;
+}
+.forge-hint {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.forge-error {
+  font-size: 12px;
+  color: var(--err);
+  white-space: pre-wrap;
+}
+
+.forge-panel pre {
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  color: var(--text);
+}
+
+/* The live-preview form sits on a panel surface so inputs read clearly. */
+.forge-panel[data-panel="preview"] .fw-form {
+  background: transparent;
+}
+
+.forge-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #0b0d12;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 10px;
+  z-index: 50;
+}
+
+@media (max-width: 860px) {
+  .forge {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .forge-palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+}

@@ -63,6 +63,7 @@ export {
 export type {
   FormSchema,
   FieldSchema,
+  FieldType,
   FieldValue,
   FieldOption,
   Condition,

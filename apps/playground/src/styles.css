@@ -781,6 +781,51 @@ textarea#schema {
   flex: 1;
 }
 
+/* ---- range slider (e.g. brightness) ---- */
+.form-host .fw-range {
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+}
+.form-host input.fw-range-input {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border);
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+}
+.form-host input.fw-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+.form-host input.fw-range-input::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.form-host .fw-range-value {
+  flex: 0 0 auto;
+  min-width: 42px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 /* ---- icon picker (pluggable data source) ---- */
 .form-host .fw-iconpick {
   position: relative;

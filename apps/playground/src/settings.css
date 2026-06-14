@@ -101,27 +101,89 @@
   color: var(--accent);
 }
 
-/* ---- detail header: back + breadcrumb ---- */
+/* ---- detail header: iOS-style nav bar ---- */
 .settings-head {
-  margin-bottom: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: -4px -4px 14px;
+  padding: 6px 4px 12px;
+  background: linear-gradient(var(--panel) 80%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
 }
-.settings-crumb {
-  display: flex;
+.settings-navbar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-height: 36px;
+}
+.settings-navbar-lead {
+  justify-self: start;
+  min-width: 0;
 }
 .settings-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
   background: transparent;
   color: var(--accent);
   border: none;
-  padding: 4px 8px 4px 0;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 4px 6px 4px 0;
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settings-back:hover {
+  opacity: 0.8;
+}
+.settings-back-chev {
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 600;
 }
 .settings-title {
+  justify-self: center;
   margin: 0;
-  font-size: 22px;
+  font-size: 17px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* trailing Instant / Save segmented control */
+.settings-seg {
+  justify-self: end;
+  display: inline-flex;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 2px;
+  gap: 2px;
+}
+.settings-seg-opt {
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 11px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.settings-seg-opt.is-on {
+  background: var(--accent);
+  color: #0b0d12;
+  font-weight: 600;
+}
+.settings-instant-note {
+  margin: 18px 0 0;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 /* hide the per-form <h2 class="fw-title"> (we render our own breadcrumb title) */

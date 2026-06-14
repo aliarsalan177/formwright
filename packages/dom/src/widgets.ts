@@ -314,6 +314,41 @@ registerWidget("color", (ctx) => {
   return group;
 });
 
+// A slider with a live value bubble (e.g. brightness). Reads min/max/step/unit
+// from `props`, falling back to `validation.min`/`validation.max`.
+registerWidget("range", (ctx) => {
+  const { form, field, scope } = ctx;
+  const props = (field.schema.props ?? {}) as Record<string, unknown>;
+  const num = (v: unknown, d: number): number => (typeof v === "number" ? v : d);
+  const group = document.createElement("div");
+  group.className = "fw-input-group fw-range";
+
+  const input = document.createElement("input");
+  input.type = "range";
+  input.className = "fw-range-input";
+  input.id = commonId(field);
+  input.name = field.id;
+  input.min = String(num(props.min, field.schema.validation?.min ?? 0));
+  input.max = String(num(props.max, field.schema.validation?.max ?? 100));
+  input.step = String(num(props.step, 1));
+
+  const bubble = document.createElement("output");
+  bubble.className = "fw-range-value";
+  const unit = typeof props.unit === "string" ? props.unit : "";
+
+  scope.bind(() => {
+    const v = field.value.get();
+    const n = typeof v === "number" ? v : Number(input.min);
+    if (Number(input.value) !== n) input.value = String(n);
+    bubble.textContent = `${input.value}${unit}`;
+  });
+  on(scope, input, "input", () => form.setFieldValue(field, Number(input.value)));
+  bindDisabled(scope, input, () => !field.enabled.get());
+
+  group.append(input, bubble);
+  return group;
+});
+
 function checkLikeWidget(ctx: WidgetContext, className: string): HTMLElement {
   const { form, field, scope } = ctx;
   const input = document.createElement("input");
