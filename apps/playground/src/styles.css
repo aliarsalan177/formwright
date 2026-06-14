@@ -274,11 +274,16 @@ textarea#schema {
 .form-host .fw-field-head label {
   color: var(--text);
 }
-.form-host .fw-field-between .fw-field-row > input,
+/* size text-like controls in a between-row; leave the toggle/checkbox at their own size */
+.form-host .fw-field-between .fw-field-row > input:not(.fw-switch):not(.fw-checkbox),
 .form-host .fw-field-between .fw-field-row > .fw-input-group,
 .form-host .fw-field-between .fw-field-row > select {
   max-width: 240px;
   flex: 0 1 240px;
+}
+.form-host .fw-field-between .fw-field-row > .fw-switch,
+.form-host .fw-field-between .fw-field-row > .fw-checkbox {
+  flex: 0 0 auto;
 }
 .form-host .fw-description {
   color: var(--muted);
