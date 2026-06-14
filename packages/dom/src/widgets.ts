@@ -218,8 +218,42 @@ registerWidget("textarea", (ctx) => {
   const ta = document.createElement("textarea");
   ta.id = commonId(ctx.field);
   ta.name = ctx.field.id;
+  const placeholder = resolve(ctx.field.schema.placeholder, ctx.form.options.providers);
+  if (typeof placeholder === "string") ta.placeholder = placeholder;
   wireInput(ctx, ta);
   return ta;
+});
+
+// Modern color picker: a native swatch + a hex text input (which supports a placeholder).
+registerWidget("color", (ctx) => {
+  const { form, field, scope } = ctx;
+  const group = document.createElement("div");
+  group.className = "fw-input-group fw-color";
+
+  const swatch = document.createElement("input");
+  swatch.type = "color";
+  swatch.className = "fw-color-swatch fw-slot fw-slot-start";
+
+  const text = document.createElement("input");
+  text.type = "text";
+  text.id = commonId(field);
+  text.name = field.id;
+  const placeholder = resolve(field.schema.placeholder, form.options.providers);
+  text.placeholder = typeof placeholder === "string" ? placeholder : "#000000";
+
+  scope.bind(() => {
+    const v = field.value.get();
+    const hex = typeof v === "string" ? v : "";
+    if (text.value !== hex) text.value = hex;
+    if (/^#[0-9a-fA-F]{6}$/.test(hex)) swatch.value = hex;
+  });
+  on(scope, swatch, "input", () => form.setFieldValue(field, swatch.value));
+  on(scope, text, "input", () => form.setFieldValue(field, text.value));
+  bindDisabled(scope, swatch, () => !field.enabled.get());
+  bindDisabled(scope, text, () => !field.enabled.get());
+
+  group.append(swatch, text);
+  return group;
 });
 
 function checkLikeWidget(ctx: WidgetContext, className: string): HTMLElement {

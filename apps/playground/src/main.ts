@@ -8,10 +8,11 @@
 import { Form, effect, type FormSchema } from "@formwright/core";
 import { validateSchema } from "@formwright/schema";
 import "@formwright/dom"; // registers the default DOM renderer
-import { defineComponents } from "./components.js"; // demo <fw-rating> web component
+import { defineComponents, defineIconPicker } from "./components.js"; // demo widgets
 import "./styles.css";
 
 defineComponents();
+defineIconPicker(); // registers the "icon" widget (bring your own icon source)
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -239,6 +240,14 @@ const SHOWCASE: FormSchema = {
       tooltip: "Whole dollars",
       slots: { start: "$" },
       validation: { kind: "number", min: 1, messages: { min: "Price must be at least $1" } },
+    },
+    { id: "brandColor", type: "color", label: "Brand color", placeholder: "#6ea8fe" },
+    {
+      id: "icon",
+      type: "text",
+      label: "Icon",
+      widget: "icon",
+      description: "Pick from your icon set",
     },
     { id: "div", type: "separator" },
     { id: "section2", type: "heading", label: "Options" },

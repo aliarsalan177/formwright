@@ -1,0 +1,102 @@
+/* iPad-style Settings layout */
+.settings {
+  display: grid;
+  grid-template-columns: 240px 1fr 300px;
+  gap: 16px;
+  padding: 16px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .settings {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings-rail {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px;
+  position: sticky;
+  top: 16px;
+}
+.settings-search {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 6px 10px 10px;
+}
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.settings-nav button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-weight: 500;
+  font-size: 14px;
+}
+.settings-nav button:hover {
+  background: var(--panel-2);
+}
+.settings-nav button.active {
+  background: var(--accent);
+  color: #0b0d12;
+}
+.settings-nav .s-ico {
+  font-size: 16px;
+  width: 22px;
+  text-align: center;
+}
+.settings-nav .s-chev {
+  margin-left: auto;
+  opacity: 0.5;
+}
+
+.settings-detail {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 24px;
+  min-height: 420px;
+}
+.settings-detail .fw-title {
+  margin: 0 0 18px;
+  font-size: 22px;
+}
+
+.settings-side {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  position: sticky;
+  top: 16px;
+}
+.settings-side h2 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.settings-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.settings-note code {
+  color: var(--accent);
+}
