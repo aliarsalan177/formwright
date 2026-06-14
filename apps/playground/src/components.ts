@@ -106,12 +106,24 @@ export function defineIconPicker(icons: readonly string[] = DEFAULT_ICONS): void
         pop.appendChild(cell);
       }
 
-      trigger.addEventListener("click", () => (pop.hidden = !pop.hidden));
+      trigger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        pop.hidden = !pop.hidden;
+      });
       b.onValue((v) => (trigger.textContent = typeof v === "string" && v ? v : "＋"));
+
+      // Close when clicking anywhere outside the picker.
+      const onDocClick = (e: MouseEvent) => {
+        if (!host.contains(e.target as Node)) pop.hidden = true;
+      };
+      document.addEventListener("click", onDocClick);
 
       host.className = "fw-iconpick";
       host.append(trigger, pop);
-      return () => pop.remove();
+      return () => {
+        pop.remove();
+        document.removeEventListener("click", onDocClick);
+      };
     },
   });
 }

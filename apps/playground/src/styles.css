@@ -245,9 +245,9 @@ textarea#schema {
 
 /* ---- modern controls ---- */
 
-/* Lay check-like fields out as a row: [control] [label]. */
-.form-host .fw-field:has(.fw-switch),
-.form-host .fw-field:has(.fw-checkbox) {
+/* Lay check-like fields out as a row: [control] [label] (default toggle/checkbox). */
+.form-host .fw-field:has(.fw-switch):not(.fw-field-between),
+.form-host .fw-field:has(.fw-checkbox):not(.fw-field-between) {
   flex-direction: row;
   align-items: center;
   gap: 10px;
@@ -256,6 +256,33 @@ textarea#schema {
   color: var(--text);
   font-size: 14px;
   cursor: pointer;
+}
+
+/* labelPosition: "start" → iPad-settings row: [label + description] … [control]. */
+.form-host .fw-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.form-host .fw-field-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.form-host .fw-field-head label {
+  color: var(--text);
+}
+.form-host .fw-field-between .fw-field-row > input,
+.form-host .fw-field-between .fw-field-row > .fw-input-group,
+.form-host .fw-field-between .fw-field-row > select {
+  max-width: 240px;
+  flex: 0 1 240px;
+}
+.form-host .fw-description {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 /* iOS-style toggle switch */
@@ -613,8 +640,10 @@ textarea#schema {
 .form-host .fw-slot-end {
   border-left: 1px solid var(--border);
 }
-/* a <select> used as a slot (e.g. the language dropdown) */
+/* a <select> used as a slot (e.g. the language dropdown) — sized to its content */
 .form-host select.fw-slot {
+  flex: 0 0 auto;
+  width: auto;
   padding: 0 6px;
   font-size: 12px;
   font-weight: 600;
@@ -664,19 +693,24 @@ textarea#schema {
   }
 }
 
-/* ---- color picker ---- */
+/* ---- color picker (small swatch + flexible hex input) ---- */
 .form-host .fw-color {
   align-items: center;
 }
-.form-host .fw-color-swatch {
-  width: 38px;
-  padding: 3px;
+/* input.fw-color-swatch beats the generic `.fw-input-group input { flex: 1 }` rule */
+.form-host input.fw-color-swatch {
   flex: 0 0 auto;
+  width: 34px;
+  height: 28px;
+  margin: 4px 2px 4px 6px;
+  padding: 2px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
   cursor: pointer;
-  background: transparent;
 }
-.form-host .fw-color .fw-slot-start {
-  background: transparent;
+.form-host .fw-color input[type="text"] {
+  flex: 1;
 }
 
 /* ---- icon picker (pluggable data source) ---- */

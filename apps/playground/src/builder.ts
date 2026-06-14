@@ -34,7 +34,7 @@ const SECTIONS: readonly Section[] = [
       title: "Header settings",
       fields: [
         { id: "logo", type: "text", label: "Logo text", tooltip: "Shown at the top-left" },
-        { id: "accent", type: "text", label: "Accent color", placeholder: "#6ea8fe" },
+        { id: "accent", type: "color", label: "Accent color", placeholder: "#6ea8fe" },
         { id: "showSearch", type: "toggle", label: "Show search bar", labelPosition: "start" },
         {
           id: "nav",

@@ -86,7 +86,13 @@ const SECTIONS: readonly Section[] = [
           type: "paragraph",
           content: "Signed in as admin@acme.com · Plan: Pro · Member since 2024",
         },
-        { id: "beta", type: "toggle", label: "Enable beta features", labelPosition: "start" },
+        {
+          id: "beta",
+          type: "toggle",
+          label: "Enable beta features",
+          description: "Get early access to features still in development.",
+          labelPosition: "start",
+        },
       ],
     },
   },
@@ -163,7 +169,13 @@ const SECTIONS: readonly Section[] = [
       version: "1.0",
       title: "Security",
       fields: [
-        { id: "twofa", type: "toggle", label: "Two-factor authentication", labelPosition: "start" },
+        {
+          id: "twofa",
+          type: "toggle",
+          label: "Two-factor authentication",
+          description: "Require a one-time code at sign-in.",
+          labelPosition: "start",
+        },
         {
           id: "timeout",
           type: "number",
