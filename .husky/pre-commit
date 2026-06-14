@@ -1,0 +1,13 @@
+# Make Node available to GUI git clients (GitHub Desktop, Sourcetree, …) that run
+# hooks with a minimal PATH. Try common install locations and version managers.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH"
+[ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh" >/dev/null 2>&1
+command -v fnm >/dev/null 2>&1 && eval "$(fnm env)" >/dev/null 2>&1
+
+# If Node still isn't found, skip formatting rather than block the commit (CI still checks it).
+if ! command -v node >/dev/null 2>&1; then
+  echo "husky: node not found on PATH — skipping format hook (CI will still verify)."
+  exit 0
+fi
+
+exec lint-staged

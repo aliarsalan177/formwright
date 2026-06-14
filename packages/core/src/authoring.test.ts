@@ -95,6 +95,38 @@ describe("validation message overrides", () => {
   });
 });
 
+describe("runtime schema patching", () => {
+  it("setFieldSchema changes a field's type at runtime, keeping its value", () => {
+    const form = new Form(
+      {
+        id: "f",
+        version: "1.0",
+        fields: [{ id: "state", type: "select", options: [{ label: "CA", value: "CA" }] }],
+      },
+      { state: "CA" },
+    );
+    expect(form.field("state")!.schema.type).toBe("select");
+    form.setFieldSchema("state", { type: "text" });
+    expect(form.field("state")!.schema.type).toBe("text");
+    expect(form.getValue("state")).toBe("CA"); // value preserved across the type switch
+  });
+
+  it("patch re-evaluates conditions after updating many fields at once", () => {
+    const form = new Form({
+      id: "f",
+      version: "1.0",
+      fields: [
+        { id: "country", type: "text" },
+        { id: "state", type: "text", visibleWhen: { "==": [{ var: "country" }, "US"] } },
+      ],
+    });
+    form.setValue("country", "US");
+    expect(form.field("state")!.visible.peek()).toBe(true);
+    form.patch({ state: { visibleWhen: { "==": [{ var: "country" }, "CA"] } } });
+    expect(form.field("state")!.visible.peek()).toBe(false); // condition re-evaluated post-patch
+  });
+});
+
 describe("presentational fields", () => {
   it("render-only types are excluded from the payload", () => {
     const schema: FormSchema = {

@@ -168,6 +168,22 @@ describe("authoring elements", () => {
     expect(onDelete).toHaveBeenCalledOnce();
   });
 
+  it("re-renders a field's control when its schema is patched (select → text)", () => {
+    const host = document.createElement("div");
+    const form = new Form({
+      id: "f",
+      version: "1.0",
+      fields: [
+        { id: "state", type: "select", label: "State", options: [{ label: "CA", value: "CA" }] },
+      ],
+    });
+    mount(form, host);
+    expect(host.querySelector("[data-field='state'] select")).toBeTruthy();
+    form.setFieldSchema("state", { type: "text" });
+    expect(host.querySelector("[data-field='state'] select")).toBeNull();
+    expect(host.querySelector("[data-field='state'] input[type='text']")).toBeTruthy();
+  });
+
   it("shows a dismissible error alert when submit fails validation", async () => {
     const host = document.createElement("div");
     const form = new Form({

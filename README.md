@@ -7,42 +7,43 @@ Define a form **once as data** — hand-written or LLM-generated — and render 
 `new Form(schema, initialValue)`, drive it imperatively, and get a typed, nested payload
 out.
 
-🔗 **Live demo / playground:** https://aliarsalan177.github.io/formwright/
-📦 **npm:** [`@formwright/core`](https://www.npmjs.com/package/@formwright/core) ·
+**Live demo / playground:** https://aliarsalan177.github.io/formwright/
+
+**npm:** [`@formwright/core`](https://www.npmjs.com/package/@formwright/core) ·
 [`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom) ·
 [`@formwright/schema`](https://www.npmjs.com/package/@formwright/schema) ·
 [`@formwright/ai`](https://www.npmjs.com/package/@formwright/ai)
 
-⚡ **~12 KB gzipped, zero dependencies** for the entire framework-agnostic runtime
-(`core` + `dom` + `schema`). One compact engine instead of a form library _plus_ a validation
-library _plus_ a conditional-logic library _plus_ per-framework bindings.
+**~12 KB gzipped, zero dependencies** for the entire framework-agnostic runtime
+(`core` + `dom` + `schema`) — one engine in place of a separate form library, validation
+library, conditional-logic library, and per-framework bindings.
 
 ---
 
 ## What makes it powerful
 
-- 🤖 **Describe a form in English → a validated schema** — with **any** model (Claude, GPT,
-  Gemini, local). A built-in validate→repair loop guarantees the output renders.
-- 🧩 **Bring your own UI** — map any field to a **React, Vue, Svelte, or any-framework
-  component**, a custom element, or a native tag, all from the schema. The form still
-  produces one clean payload.
-- 🪆 **Nested objects + repeatable collections** — `group` and `collection` fields yield
+- **Generate from natural language** — describe a form in plain English and get a validated
+  schema, with any model (Claude, GPT, Gemini, local). A built-in validate-and-repair loop
+  guarantees the output renders.
+- **Bring your own UI** — map any field to a React, Vue, Svelte, or any-framework component, a
+  custom element, or a native tag, all from the schema. The form still produces one clean payload.
+- **Nested objects and repeatable collections** — `group` and `collection` fields yield
   `{ items: {…} }` and `[{…}, {…}]`, with add/remove rows and `min`/`max`.
-- 🔀 **Conditional logic as data** — `visibleWhen` / `enabledWhen` / `requiredWhen` resolve
-  **lexically** (sibling → outward), so an outer toggle can hide a field deep inside a
-  collection row. Hidden fields drop out of the payload automatically.
-- ⚡ **Surgical DOM** — fine-grained signals update only the exact node that changed; no
-  virtual DOM, no re-render. **Real-time, field-by-field validation** as you type.
-- 🌍 **Runs everywhere** — vanilla JS, any bundler, or straight from a CDN; the core owns
-  state independently of rendering, so web-component and framework adapters drop in.
+- **Conditional logic as data** — `visibleWhen` / `enabledWhen` / `requiredWhen` resolve
+  lexically (sibling, then outward), so an outer toggle can hide a field deep inside a collection
+  row. Hidden fields are excluded from the payload automatically.
+- **Surgical DOM updates** — fine-grained signals update only the node that changed; no virtual
+  DOM, no re-render. Real-time, field-by-field validation as the user types.
+- **Runs everywhere** — vanilla JS, any bundler, or a CDN; the core owns state independently of
+  rendering, so web-component and framework adapters drop in cleanly.
 
 ## Everything in the box
 
-One schema, one tiny engine — no add-on libraries needed:
+One schema, one engine — no add-on libraries required:
 
-- **Fields** — text, email, password, number, textarea, select, radio, checkbox,
-  **iOS-style toggle**, native **file** upload, nested **group** (object), repeatable
-  **collection** (array, add/remove, `min`/`max`), plus any custom type.
+- **Fields** — text, email, password, number, textarea, select, radio, checkbox, **toggle**,
+  native **file** upload, nested **group** (object), repeatable **collection** (array,
+  add/remove, `min`/`max`), plus any custom type.
 - **Authoring elements** — `heading`, `separator`, `paragraph`, per-field **tooltips**, and a
   dismissible **top-of-form error alert** — enough to build forms in a Shopify/Magento-style
   editor.
