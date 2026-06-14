@@ -16,7 +16,15 @@ import {
   type FieldValue,
   type FormSchema,
 } from "@formwright/schema";
-import { batch, computed, signal, untrack, type Dispose, type ReadSignal } from "./reactive.js";
+import {
+  batch,
+  computed,
+  effect,
+  signal,
+  untrack,
+  type Dispose,
+  type ReadSignal,
+} from "./reactive.js";
 import { FieldState } from "./model.js";
 import {
   buildTree,
@@ -50,6 +58,12 @@ export interface FormOptions {
   readonly handlers?: Record<string, SuccessHandler | ErrorHandler>;
   /** Override the network send (defaults to `fetch` against `submit.endpoint`). */
   readonly send?: (payload: unknown, form: Form) => Promise<unknown>;
+  /**
+   * Persist entered values under this `localStorage` key and restore them on the
+   * next load — so a refresh before submitting keeps the form filled. Cleared on
+   * a successful submit.
+   */
+  readonly persistKey?: string;
 }
 
 /** Renders a {@link Form} into a host node; returns a disposer. Provided by a renderer package. */
@@ -87,6 +101,7 @@ export class Form {
   private readonly rootByName: ReadonlyMap<string, FieldNode>;
   private readonly listeners = new Map<EventName, Set<Listener>>();
   private disposeRenderer: Dispose | null = null;
+  private disposePersist: Dispose | null = null;
 
   constructor(
     schema: FormSchema | unknown,
@@ -103,12 +118,27 @@ export class Form {
     const fields = this.schema.locales?.length
       ? expandLocalized(this.schema.fields, this.schema.locales)
       : this.schema.fields;
-    const tree = buildTree(fields, initialValues);
+    // Restore persisted values (form caching) over the provided initial values.
+    const seed = loadPersisted(options.persistKey, initialValues);
+    const tree = buildTree(fields, seed);
     this.tree = tree.nodes;
     this.rootByName = tree.byName;
     this.order = fields.map((f) => f.id);
 
     this.values = computed(() => collectTree(this.tree));
+
+    // Persist on every change (form caching).
+    if (options.persistKey) {
+      const key = options.persistKey;
+      this.disposePersist = effect(() => {
+        const v = this.values.get();
+        try {
+          localStorage.setItem(key, JSON.stringify(v));
+        } catch {
+          /* storage unavailable — ignore */
+        }
+      });
+    }
     this.initialSnapshot = JSON.stringify(untrack(() => this.values.peek()));
     this.isDirty = computed(() => JSON.stringify(this.values.get()) !== this.initialSnapshot);
     this.isValid = computed(() => {
@@ -218,6 +248,7 @@ export class Form {
 
     try {
       const data = await this.send(payload);
+      this.clearPersisted(); // submitted successfully — drop the cached draft
       this.runSuccessHandler(data);
       this.emit("success", data);
       return { ok: true, data };
@@ -259,7 +290,20 @@ export class Form {
   destroy(): void {
     this.disposeRenderer?.();
     this.disposeRenderer = null;
+    this.disposePersist?.();
+    this.disposePersist = null;
     this.listeners.clear();
+  }
+
+  /** Remove the cached draft from `localStorage` (called on a successful submit). */
+  private clearPersisted(): void {
+    const key = this.options.persistKey;
+    if (!key || typeof localStorage === "undefined") return;
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
   }
 
   // ---- events -------------------------------------------------------------
@@ -333,6 +377,18 @@ export class FormValidationError extends Error {
 /** Aggregate the tree into a nested values object (subscribes to all values). */
 function collectTree(tree: readonly FieldNode[]): FormValues {
   return collectValues(tree) as FormValues;
+}
+
+/** Merge persisted (localStorage) values over the provided initial values. */
+function loadPersisted(key: string | undefined, initial: FormValues): FormValues {
+  if (!key || typeof localStorage === "undefined") return initial;
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved) return { ...initial, ...(JSON.parse(saved) as FormValues) };
+  } catch {
+    /* corrupt/unavailable — fall back to initial */
+  }
+  return initial;
 }
 
 /**

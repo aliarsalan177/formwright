@@ -50,6 +50,10 @@ export type FieldType =
   | "select"
   | "checkbox"
   | "radio"
+  | "date" // native date picker
+  | "time" // native time picker
+  | "datetime" // native date + time picker
+  | "daterange" // a from/to range (with or without time)
   | "color" // color picker (swatch + hex input)
   | "file" // native file input (override with a custom widget for uploads)
   | "group" // a nested object: produces `{ ...child values }`
@@ -137,6 +141,8 @@ export interface FieldSchema {
   readonly type: FieldType;
   readonly label?: Resolvable<string>;
   readonly placeholder?: Resolvable<string>;
+  /** Native `autocomplete` token for the input (e.g. "email", "name", "off"). */
+  readonly autocomplete?: string;
   readonly help?: Resolvable<string>;
   /** Static body text — for `paragraph`/`heading` presentational fields. */
   readonly content?: Resolvable<string>;
@@ -162,6 +168,8 @@ export interface FieldSchema {
   readonly omit?: boolean;
   /** Render this field with your own component/element instead of the built-in for `type`. */
   readonly widget?: WidgetRef;
+  /** Columns the field spans in the form's 12-column grid (e.g. 6 = half width, two side by side). */
+  readonly colSpan?: number;
   /** Extra class(es) on the field wrapper (e.g. Tailwind utilities). */
   readonly class?: string;
   /** Per-part class overrides (wrapper, label, control, help, description, error). */

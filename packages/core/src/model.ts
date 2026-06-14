@@ -21,10 +21,14 @@ export function defaultValueFor(type: string): FieldValue {
   }
 }
 
+let uidSeq = 0;
+
 export class FieldState {
   /** Discriminant for the {@link FieldNode} union (leaf vs group/collection). */
   readonly kind = "field" as const;
   readonly id: string;
+  /** A globally-unique DOM id for the control (collection rows reuse `id`, so this must be unique). */
+  readonly domId = `fw-${(uidSeq++).toString(36)}`;
   /** The field's schema — mutable at runtime via {@link patchSchema}. */
   schema: FieldSchema;
   readonly value: WriteSignal<FieldValue>;

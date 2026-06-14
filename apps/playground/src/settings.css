@@ -100,3 +100,80 @@
 .settings-note code {
   color: var(--accent);
 }
+
+/* ---- detail header: back + breadcrumb ---- */
+.settings-head {
+  margin-bottom: 14px;
+}
+.settings-crumb {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.settings-back {
+  background: transparent;
+  color: var(--accent);
+  border: none;
+  padding: 4px 8px 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.settings-title {
+  margin: 0;
+  font-size: 22px;
+}
+
+/* hide the per-form <h2 class="fw-title"> (we render our own breadcrumb title) */
+.settings-detail .fw-title {
+  display: none;
+}
+
+/* ---- drill-down sub-section rows ---- */
+.settings-children {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+.settings-childrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.settings-childrow:hover {
+  border-color: var(--accent);
+}
+.settings-childrow .s-ico {
+  width: 22px;
+  text-align: center;
+}
+.settings-childrow .s-chev {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 18px;
+}
+
+/* ---- save all ---- */
+.settings-saveall {
+  margin-top: 18px;
+  align-self: flex-start;
+  background: var(--accent);
+  color: #0b0d12;
+  border: none;
+  border-radius: 9px;
+  padding: 9px 18px;
+  font-weight: 600;
+  cursor: pointer;
+}

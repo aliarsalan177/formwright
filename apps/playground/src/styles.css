@@ -228,6 +228,27 @@ textarea#schema {
   margin-top: 4px;
 }
 
+/* ---- presentational elements (heading / separator / paragraph) ---- */
+.form-host .fw-heading {
+  margin: 6px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.form-host .fw-separator {
+  width: 100%;
+  height: 1px;
+  border: none;
+  margin: 4px 0;
+  background: var(--border);
+}
+.form-host .fw-paragraph {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
 /* ---- examples selector ---- */
 .examples {
   display: flex;
@@ -405,39 +426,81 @@ textarea#schema {
 
 /* ---- accordion (group or collection row) ---- */
 .form-host .fw-accordion {
+  /* reset the .fw-group flex/gap/padding it also carries, so there's no gap when closed */
+  display: block;
+  gap: 0;
+  padding: 0;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--panel-2);
   overflow: hidden;
-  padding: 0;
+  transition: border-color 0.2s ease;
+}
+.form-host .fw-accordion[open] {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
 }
 .form-host .fw-accordion-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
+  gap: 10px;
+  padding: 14px 16px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   list-style: none;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+.form-host .fw-accordion-head:hover {
+  background: rgba(255, 255, 255, 0.03);
 }
 .form-host .fw-accordion-head::-webkit-details-marker {
   display: none;
 }
+/* a clean chevron drawn from borders: points down when closed, up when open */
 .form-host .fw-accordion-head::after {
-  content: "▸";
-  color: var(--muted);
-  transition: transform 0.2s ease;
+  content: "";
+  margin-left: auto;
+  width: 8px;
+  height: 8px;
+  margin-top: -3px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  border-radius: 1px;
+  transform: rotate(45deg);
+  transition:
+    transform 0.25s ease,
+    border-color 0.2s ease;
+}
+.form-host .fw-accordion-head:hover::after {
+  border-color: var(--text);
 }
 .form-host .fw-accordion[open] > .fw-accordion-head::after {
-  transform: rotate(90deg);
+  transform: rotate(-135deg);
+  margin-top: 3px;
+  border-color: var(--accent);
 }
 .form-host .fw-group-body,
 .form-host .fw-row-body {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 14px;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+/* Smooth expand/collapse where supported (Chrome 129+); snaps otherwise. */
+:root {
+  interpolate-size: allow-keywords;
+}
+.form-host .fw-accordion::details-content {
+  height: 0;
+  overflow: hidden;
+  transition:
+    height 0.28s ease,
+    content-visibility 0.28s ease allow-discrete;
+}
+.form-host .fw-accordion[open]::details-content {
+  height: auto;
 }
 
 /* ---- collection (repeatable list) ---- */
@@ -759,4 +822,62 @@ textarea#schema {
 }
 .form-host .fw-iconpick-cell:hover {
   background: var(--panel-2);
+}
+
+/* ---- side-by-side fields (colSpan on a 12-col grid) ---- */
+.form-host .fw-form {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 14px;
+}
+.form-host .fw-form > * {
+  grid-column: span 12; /* full width by default; colSpan overrides inline */
+}
+.form-host .fw-group-body {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 14px;
+}
+.form-host .fw-group-body > * {
+  grid-column: span 12;
+}
+
+/* ---- required marker ---- */
+.form-host .fw-required {
+  color: var(--err);
+  font-weight: 700;
+}
+
+/* ---- form-level error alert ---- */
+.form-host .fw-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--err);
+  border-radius: 10px;
+  background: rgba(248, 81, 73, 0.12);
+  color: var(--err);
+  font-size: 13px;
+}
+.form-host .fw-alert-body {
+  flex: 1;
+  line-height: 1.5;
+}
+.form-host .fw-alert-close {
+  background: transparent;
+  border: none;
+  color: var(--err);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
+
+/* ---- date range ---- */
+.form-host .fw-daterange {
+  align-items: center;
+}
+.form-host .fw-range-sep {
+  color: var(--muted);
 }
