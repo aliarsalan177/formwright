@@ -50,6 +50,7 @@ export type FieldType =
   | "select"
   | "checkbox"
   | "radio"
+  | "color" // color picker (swatch + hex input)
   | "file" // native file input (override with a custom widget for uploads)
   | "group" // a nested object: produces `{ ...child values }`
   | "collection" // a repeatable list of groups: produces `[{ ... }, { ... }]`

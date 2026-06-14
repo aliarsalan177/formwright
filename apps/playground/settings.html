@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Formwright — Settings Builder</title>
+    <meta
+      name="description"
+      content="An iPad-style settings app built from Formwright: a sidebar of sections, each rendering its settings schema as a form, with nested groups and static data."
+    />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <strong>Formwright</strong>
+        <span class="tag">Settings Builder</span>
+      </div>
+      <a class="repo" href="./index.html">← Form playground</a>
+    </header>
+
+    <main class="settings">
+      <!-- Sidebar of sections (could load from your settings API) -->
+      <aside class="settings-rail">
+        <div class="settings-search">Settings</div>
+        <div id="settings-nav" class="settings-nav"></div>
+      </aside>
+
+      <!-- The selected section's settings, rendered as a Formwright form -->
+      <section class="settings-detail">
+        <div id="settings-panel" class="form-host"></div>
+      </section>
+
+      <!-- The settings payload for the active section -->
+      <aside class="settings-side">
+        <h2>Payload</h2>
+        <pre id="settings-payload" class="result"></pre>
+        <p class="settings-note">
+          Each section is a Formwright form. Its schema can load from an API or be generated with
+          <code>@formwright/ai</code>; changes bind to this payload (or a per-section save
+          endpoint).
+        </p>
+      </aside>
+    </main>
+
+    <script type="module" src="/src/settings.ts"></script>
+  </body>
+</html>

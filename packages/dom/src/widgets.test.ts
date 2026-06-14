@@ -111,6 +111,18 @@ describe("widget adapters", () => {
     expect((host.querySelector("label") as HTMLElement).classList.contains("text-sm")).toBe(true);
   });
 
+  it("renders a color picker (swatch + hex input with placeholder)", () => {
+    const { host } = setup(
+      { id: "f", version: "1.0", fields: [{ id: "c", type: "color", placeholder: "#000000" }] },
+      { c: "#ff0000" },
+    );
+    const swatch = host.querySelector("input[type='color']") as HTMLInputElement;
+    const text = host.querySelector(".fw-color input[type='text']") as HTMLInputElement;
+    expect(swatch.value).toBe("#ff0000");
+    expect(text.value).toBe("#ff0000");
+    expect(text.placeholder).toBe("#000000");
+  });
+
   it("renders a native file input for type 'file'", () => {
     const { host } = setup({
       id: "f",
@@ -207,16 +219,19 @@ describe("authoring elements", () => {
     });
     const wrap = host.querySelector(".fw-localized") as HTMLElement;
     expect(wrap).toBeTruthy();
-    const tabs = wrap.querySelectorAll(".fw-lang-tab");
-    expect(tabs.length).toBe(2);
+    // The language switcher is a dropdown rendered inside the input group.
+    const sel = wrap.querySelector(".fw-input-group .fw-lang-select") as HTMLSelectElement;
+    expect(sel.options.length).toBe(2);
+    expect(sel.value).toBe("ar"); // defaultLocale
     // defaultLocale "ar" is active and RTL.
     const control = wrap.querySelector(".fw-localized-control input") as HTMLInputElement;
     expect(control.getAttribute("dir")).toBe("rtl");
     control.value = "بوابة";
     control.dispatchEvent(new Event("input"));
     expect((form.values.peek().name as Record<string, unknown>).ar).toBe("بوابة");
-    // Switch to English → LTR.
-    (wrap.querySelector(".fw-lang-tab[data-loc='en']") as HTMLButtonElement).click();
+    // Switch to English via the dropdown → LTR.
+    sel.value = "en";
+    sel.dispatchEvent(new Event("change"));
     expect(
       (wrap.querySelector(".fw-localized-control input") as HTMLElement).getAttribute("dir"),
     ).toBe("ltr");

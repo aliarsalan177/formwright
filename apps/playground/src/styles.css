@@ -566,38 +566,60 @@ textarea#schema {
   font-size: 18px;
 }
 
-/* ---- localized field (one input + language switcher) ---- */
-.form-host .fw-localized-row {
+/* ---- input group: slots + language dropdown render INSIDE the input ---- */
+.form-host .fw-input-group {
   display: flex;
   align-items: stretch;
-  gap: 6px;
-}
-.form-host .fw-localized-control {
-  flex: 1;
-}
-.form-host .fw-localized-control input,
-.form-host .fw-localized-control textarea {
-  width: 100%;
-}
-.form-host .fw-lang-switch {
-  display: inline-flex;
   border: 1px solid var(--border);
   border-radius: 8px;
-  overflow: hidden;
-  flex: 0 0 auto;
-}
-.form-host .fw-lang-tab {
   background: var(--panel-2);
-  color: var(--muted);
+  overflow: hidden;
+}
+.form-host .fw-input-group:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+/* The real controls inside the group are borderless — the group is the control. */
+.form-host .fw-input-group input,
+.form-host .fw-input-group textarea,
+.form-host .fw-input-group select {
   border: none;
+  background: transparent;
+  outline: none;
   border-radius: 0;
+  flex: 1;
+  min-width: 0;
+}
+.form-host .fw-input-group .fw-localized-control {
+  display: flex;
+  flex: 1;
+}
+.form-host .fw-input-group .fw-localized-control input,
+.form-host .fw-input-group .fw-localized-control textarea {
+  width: 100%;
+}
+/* slot content (icons, currency symbols, a unit/lang dropdown) sits inside the border */
+.form-host .fw-slot {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
   padding: 0 10px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.03);
+}
+.form-host .fw-slot-start {
+  border-right: 1px solid var(--border);
+}
+.form-host .fw-slot-end {
+  border-left: 1px solid var(--border);
+}
+/* a <select> used as a slot (e.g. the language dropdown) */
+.form-host select.fw-slot {
+  padding: 0 6px;
   font-size: 12px;
   font-weight: 600;
-}
-.form-host .fw-lang-tab.active {
-  background: var(--accent);
-  color: #0b0d12;
+  cursor: pointer;
+  background-image: none;
 }
 
 /* ---- action button layout ---- */
@@ -640,4 +662,62 @@ textarea#schema {
   .form-host .fw-actions .fw-submit {
     width: 100%;
   }
+}
+
+/* ---- color picker ---- */
+.form-host .fw-color {
+  align-items: center;
+}
+.form-host .fw-color-swatch {
+  width: 38px;
+  padding: 3px;
+  flex: 0 0 auto;
+  cursor: pointer;
+  background: transparent;
+}
+.form-host .fw-color .fw-slot-start {
+  background: transparent;
+}
+
+/* ---- icon picker (pluggable data source) ---- */
+.form-host .fw-iconpick {
+  position: relative;
+  display: inline-block;
+}
+.form-host .fw-iconpick-trigger {
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
+  line-height: 1;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.form-host .fw-iconpick-pop {
+  position: absolute;
+  z-index: 10;
+  top: 50px;
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  padding: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+.form-host .fw-iconpick-cell {
+  width: 34px;
+  height: 34px;
+  font-size: 18px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.form-host .fw-iconpick-cell:hover {
+  background: var(--panel-2);
 }

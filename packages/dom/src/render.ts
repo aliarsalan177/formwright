@@ -82,7 +82,7 @@ function withSlots(form: Form, field: FieldState, control: HTMLElement): HTMLEle
   const group = h("div", { class: "fw-input-group" });
   const affix = (slot: unknown, side: string) => {
     if (typeof slot === "string") {
-      const span = h("span", { class: `fw-affix fw-affix-${side}` });
+      const span = h("span", { class: `fw-slot fw-slot-${side}` });
       span.textContent = resolveString(slot, form) ?? slot;
       group.appendChild(span);
     }
@@ -194,7 +194,6 @@ const RTL_LOCALES = new Set(["ar", "he", "fa", "ur", "ps", "sd", "yi", "dv", "ck
 
 /** A `localized` field: one input bound to the active locale, with a language switcher. */
 function renderLocalized(form: Form, group: GroupNode, scope: Scope): HTMLElement {
-  const providers = form.options.providers;
   const locales = group.children.map((c) => c.id);
   const def = group.schema.defaultLocale;
   const startLocale = def && locales.includes(def) ? def : (locales[0] ?? "");
@@ -207,32 +206,29 @@ function renderLocalized(form: Form, group: GroupNode, scope: Scope): HTMLElemen
   const label = buildLabel(form, group as unknown as FieldState, false);
   if (label) wrapper.appendChild(label);
 
+  // One unified control: the input + a language dropdown rendered INSIDE it.
   const row = h("div", { class: "fw-input-group fw-localized-row" });
   const controlHost = h("div", { class: "fw-localized-control" });
-  const switcher = h("div", { class: "fw-lang-switch", role: "tablist" });
-  row.append(controlHost, switcher);
+  const langSelect = document.createElement("select");
+  langSelect.className = "fw-slot fw-slot-end fw-lang-select";
+  langSelect.setAttribute("aria-label", "Language");
+  for (const loc of locales) {
+    const o = document.createElement("option");
+    o.value = loc;
+    o.textContent = loc.toUpperCase();
+    langSelect.appendChild(o);
+  }
+  row.append(controlHost, langSelect);
   wrapper.appendChild(row);
 
   const active = signal(startLocale);
-
-  // Language switcher buttons (the "slot" at the end of the input).
-  for (const loc of locales) {
-    const tab = h("button", { type: "button", class: "fw-lang-tab", "data-loc": loc });
-    tab.textContent = loc.toUpperCase();
-    on(scope, tab, "click", () => active.set(loc));
-    switcher.appendChild(tab);
-  }
-  scope.bind(() => {
-    const loc = active.get();
-    for (const tab of switcher.children) {
-      (tab as HTMLElement).classList.toggle("active", (tab as HTMLElement).dataset["loc"] === loc);
-    }
-  });
+  on(scope, langSelect, "change", () => active.set(langSelect.value));
 
   // Re-render the single control whenever the active locale changes.
   let inner: Scope | null = null;
   scope.bind(() => {
     const loc = active.get();
+    langSelect.value = loc;
     inner?.dispose();
     inner = new Scope();
     controlHost.replaceChildren();

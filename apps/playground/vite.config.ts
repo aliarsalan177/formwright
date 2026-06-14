@@ -14,6 +14,7 @@ export default defineConfig({
       input: {
         main: `${root}index.html`,
         builder: `${root}builder.html`,
+        settings: `${root}settings.html`,
       },
     },
   },

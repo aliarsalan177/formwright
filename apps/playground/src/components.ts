@@ -53,3 +53,65 @@ export class FwRating extends HTMLElement {
 export function defineComponents(): void {
   if (!customElements.get("fw-rating")) customElements.define("fw-rating", FwRating);
 }
+
+import { registerWidget } from "@formwright/dom";
+
+const DEFAULT_ICONS = [
+  "🏠",
+  "⭐",
+  "🔔",
+  "💳",
+  "🔒",
+  "🎨",
+  "📦",
+  "🛍️",
+  "👤",
+  "⚙️",
+  "🚀",
+  "❤️",
+  "📊",
+  "🌍",
+  "✉️",
+  "🔍",
+  "📁",
+  "🏷️",
+  "🧩",
+  "⚡",
+];
+
+/**
+ * A modern icon-picker widget. Pass ANY icon source — an emoji list (default), a
+ * sprite from an icon library, custom SVG names, etc. Register once, then use it
+ * from a schema with `{ "type": "text", "widget": "icon" }`.
+ */
+export function defineIconPicker(icons: readonly string[] = DEFAULT_ICONS): void {
+  registerWidget("icon", {
+    mount(host, b) {
+      const trigger = document.createElement("button");
+      trigger.type = "button";
+      trigger.className = "fw-iconpick-trigger";
+
+      const pop = document.createElement("div");
+      pop.className = "fw-iconpick-pop";
+      pop.hidden = true;
+      for (const ic of icons) {
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "fw-iconpick-cell";
+        cell.textContent = ic;
+        cell.addEventListener("click", () => {
+          b.setValue(ic);
+          pop.hidden = true;
+        });
+        pop.appendChild(cell);
+      }
+
+      trigger.addEventListener("click", () => (pop.hidden = !pop.hidden));
+      b.onValue((v) => (trigger.textContent = typeof v === "string" && v ? v : "＋"));
+
+      host.className = "fw-iconpick";
+      host.append(trigger, pop);
+      return () => pop.remove();
+    },
+  });
+}
