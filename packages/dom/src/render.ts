@@ -130,9 +130,10 @@ function renderLeafContent(
   const cx = field.schema.classes;
 
   const isCheckLike = field.schema.type === "checkbox" || field.schema.type === "toggle";
-  const labelStart = field.schema.labelPosition === "start";
+  // `labelPosition: "start"` → an iPad-settings row: [label + description] … [control].
+  const between = field.schema.labelPosition === "start";
 
-  // Description, positioned relative to the label or the field.
+  // Description text (used in the head for `between`, otherwise below label/field).
   const descText = resolve(field.schema.description, providers);
   const descEl =
     typeof descText === "string"
@@ -145,22 +146,28 @@ function renderLeafContent(
       : null;
   const descBelowField = field.schema.descriptionPosition === "below-field";
 
-  // Label first (non-check fields, or check-like with labelPosition: "start").
-  const label = buildLabel(form, field, isCheckLike);
-  if (label && (!isCheckLike || labelStart)) {
-    if (isCheckLike && labelStart) wrapper.classList.add("fw-field-between");
-    wrapper.appendChild(label);
-  }
-  if (descEl && !descBelowField) wrapper.appendChild(descEl);
-
+  const label = buildLabel(form, field, isCheckLike && !between);
   const control = withSlots(form, field, renderControl({ form, field, scope }));
   addClass(control, cx?.control);
-  wrapper.appendChild(control);
 
-  // Check-like controls (checkbox/toggle): label sits after the control by default.
-  if (label && isCheckLike && !labelStart) wrapper.appendChild(label);
-
-  if (descEl && descBelowField) wrapper.appendChild(descEl);
+  if (between) {
+    // Row: label (+ description) on the left, control on the right.
+    wrapper.classList.add("fw-field-between");
+    const row = h("div", { class: "fw-field-row" });
+    const head = h("div", { class: "fw-field-head" });
+    if (label) head.appendChild(label);
+    if (descEl && !descBelowField) head.appendChild(descEl);
+    row.append(head, control);
+    wrapper.appendChild(row);
+    if (descEl && descBelowField) wrapper.appendChild(descEl);
+  } else {
+    // Stacked: label, [description], control, [check-like label after control].
+    if (label && !isCheckLike) wrapper.appendChild(label);
+    if (descEl && !descBelowField) wrapper.appendChild(descEl);
+    wrapper.appendChild(control);
+    if (label && isCheckLike) wrapper.appendChild(label);
+    if (descEl && descBelowField) wrapper.appendChild(descEl);
+  }
 
   const help = resolve(field.schema.help, providers);
   if (typeof help === "string") {

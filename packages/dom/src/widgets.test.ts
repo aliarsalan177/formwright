@@ -196,6 +196,30 @@ describe("authoring elements", () => {
     expect(host.querySelector("[data-field='state'] input[type='text']")).toBeTruthy();
   });
 
+  it("labelPosition 'start' renders an iPad-style row: [label + description] [control]", () => {
+    const { host } = setup({
+      id: "f",
+      version: "1.0",
+      fields: [
+        {
+          id: "twofa",
+          type: "toggle",
+          label: "Two-factor auth",
+          description: "Require a code at sign-in.",
+          labelPosition: "start",
+        },
+      ],
+    });
+    const wrap = host.querySelector("[data-field='twofa']") as HTMLElement;
+    expect(wrap.classList.contains("fw-field-between")).toBe(true);
+    const row = wrap.querySelector(".fw-field-row") as HTMLElement;
+    expect(row).toBeTruthy();
+    const head = row.querySelector(".fw-field-head") as HTMLElement;
+    expect(head.querySelector("label")?.textContent).toBe("Two-factor auth");
+    expect(head.querySelector(".fw-description")?.textContent).toBe("Require a code at sign-in.");
+    expect(row.querySelector(".fw-switch")).toBeTruthy(); // control on the right
+  });
+
   it("renders a drag-and-drop file uploader (multiple + accept)", () => {
     const { host } = setup({
       id: "f",

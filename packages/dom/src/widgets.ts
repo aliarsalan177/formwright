@@ -232,7 +232,7 @@ registerWidget("color", (ctx) => {
 
   const swatch = document.createElement("input");
   swatch.type = "color";
-  swatch.className = "fw-color-swatch fw-slot fw-slot-start";
+  swatch.className = "fw-color-swatch";
 
   const text = document.createElement("input");
   text.type = "text";
