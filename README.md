@@ -7,7 +7,10 @@ Define a form **once as data** — hand-written or LLM-generated — and render 
 `new Form(schema, initialValue)`, drive it imperatively, and get a typed, nested payload
 out.
 
-**Live demo / playground:** https://aliarsalan177.github.io/formwright/
+**Live demos:** [Playground](https://aliarsalan177.github.io/formwright/) ·
+[Form Builder (Forge)](https://aliarsalan177.github.io/formwright/forge.html) ·
+[Theme Builder](https://aliarsalan177.github.io/formwright/builder.html) ·
+[Settings Builder](https://aliarsalan177.github.io/formwright/settings.html)
 
 **npm:** [`@formwright/core`](https://www.npmjs.com/package/@formwright/core) ·
 [`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom) ·
