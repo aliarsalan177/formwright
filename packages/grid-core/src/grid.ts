@@ -15,7 +15,8 @@ export type SelectionMode = "none" | "single" | "multi";
 export interface PageRequest {
   readonly page: number;
   readonly pageSize: number;
-  readonly sort: SortState | null;
+  /** Active sort columns, in priority order (empty when unsorted). */
+  readonly sort: readonly SortState[];
   readonly quickFilter: string;
   readonly columnFilters: Readonly<Record<string, string>>;
 }
@@ -101,7 +102,7 @@ export class Grid {
   private order: string[] = [];
 
   private readonly structure = signal(0);
-  private readonly sort = signal<SortState | null>(null);
+  private readonly sort = signal<SortState[]>([]);
   private readonly quick = signal("");
   private readonly colFilters = signal<Record<string, string>>({});
 
@@ -155,7 +156,7 @@ export class Grid {
       if (this.serverMode) return this.order; // server already filtered/sorted
       const quick = this.quick.get().trim().toLowerCase();
       const filters = this.colFilters.get();
-      const sort = this.sort.get();
+      const model = this.sort.get();
 
       let ids = this.order.filter((id) => {
         const row = this.store.get(id)!.peek();
@@ -166,17 +167,20 @@ export class Grid {
         return true;
       });
 
-      if (sort) {
-        const type = this.columns.find((c) => c.field === sort.field)?.type ?? "text";
-        const dir = sort.dir === "asc" ? 1 : -1;
-        ids = [...ids].sort(
-          (x, y) =>
-            compare(
-              this.store.get(x)!.peek()[sort.field],
-              this.store.get(y)!.peek()[sort.field],
-              type,
-            ) * dir,
-        );
+      if (model.length) {
+        const typed = model.map((s) => ({
+          ...s,
+          type: this.columns.find((c) => c.field === s.field)?.type ?? "text",
+        }));
+        ids = [...ids].sort((x, y) => {
+          const rx = this.store.get(x)!.peek();
+          const ry = this.store.get(y)!.peek();
+          for (const s of typed) {
+            const c = compare(rx[s.field], ry[s.field], s.type) * (s.dir === "asc" ? 1 : -1);
+            if (c !== 0) return c;
+          }
+          return 0;
+        });
       }
       return ids;
     });
@@ -230,6 +234,7 @@ export class Grid {
         page: this.page.get(),
         pageSize: this.pageSize.get(),
         sort: this.sort.get(),
+        // (a readonly snapshot of the current multi-sort model)
         quickFilter: this.quick.get(),
         columnFilters: this.colFilters.get(),
       };
@@ -324,21 +329,41 @@ export class Grid {
 
   // ---- sort / filter -----------------------------------------------------
 
+  /** The primary (highest-priority) sort, or null when unsorted. */
   sortState(): SortState | null {
+    return this.sort.get()[0] ?? null;
+  }
+
+  /** The full multi-column sort model, in priority order. */
+  sortModel(): SortState[] {
     return this.sort.get();
   }
 
-  /** Cycle a column's sort: none → asc → desc → none. */
-  toggleSort(field: string): void {
+  /**
+   * Toggle a column's sort. Without `additive`, it replaces the model and cycles
+   * none → asc → desc → none on that column. With `additive` (shift-click), the
+   * column is added/cycled while keeping the other sort columns.
+   */
+  toggleSort(field: string, additive = false): void {
     const cur = this.sort.peek();
-    if (!cur || cur.field !== field) this.sort.set({ field, dir: "asc" });
-    else if (cur.dir === "asc") this.sort.set({ field, dir: "desc" });
-    else this.sort.set(null);
+    const idx = cur.findIndex((s) => s.field === field);
+    let next: SortState[];
+    if (additive) {
+      next = [...cur];
+      if (idx === -1) next.push({ field, dir: "asc" });
+      else if (cur[idx]!.dir === "asc") next[idx] = { field, dir: "desc" };
+      else next.splice(idx, 1);
+    } else if (idx !== -1 && cur.length === 1) {
+      next = cur[idx]!.dir === "asc" ? [{ field, dir: "desc" }] : [];
+    } else {
+      next = [{ field, dir: "asc" }];
+    }
+    this.sort.set(next);
     this.resetPage();
   }
 
-  setSort(state: SortState | null): void {
-    this.sort.set(state);
+  setSort(state: SortState | SortState[] | null): void {
+    this.sort.set(state == null ? [] : Array.isArray(state) ? state : [state]);
     this.resetPage();
   }
 

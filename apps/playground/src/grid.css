@@ -452,6 +452,18 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- No-rows overlay ---- */
+.gw-empty {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
 /* ---- Loading overlay ---- */
 .gw-loading {
   position: absolute;

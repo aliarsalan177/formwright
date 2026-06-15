@@ -20,6 +20,7 @@ function cellText(col: ResolvedColumn, value: unknown, row: Record<string, unkno
 export function makeCell(col: ResolvedColumn): HTMLElement {
   const cell = document.createElement("div");
   cell.className = "gw-cell";
+  cell.setAttribute("role", "gridcell");
   cell.style.width = px(col.width);
   cell.style.textAlign = col.align;
   if (col.class) cell.classList.add(col.class);

@@ -16,6 +16,7 @@ export function mount(grid: Grid, host: Element, options: FlowOptions = {}): Dis
 }
 
 export { mountVirtual, mountFlow };
+export { downloadCsv } from "./export.js";
 export {
   registerFormatter,
   registerCellRenderer,
