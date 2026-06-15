@@ -16,6 +16,7 @@ export default defineConfig({
         builder: `${root}builder.html`,
         settings: `${root}settings.html`,
         forge: `${root}forge.html`,
+        grid: `${root}grid.html`,
       },
     },
   },

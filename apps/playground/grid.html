@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gridwright — schema-driven data grid</title>
+  </head>
+  <body>
+    <header class="grid-top">
+      <div class="grid-brand">
+        <strong>Gridwright</strong>
+        <span>Schema-driven, virtualized, framework-agnostic — surgical cell updates.</span>
+      </div>
+      <nav class="grid-nav">
+        <a href="./index.html">Form Playground</a>
+        <a href="./forge.html">Form Builder</a>
+      </nav>
+    </header>
+
+    <nav class="grid-tabs" id="grid-tabs">
+      <button class="grid-tab is-active" data-ex="live">Live · 50k virtualized</button>
+      <button class="grid-tab" data-ex="server">Server pagination</button>
+      <button class="grid-tab" data-ex="master">Master / detail · selection</button>
+      <button class="grid-tab" data-ex="own">Your data · controlled page</button>
+    </nav>
+
+    <section class="grid-toolbar">
+      <input id="grid-quick" type="search" placeholder="Search all columns…" />
+      <span class="grid-count" id="grid-count"></span>
+      <span class="grid-spacer"></span>
+      <div id="grid-actions" class="grid-actions"></div>
+    </section>
+
+    <main class="grid-stage">
+      <div id="grid-host" class="grid-host"></div>
+    </main>
+
+    <footer class="grid-foot" id="grid-foot"></footer>
+
+    <script type="module" src="/src/grid.ts"></script>
+  </body>
+</html>
