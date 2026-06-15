@@ -384,6 +384,24 @@ form.reset();
 form.destroy();
 ```
 
+## Security model
+
+Formwright treats a schema as **data, not code**. Every schema-provided string —
+`label`, `content`, `placeholder`, `description`, option labels, `props` — is rendered as
+**text** (`textContent`), never as HTML. There is no `innerHTML` path and no `eval`: conditions
+(`visibleWhen` / `enabledWhen` / `requiredWhen`) run through a sandboxed JSONLogic-style
+evaluator over your data, not the JavaScript engine. This means a schema from an untrusted source
+— an LLM (`@formwright/ai`), a database, or a form-builder backend — **cannot inject markup or
+execute script** through the renderer.
+
+Two integration responsibilities remain yours, as with any app:
+
+- **Custom widgets / `mount`** — if you map a field to your own component, you are responsible for
+  how that component renders values (e.g. don't pass field values to `innerHTML` /
+  `dangerouslySetInnerHTML`).
+- **Submission** — the payload is validated client-side for UX, but, like any client, treat it as
+  untrusted on the server: always re-validate and authorize there.
+
 ## Packages
 
 | Package                                                                  | Description                                                   |
