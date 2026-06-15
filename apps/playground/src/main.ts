@@ -55,6 +55,15 @@ const SIGNUP: FormSchema = {
     },
     { id: "newsletter", type: "toggle", label: "Send me product updates" },
   ],
+  persist: {
+    mode: "consent",
+    consentMessage: "Save your signup progress on this device?",
+    consentLabel: "Save progress",
+    declineLabel: "Not now",
+    resumeMessage: "Welcome back — continue your signup?",
+    resumeLabel: "Continue",
+    discardLabel: "Start over",
+  },
 };
 
 // Demonstrates: a nested `group` (object payload), a repeatable `collection`
@@ -276,7 +285,8 @@ const WIZARD: FormSchema = {
     {
       id: "wizard",
       type: "steps",
-      layout: "bar",
+      layout: "fill",
+      urlSync: "/apply/step/:step",
       nextLabel: "Continue",
       prevLabel: "Back",
       submitLabel: "Create account",
@@ -350,6 +360,21 @@ const WIZARD: FormSchema = {
     },
   ],
   submit: { endpoint: { method: "POST", url: "/api/signup" } },
+  success: {
+    heading: "Account created",
+    message: "Reference {{referenceId}} — confirmation sent to {{email}}.",
+    details: ["Plan: {{plan}}"],
+    actions: [{ name: "done", label: "Done", variant: "primary", handler: "closeSuccess" }],
+  },
+  persist: {
+    mode: "consent",
+    consentMessage: "Save your application progress on this device?",
+    consentLabel: "Save progress",
+    declineLabel: "Not now",
+    resumeMessage: "You have a saved draft. Continue your application?",
+    resumeLabel: "Continue",
+    discardLabel: "Start over",
+  },
 };
 
 /** YYYY-MM-DD for today — blocks future dates of birth. */
@@ -657,14 +682,28 @@ function rebuild(): void {
   hostEl.replaceChildren();
   payloadEl.textContent = "— submit the form —";
 
+  const persistKey = result.value.persist ? `formwright-playground-${result.value.id}` : undefined;
   const form = new Form(
     result.value,
     {},
     {
-      send: async (payload) => payload,
-      // Named handlers referenced by schema actions (e.g. the Showcase "Delete" button).
+      ...(persistKey ? { persistKey } : {}),
+      send: async (payload) => {
+        const p = payload as {
+          wizard?: { account?: { email?: string }; preferences?: { plan?: string } };
+        };
+        return {
+          referenceId: `REF-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+          email: p.wizard?.account?.email ?? "",
+          plan: p.wizard?.preferences?.plan ?? "free",
+        };
+      },
       handlers: {
         removeItem: () => setStatus("ok", "🗑  Delete action fired (handler: removeItem)"),
+        closeSuccess: () => {
+          currentForm?.dismissSuccess();
+          setStatus("ok", "Success screen dismissed");
+        },
       },
     },
   );
@@ -686,7 +725,10 @@ function rebuild(): void {
   updateDemoHint(result.value);
   const steps = form.findSteps();
   if (steps) {
-    setStatus("ok", `✓ Valid wizard · ${steps.steps.length} steps · use Back / Continue / Submit`);
+    setStatus(
+      "ok",
+      `✓ Wizard · ${steps.steps.length} steps · draft auto-saves · URL sync · success screen on submit`,
+    );
   } else {
     const count = result.value.fields.length;
     setStatus("ok", `✓ Valid schema · ${count} field${count === 1 ? "" : "s"} rendered`);
@@ -766,7 +808,7 @@ function updateDemoHint(schema: FormSchema): void {
   layoutRow.hidden = !hasSteps;
   if (hasSteps) {
     hint.textContent =
-      "Multi-step wizard: Continue validates the current step; Submit on the last step validates all steps and sends the nested payload.";
+      "Wizard features: fill progress bar, resume-draft banner (refresh to see), URL sync (/apply/step/:id), and a success screen with {{variables}} from the API response.";
   }
 }
 

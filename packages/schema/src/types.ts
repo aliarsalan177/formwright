@@ -197,9 +197,17 @@ export interface FieldSchema {
    * Container layout:
    *  - `group`: `"fieldset"` (default) or `"accordion"` (collapsible section).
    *  - `collection`: `"list"` (default), `"cards"`, or `"accordion"` (each row collapsible).
-   *  - `steps`: `"bar"` (default), `"tabs"`, or `"numbers"` progress indicator.
+   *  - `steps`: `"bar"` | `"tabs"` | `"numbers"` (step labels) or `"fill"` (thin % progress bar).
    */
-  readonly layout?: "fieldset" | "accordion" | "list" | "cards" | "bar" | "tabs" | "numbers";
+  readonly layout?:
+    | "fieldset"
+    | "accordion"
+    | "list"
+    | "cards"
+    | "bar"
+    | "tabs"
+    | "numbers"
+    | "fill";
   /** `steps` only: show a progress indicator (default `true`). */
   readonly showProgress?: boolean;
   /** `steps` only: validate the current step before advancing (default `true`). */
@@ -210,6 +218,13 @@ export interface FieldSchema {
   readonly prevLabel?: Resolvable<string>;
   /** `steps` only: label for Submit on the last step (default `"Submit"`). */
   readonly submitLabel?: Resolvable<string>;
+  /**
+   * `steps` only: sync the active step with the URL, e.g. `"/apply/step/:step"` where
+   * `:step` is the step `id` (default) or a zero-based index when `urlSyncBy` is `"index"`.
+   */
+  readonly urlSync?: string;
+  /** `steps` only: whether `urlSync` uses step `id` (default) or numeric `index`. */
+  readonly urlSyncBy?: "id" | "index";
   /** `collection` only: label for each row, e.g. "Contact". */
   readonly itemLabel?: Resolvable<string>;
   /** `collection` only: text for the add-row button (default: "Add"). */
@@ -254,6 +269,34 @@ export interface SubmitSchema {
   readonly onError?: string;
 }
 
+/** Shown after a successful submit when declared on the form schema. */
+export interface SuccessScreenSchema {
+  readonly heading?: Resolvable<string>;
+  /** Supports `{{key}}` placeholders filled from the submit response. */
+  readonly message?: Resolvable<string>;
+  /** Extra lines (each supports `{{key}}` from the response). */
+  readonly details?: readonly Resolvable<string>[];
+  readonly actions?: readonly FormAction[];
+}
+
+/** Draft persistence UX — pairs with `persistKey` in {@link FormOptions}. */
+export interface PersistSchema {
+  /**
+   * `"auto"` — save to storage on every change (default).
+   * `"consent"` — ask the user before writing; values restore on refresh only after they agree.
+   */
+  readonly mode?: "auto" | "consent";
+  /** Show a resume-draft banner when a saved draft is restored (default `true`). */
+  readonly showResumeBanner?: boolean;
+  /** Shown when `mode` is `"consent"` and the user has entered data but not yet agreed to save. */
+  readonly consentMessage?: Resolvable<string>;
+  readonly consentLabel?: Resolvable<string>;
+  readonly declineLabel?: Resolvable<string>;
+  readonly resumeMessage?: Resolvable<string>;
+  readonly resumeLabel?: Resolvable<string>;
+  readonly discardLabel?: Resolvable<string>;
+}
+
 /** The root form schema. */
 export interface FormSchema {
   readonly id: string;
@@ -262,6 +305,10 @@ export interface FormSchema {
   readonly providers?: Record<string, ProviderDecl>;
   readonly fields: readonly FieldSchema[];
   readonly submit?: SubmitSchema;
+  /** Post-submit success screen (built-in template; override via renderer options in `@formwright/dom`). */
+  readonly success?: SuccessScreenSchema;
+  /** Resume-draft banner copy when `persistKey` restores values. */
+  readonly persist?: PersistSchema;
   /** Locales for `localized` fields — each captures a value per locale. */
   readonly locales?: readonly string[];
   /** Locales rendered right-to-left (defaults to the common RTL set: ar, he, fa, ur, …). */

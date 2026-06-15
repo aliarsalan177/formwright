@@ -326,6 +326,21 @@ export class StepsNode {
     if (index >= 0 && index < this.steps.length) this.currentStep.set(index);
   }
 
+  /** Jump to a step by its schema `id`. */
+  goToId(id: string): boolean {
+    const index = this.steps.findIndex((s) => s.id === id);
+    if (index === -1) return false;
+    this.goTo(index);
+    return true;
+  }
+
+  /** Active step index and id (non-reactive peek). */
+  activeStep(): { index: number; id: string } {
+    const index = this.currentStep.peek();
+    const step = this.steps[index];
+    return { index, id: step?.id ?? "" };
+  }
+
   reset(initial: Dict): void {
     this.currentStep.set(0);
     for (const step of this.steps) step.reset(asDict(initial[step.id]));

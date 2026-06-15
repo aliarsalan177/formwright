@@ -446,12 +446,55 @@ function exampleOwn(host: HTMLElement): Mounted {
   return { grid, dispose };
 }
 
+// ---- Example 5: grouping + aggregation -------------------------------------
+
+function exampleGroup(host: HTMLElement): Mounted {
+  const schema: GridSchema = {
+    id: "grouped",
+    groupBy: ["status", "owner"],
+    columns: [
+      { field: "owner", header: "Owner", width: 200 },
+      { field: "symbol", header: "Symbol", width: 110 },
+      { field: "name", header: "Company", width: 220 },
+      {
+        field: "price",
+        header: "Price",
+        type: "number",
+        width: 130,
+        valueFormatter: "currency",
+        aggFunc: "sum",
+      },
+      { field: "qty", header: "Qty", type: "number", width: 110, aggFunc: "sum" },
+      { field: "status", header: "Status", width: 130, cellRenderer: "badge" },
+    ],
+  };
+  const grid = new Grid(schema, makeTrades(400));
+  const dispose = mount(grid, host);
+
+  const actions = $("grid-actions");
+  const expand = document.createElement("button");
+  expand.className = "grid-btn";
+  expand.textContent = "Expand all";
+  expand.addEventListener("click", () => grid.expandAllGroups());
+  const collapse = document.createElement("button");
+  collapse.className = "grid-btn";
+  collapse.textContent = "Collapse all";
+  collapse.addEventListener("click", () => grid.collapseAllGroups());
+  actions.append(expand, collapse);
+
+  setFoot(
+    "Grouped by Status → Owner with sum aggregations on Price and Qty. Group rows show subtotals; the footer shows grand totals. Click ▸ to collapse a group.",
+  );
+  return { grid, dispose };
+}
+
 // ---- Tab wiring -------------------------------------------------------------
 
 const EXAMPLES: Record<string, (host: HTMLElement) => Mounted> = {
   live: exampleLive,
   server: exampleServer,
   master: exampleMaster,
+  group: exampleGroup,
   own: exampleOwn,
 };
 

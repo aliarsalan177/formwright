@@ -11,7 +11,8 @@ export type { DetailRenderer, FlowOptions } from "./flow.js";
  * otherwise the node-pooled virtualized renderer for large/live datasets.
  */
 export function mount(grid: Grid, host: Element, options: FlowOptions = {}): Dispose {
-  const needsFlow = grid.paginated || grid.masterDetail || grid.selectionMode !== "none";
+  const needsFlow =
+    grid.paginated || grid.masterDetail || grid.grouped || grid.selectionMode !== "none";
   return needsFlow ? mountFlow(grid, host, options) : mountVirtual(grid, host);
 }
 

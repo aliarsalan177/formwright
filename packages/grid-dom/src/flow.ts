@@ -1,7 +1,16 @@
 import { effect, type Dispose } from "@formwright/reactive";
-import type { Grid } from "@formwright/grid-core";
+import type { Grid, GroupRow, ResolvedColumn } from "@formwright/grid-core";
 import { beginEdit, bindCellWidthPin, makeCell, px, renderCellInto } from "./cells.js";
+import { getFormatter } from "./registry.js";
 import { buildHeader, EXP_W, SEL_W } from "./header.js";
+
+function formatAgg(col: ResolvedColumn, value: number): string {
+  if (col.valueFormatter) {
+    const f = getFormatter(col.valueFormatter);
+    if (f) return f(value, {});
+  }
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
 
 /** Mount a detail panel for an expanded row; return a disposer to tear it down. */
 export type DetailRenderer = (
@@ -76,6 +85,10 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
     }),
   );
 
+  // Grand-total footer (when any column aggregates).
+  if (grid.columns.some((c) => c.aggFunc))
+    root.append(buildGrandTotal(grid, disposers, leadingWidth, totalWidth));
+
   // Pagination footer.
   if (grid.paginated) root.append(buildPager(grid, disposers));
 
@@ -89,7 +102,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
     body.replaceChildren();
   }
 
-  function buildRow(id: string, index: number): void {
+  function buildRow(id: string, index: number, depth = 0): void {
     const row = document.createElement("div");
     row.className = "gw-flowrow";
     row.setAttribute("role", "row");
@@ -138,9 +151,10 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
       row.appendChild(selCell);
     }
 
-    for (const col of grid.orderedColumns.peek()) {
+    grid.orderedColumns.peek().forEach((col, i) => {
       const cell = makeCell(col);
       rowDisposers.push(bindCellWidthPin(grid, col, cell, leadingWidth));
+      if (i === 0 && depth > 0) cell.style.paddingLeft = px(12 + depth * 16);
       if (col.editable) {
         cell.addEventListener("dblclick", () => beginEdit(grid, col, cell, id));
       }
@@ -151,7 +165,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
         }),
       );
       row.appendChild(cell);
-    }
+    });
     body.appendChild(row);
 
     // Detail panel (mounted lazily while expanded).
@@ -180,13 +194,61 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
     }
   }
 
-  // Re-render the row list when the displayed page / data / column set changes.
+  function buildGroupRow(r: GroupRow): void {
+    const row = document.createElement("div");
+    row.className = "gw-grouprow";
+    row.setAttribute("role", "row");
+    rowDisposers.push(
+      effect(() => {
+        row.style.width = px(totalWidth());
+      }),
+    );
+    if (leadingWidth) {
+      const spacer = document.createElement("div");
+      spacer.className = "gw-cell gw-lead";
+      spacer.style.width = px(leadingWidth);
+      row.appendChild(spacer);
+    }
+    grid.orderedColumns.peek().forEach((col, i) => {
+      const cell = makeCell(col);
+      rowDisposers.push(bindCellWidthPin(grid, col, cell, leadingWidth));
+      if (i === 0) {
+        cell.classList.add("gw-group-label");
+        cell.style.paddingLeft = px(12 + r.depth * 16);
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "gw-expand";
+        toggle.addEventListener("click", () => grid.toggleGroup(r.key));
+        rowDisposers.push(
+          effect(() => {
+            const open = grid.isGroupExpanded(r.key);
+            toggle.textContent = open ? "▾" : "▸";
+            toggle.setAttribute("aria-expanded", String(open));
+          }),
+        );
+        const label = document.createElement("span");
+        label.textContent = `${String(r.value)} (${r.count})`;
+        cell.append(toggle, label);
+      } else if (col.aggFunc && r.aggregates[col.field] !== undefined) {
+        cell.textContent = formatAgg(col, r.aggregates[col.field]!);
+        cell.classList.add("gw-agg");
+      }
+      row.appendChild(cell);
+    });
+    body.appendChild(row);
+  }
+
+  // Re-render the row list when the displayed rows / column set changes.
   disposers.push(
     effect(() => {
-      const ids = grid.displayRowIds.get();
+      const list = grid.displayRows.get();
       grid.orderedColumns.get(); // rebuild rows when columns reorder / hide / pin
       disposeRows();
-      ids.forEach((id, i) => buildRow(id, i));
+      let leafIndex = 0;
+      for (const r of list) {
+        if (r.kind === "group") buildGroupRow(r);
+        else buildRow(r.id, leafIndex++, r.depth);
+      }
     }),
   );
 
@@ -195,6 +257,47 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
     for (const d of disposers) d();
     root.remove();
   };
+}
+
+function buildGrandTotal(
+  grid: Grid,
+  disposers: Dispose[],
+  leadingWidth: number,
+  totalWidth: () => number,
+): HTMLElement {
+  const row = document.createElement("div");
+  row.className = "gw-grandtotal";
+  row.setAttribute("role", "row");
+  disposers.push(
+    effect(() => {
+      row.style.width = px(totalWidth());
+    }),
+  );
+  if (leadingWidth) {
+    const spacer = document.createElement("div");
+    spacer.className = "gw-cell gw-lead";
+    spacer.style.width = px(leadingWidth);
+    row.appendChild(spacer);
+  }
+  grid.orderedColumns.peek().forEach((col, i) => {
+    const cell = makeCell(col);
+    disposers.push(bindCellWidthPin(grid, col, cell, leadingWidth));
+    if (i === 0) {
+      cell.classList.add("gw-grandtotal-label");
+      cell.textContent = "Total";
+    } else if (col.aggFunc) {
+      disposers.push(
+        effect(() => {
+          const totals = grid.grandTotals();
+          const value = totals[col.field];
+          cell.textContent = value !== undefined ? formatAgg(col, value) : "";
+          cell.classList.toggle("gw-agg", value !== undefined);
+        }),
+      );
+    }
+    row.appendChild(cell);
+  });
+  return row;
 }
 
 function buildPager(grid: Grid, disposers: Dispose[]): HTMLElement {

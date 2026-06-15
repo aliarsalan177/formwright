@@ -45,9 +45,14 @@ export interface ColumnDef {
   readonly cellRenderer?: string;
   /** Filter kind, or `false` to disable. Defaults from `type`. */
   readonly filter?: FilterKind;
+  /** Aggregation applied to this column for group rows and the grand total. */
+  readonly aggFunc?: AggFunc;
   /** Per-part / per-column class hooks. */
   readonly class?: string;
 }
+
+/** Built-in aggregation functions for grouped columns. */
+export type AggFunc = "sum" | "avg" | "min" | "max" | "count";
 
 export interface GridSchema {
   readonly id: string;
@@ -60,4 +65,6 @@ export interface GridSchema {
   readonly headerHeight?: number;
   /** Extra rows rendered above/below the viewport to smooth scrolling (default 6). */
   readonly overscan?: number;
+  /** Fields to group rows by, outermost first. Enables grouping + aggregation. */
+  readonly groupBy?: readonly string[];
 }

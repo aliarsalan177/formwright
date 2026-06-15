@@ -40,7 +40,8 @@ library, conditional-logic library, and per-framework bindings.
 - **Nested objects and repeatable collections** — `group` and `collection` fields yield
   `{ items: {…} }` and `[{…}, {…}]`, with add/remove rows and `min`/`max`.
 - **Multi-step wizards** — `steps` + `step` fields split a long form into guided steps with
-  Back/Next/Submit navigation, per-step validation, and a nested payload — no extra library.
+  Back/Next/Submit navigation, per-step validation, progress bar / tabs / fill bar, **URL step sync**,
+  **resume-draft banner**, and a **built-in or custom success screen** — no extra library.
 - **Conditional logic as data** — `visibleWhen` / `enabledWhen` / `requiredWhen` resolve
   lexically (sibling, then outward), so an outer toggle can hide a field deep inside a collection
   row. Hidden fields are excluded from the payload automatically.
@@ -78,8 +79,9 @@ One schema, one engine — no add-on libraries required:
   data (`$query`), and theming.
 - **Accessibility** — globally-unique field ids, correct `label[for]`, and per-field or
   type-default **`autocomplete`**.
-- **Form caching** — set `persistKey` to keep entered values across a refresh; cleared on a
-  successful submit.
+- **Form caching** — set `persistKey` and `persist` on the schema to keep values **and the active
+  wizard step** across a refresh. Use `persist.mode: "consent"` to ask before saving locally, or
+  `"auto"` to save on every change. Resume banner on restore; cleared on submit or **Start over**.
 - **Submission** — `validate → transform → send → onSuccess/onError`, an inline
   `submit(transform)` that resolves with `{ ok, data | error, errors }`, configurable
   **submit/reset/delete action buttons**, and server-error mapping.
@@ -182,6 +184,35 @@ const form = new Form(schema, initialValues, {
 form.mount(document.querySelector("#form")!);
 ```
 
+### Form caching (with user consent)
+
+Add `persist` to the schema and a storage key in options. Values (and wizard step) restore on refresh:
+
+```ts
+const schema = {
+  id: "application",
+  version: "1.0",
+  fields: [
+    /* … */
+  ],
+  persist: {
+    mode: "consent", // ask before saving — use "auto" to save on every change
+    consentMessage: "Save your progress on this device?",
+    consentLabel: "Save progress",
+    declineLabel: "Not now",
+    resumeMessage: "Welcome back — pick up where you left off?",
+    resumeLabel: "Continue",
+    discardLabel: "Start over",
+  },
+};
+
+const form = new Form(schema, {}, { persistKey: "my-app-application" });
+```
+
+- **`mode: "consent"`** — shows an opt-in banner after the user edits; nothing is written until they accept.
+- **`mode: "auto"`** (default) — saves on every change (previous behaviour).
+- On restore → **resume banner**; on submit or `discardDraft()` → storage cleared.
+
 ### React
 
 The `Form` instance is render-agnostic — mount it into a ref:
@@ -272,9 +303,11 @@ one at a time):
 {
   "id": "wizard",
   "type": "steps",
-  "layout": "bar", // "bar" | "tabs" | "numbers"
+  "layout": "fill", // "bar" | "tabs" | "numbers" | "fill" (thin % bar)
   "showProgress": true,
   "validateOnNext": true,
+  "urlSync": "/apply/step/:step",
+  "urlSyncBy": "id", // or "index" for zero-based step numbers in the URL
   "nextLabel": "Continue",
   "prevLabel": "Back",
   "submitLabel": "Create account",
@@ -304,6 +337,50 @@ one at a time):
 }
 ```
 
+At the **form** level, pair wizard UX with draft persistence and a post-submit screen:
+
+```jsonc
+{
+  "id": "signup",
+  "version": "1.0",
+  "fields": [
+    /* …steps as above… */
+  ],
+  "submit": { "endpoint": { "method": "POST", "url": "/api/signup" } },
+  "persist": {
+    "mode": "consent",
+    "consentMessage": "Save your application progress on this device?",
+    "consentLabel": "Save progress",
+    "declineLabel": "Not now",
+    "resumeMessage": "You have a saved draft. Continue your application?",
+    "resumeLabel": "Continue",
+    "discardLabel": "Start over",
+  },
+  "success": {
+    "heading": "Account created",
+    "message": "Reference {{referenceId}} — confirmation sent to {{email}}.",
+    "details": ["Plan: {{plan}}"],
+    "actions": [
+      { "name": "done", "label": "Done", "variant": "primary", "handler": "closeSuccess" },
+    ],
+  },
+}
+```
+
+```ts
+const form = new Form(
+  schema,
+  {},
+  {
+    persistKey: "my-app-draft",
+    send: async (payload) => {
+      const res = await fetch("/api/signup", { method: "POST", body: JSON.stringify(payload) });
+      return res.json(); // { referenceId, email, plan } — fills {{…}} in success
+    },
+  },
+);
+```
+
 → payload:
 
 ```jsonc
@@ -317,9 +394,43 @@ one at a time):
 
 - **Next** validates the current step only; **Submit** (on the last step) validates every step.
 - Inactive steps are skipped during step-by-step validation but included in the final payload.
-- Imperative control: `form.findSteps()?.next()`, `.prev()`, `.goTo(index)`, `.validateStep()`.
+- Imperative control: `form.findSteps()?.next()`, `.prev()`, `.goTo(index)`, `.goToId(id)`,
+  `.validateStep()`.
+- **Step events:** `form.on("step", ({ index, id }) => …)` when the active step changes.
+- **URL sync:** `urlSync` updates the browser path as the user moves through steps; back/forward
+  restores the step. Helpers exported from `@formwright/dom`: `readStepFromUrl`, `writeStepToUrl`.
+- **Resume banner:** when `persistKey` restores a draft, a banner offers **Continue** or
+  **Start over** (`form.dismissResumeBanner()`, `form.discardDraft()`).
+- **Consent prompt:** when `persist.mode` is `"consent"`, nothing is written until the user agrees
+  (`form.grantPersistConsent()`). Declining hides the prompt for the session
+  (`form.declinePersistConsent()`). Works for single-page forms and multi-step wizards alike.
+- **Success screen:** after a successful submit, the form body is replaced by the built-in template
+  (`success` schema) or your own renderer. `{{key}}` placeholders are filled from the submit
+  response via `form.successContext().interpolate("…")`.
 - When a top-level `steps` field is present, the renderer supplies its own Back/Next/Submit bar
   (root `actions` are omitted).
+
+**Custom success screen** (full UI control — React, Vue, plain DOM):
+
+```ts
+new Form(
+  schema,
+  {},
+  {
+    dom: {
+      renderSuccess(ctx, host) {
+        host.innerHTML = "";
+        const h1 = document.createElement("h1");
+        h1.textContent = ctx.interpolate("Ref {{referenceId}}");
+        const btn = document.createElement("button");
+        btn.textContent = "Back to home";
+        btn.onclick = () => ctx.dismiss();
+        host.append(h1, btn);
+      },
+    },
+  },
+);
+```
 
 Try it live: open the [Playground](https://aliarsalan177.github.io/formwright/) and pick
 **Wizard — multi-step form (steps)** from the Example dropdown.
@@ -418,7 +529,8 @@ Each is the same `mount` adapter as React above — render the component into `h
 ## Styling — your CSS or Tailwind, your layout
 
 The renderer ships **unstyled** with stable class hooks (`.fw-field`, `.fw-group`, `.fw-steps`,
-`.fw-step-panel`, `.fw-error`, `.fw-switch`, …) — bring your own stylesheet. Or override per field, right in the schema, with
+`.fw-step-panel`, `.fw-progress-fill`, `.fw-persist-consent`, `.fw-resume-banner`, `.fw-success`, `.fw-error`,
+`.fw-switch`, …) — bring your own stylesheet. Or override per field, right in the schema, with
 any classes or **Tailwind utilities**:
 
 ```jsonc
@@ -449,7 +561,17 @@ form.setValue("country", "US");
 form.isDirty;
 form.isValid;
 form.isSubmitting; // computed signals
-form.on("change" | "submit" | "success" | "error", handler);
+form.showSuccessScreen; // true after submit when success UI is configured
+form.successData; // last successful submit response
+form.showResumeBanner; // true when a persisted draft was restored
+form.showPersistConsent; // true when consent is needed before saving
+form.persistConsented; // true after the user opted in to local storage
+form.on("change" | "submit" | "success" | "error" | "step", handler);
+form.findSteps()?.next(); // wizard navigation
+form.grantPersistConsent(); // start saving draft locally (consent mode)
+form.declinePersistConsent(); // hide consent prompt for this session
+form.discardDraft(); // clear persistKey storage + reset (resume banner)
+form.successContext().interpolate("Ref {{id}}"); // fill {{…}} from submit response
 await form.submit(); // validate → transform → send → onSuccess/onError
 form.reset();
 form.destroy();
@@ -523,6 +645,7 @@ mount(grid, document.getElementById("app")!, {
 | **Pagination**         | Client-side or **server-side** (`datasource` returns `{ rows, total }`); built-in pager (first/prev/next/last), reactive `pagination()` state, `setPage`/`setPageSize` |
 | **Selection**          | `single` / `multi`, select-all-on-page, `selectedRows()` for bulk actions                                                                                              |
 | **Master / detail**    | Expandable rows; the detail panel renders anything — including another paginated grid from a second API                                                                |
+| **Grouping**           | Multi-level `groupBy` + per-column `aggFunc` (sum/avg/min/max/count); expandable group rows with subtotals + a **grand-total footer** — free                           |
 | **Editing**            | Inline cell editing (double-click), composable with live updates                                                                                                       |
 | **Filtering**          | Global filter across all columns **and** per-column filters                                                                                                            |
 | **Sorting**            | **Multi-column** (shift-click), type-aware comparators; header shows priority order                                                                                    |
@@ -598,7 +721,7 @@ pnpm + Turborepo monorepo; releases automated with
 - `@formwright/wc` web component + `@formwright/react` / `/vue` adapters
 - `@formwright/codegen` — compile a schema to idiomatic React / Vue / HTML source
 - First-party providers (i18n, TanStack Query, theming)
-- `@formwright/ai` — describe a form in any language → validated schema
+- Standard Schema / Valibot validation bridge
 
 ## License
 

@@ -19,6 +19,12 @@ import type {
 import { isPresentational, resolve, signal } from "@formwright/core";
 import { bindHidden, bindText, h, on, Scope } from "./internal.js";
 import { renderControl } from "./widgets.js";
+import {
+  renderPersistConsentBanner,
+  renderResumeBanner,
+  renderSuccessScreen,
+} from "./resume-success.js";
+import { wireStepUrlSync } from "./step-url.js";
 
 /** Render any node (leaf, group, collection, or steps) into a fresh wrapper element. */
 function renderNode(form: Form, node: FieldNode, scope: Scope): HTMLElement {
@@ -367,6 +373,11 @@ function renderSteps(form: Form, steps: StepsNode, scope: Scope): HTMLElement {
   on(scope, backBtn, "click", () => steps.prev());
   on(scope, nextBtn, "click", () => steps.next());
 
+  const urlPattern = schema.urlSync;
+  if (urlPattern) {
+    scope.add(wireStepUrlSync(form, steps, urlPattern, schema.urlSyncBy ?? "id", scope));
+  }
+
   scope.bind(() => {
     submitBtn.disabled = form.isSubmitting.get();
     submitBtn.textContent = form.isSubmitting.get()
@@ -395,45 +406,60 @@ function renderSteps(form: Form, steps: StepsNode, scope: Scope): HTMLElement {
 
     progress.replaceChildren();
     if (showProgress) {
-      steps.steps.forEach((step, i) => {
-        const stepTitle = resolve(step.schema.label, providers);
-        const label = typeof stepTitle === "string" ? stepTitle : step.id;
-        if (progressStyle === "tabs") {
-          const tab = h("button", {
-            type: "button",
-            class: "fw-steps-tab",
-            "data-step": String(i),
-          });
-          if (i === index) tab.setAttribute("aria-current", "step");
-          tab.textContent = label;
-          tab.disabled = i > index;
-          on(stepScope!, tab, "click", () => {
-            if (i <= index) steps.goTo(i);
-          });
-          progress.appendChild(tab);
-        } else if (progressStyle === "numbers") {
-          const item = h("div", {
-            class: "fw-steps-number",
-            "data-step": String(i),
-          });
-          if (i === index) item.setAttribute("aria-current", "step");
-          item.textContent = String(i + 1);
-          progress.appendChild(item);
-          if (i < total - 1) {
-            const sep = h("div", { class: "fw-steps-sep", "aria-hidden": "true" });
-            sep.textContent = "→";
-            progress.appendChild(sep);
+      if (progressStyle === "fill") {
+        const fill = h("div", { class: "fw-steps-progress-fill" });
+        const track = h("div", { class: "fw-steps-progress-track" });
+        const bar = h("div", { class: "fw-steps-progress-bar" });
+        bar.style.width = `${Math.round(((index + 1) / total) * 100)}%`;
+        track.appendChild(bar);
+        fill.appendChild(track);
+        const label = h("div", { class: "fw-steps-progress-label" });
+        const stepTitle = resolve(steps.steps[index]?.schema.label, providers);
+        const name = typeof stepTitle === "string" ? stepTitle : (steps.steps[index]?.id ?? "");
+        label.textContent = `Step ${index + 1} of ${total}${name ? ` — ${name}` : ""}`;
+        fill.appendChild(label);
+        progress.appendChild(fill);
+      } else {
+        steps.steps.forEach((step, i) => {
+          const stepTitle = resolve(step.schema.label, providers);
+          const label = typeof stepTitle === "string" ? stepTitle : step.id;
+          if (progressStyle === "tabs") {
+            const tab = h("button", {
+              type: "button",
+              class: "fw-steps-tab",
+              "data-step": String(i),
+            });
+            if (i === index) tab.setAttribute("aria-current", "step");
+            tab.textContent = label;
+            tab.disabled = i > index;
+            on(stepScope!, tab, "click", () => {
+              if (i <= index) steps.goTo(i);
+            });
+            progress.appendChild(tab);
+          } else if (progressStyle === "numbers") {
+            const item = h("div", {
+              class: "fw-steps-number",
+              "data-step": String(i),
+            });
+            if (i === index) item.setAttribute("aria-current", "step");
+            item.textContent = String(i + 1);
+            progress.appendChild(item);
+            if (i < total - 1) {
+              const sep = h("div", { class: "fw-steps-sep", "aria-hidden": "true" });
+              sep.textContent = "→";
+              progress.appendChild(sep);
+            }
+          } else {
+            const item = h("div", {
+              class: "fw-steps-bar-item",
+              "data-step": String(i),
+            });
+            if (i === index) item.setAttribute("aria-current", "step");
+            item.textContent = label;
+            progress.appendChild(item);
           }
-        } else {
-          const item = h("div", {
-            class: "fw-steps-bar-item",
-            "data-step": String(i),
-          });
-          if (i === index) item.setAttribute("aria-current", "step");
-          item.textContent = label;
-          progress.appendChild(item);
-        }
-      });
+        });
+      }
     }
 
     panelsHost.replaceChildren();
@@ -645,9 +671,14 @@ function renderActions(form: Form, scope: Scope): HTMLElement {
 }
 
 /** Mount a form into `host`. Returns a disposer that removes the form and tears down bindings. */
-export function mount(form: Form, host: Element): Dispose {
+export function mount(
+  form: Form,
+  host: Element,
+  options?: import("@formwright/core").DomRendererOptions,
+): Dispose {
   const scope = new Scope();
   const formEl = h("form", { class: "fw-form", novalidate: "" });
+  const body = h("div", { class: "fw-form-body" });
 
   const title = resolve(form.schema.title, form.options.providers);
   if (typeof title === "string") {
@@ -656,12 +687,47 @@ export function mount(form: Form, host: Element): Dispose {
     formEl.appendChild(heading);
   }
 
+  if (form.options.persistKey) {
+    formEl.appendChild(renderResumeBanner(form, scope));
+    if (form.schema.persist?.mode === "consent") {
+      formEl.appendChild(renderPersistConsentBanner(form, scope));
+    }
+  }
+
   formEl.appendChild(renderAlert(form, scope));
-  for (const node of form.tree) formEl.appendChild(renderNode(form, node, scope));
-  if (!hasTopLevelSteps(form)) formEl.appendChild(renderActions(form, scope));
+  for (const node of form.tree) body.appendChild(renderNode(form, node, scope));
+  if (!hasTopLevelSteps(form)) body.appendChild(renderActions(form, scope));
+  formEl.appendChild(body);
+
+  const successHost = h("div", { class: "fw-success-host" });
+  let customSuccessDispose: Dispose | null = null;
+  if (options?.renderSuccess) {
+    scope.bind(() => {
+      if (!form.showSuccessScreen.get()) {
+        customSuccessDispose?.();
+        customSuccessDispose = null;
+        successHost.replaceChildren();
+        return;
+      }
+      customSuccessDispose?.();
+      successHost.replaceChildren();
+      customSuccessDispose = options.renderSuccess!(form.successContext(), successHost) ?? null;
+    });
+    scope.add(() => customSuccessDispose?.());
+  } else if (form.schema.success) {
+    successHost.appendChild(renderSuccessScreen(form, scope));
+  }
+  formEl.appendChild(successHost);
+
+  scope.bind(() => {
+    const showSuccess = form.showSuccessScreen.get();
+    body.hidden = showSuccess;
+    body.style.display = showSuccess ? "none" : "";
+  });
 
   on(scope, formEl, "submit", (ev) => {
     ev.preventDefault();
+    if (form.showSuccessScreen.peek()) return;
     void form.submit().catch(() => {
       /* error surfaced via field errors + the form's "error" event + the alert */
     });

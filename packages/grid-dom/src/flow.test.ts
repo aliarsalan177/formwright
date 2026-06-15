@@ -47,6 +47,38 @@ describe("dynamic columns (resize / reorder / hide / pin)", () => {
   });
 });
 
+describe("grouping + aggregation rendering", () => {
+  const groupSchema: GridSchema = {
+    id: "s",
+    groupBy: ["team"],
+    columns: [
+      { field: "team" },
+      { field: "name" },
+      { field: "score", type: "number", aggFunc: "sum" },
+    ],
+  };
+  const groupRows: Row[] = [
+    { id: "1", team: "A", name: "x", score: 10 },
+    { id: "2", team: "A", name: "y", score: 20 },
+    { id: "3", team: "B", name: "z", score: 5 },
+  ];
+
+  it("renders group header rows, leaves, a grand total, and collapses", () => {
+    const host = document.createElement("div");
+    const grid = new Grid(groupSchema, groupRows);
+    mount(grid, host);
+    expect(host.querySelectorAll(".gw-grouprow").length).toBe(2); // teams A, B
+    expect(host.querySelectorAll(".gw-flowrow").length).toBe(3); // 3 leaves (expanded)
+    // Grand total footer shows sum of scores = 35.
+    expect(host.querySelector(".gw-grandtotal .gw-agg")?.textContent).toBe("35");
+
+    // Collapse team A via its toggle.
+    const firstToggle = host.querySelector(".gw-grouprow .gw-expand") as HTMLElement;
+    firstToggle.click();
+    expect(host.querySelectorAll(".gw-flowrow").length).toBe(1); // only team B's leaf remains
+  });
+});
+
 describe("flow renderer (pagination/selection/detail)", () => {
   it("renders only the current page and a working pager", () => {
     const host = document.createElement("div");
