@@ -380,6 +380,45 @@ export class Grid {
     return this.store.get(id)?.peek();
   }
 
+  /** Current rows as a plain snapshot (non-reactive), in raw order. */
+  getData(): Row[] {
+    return this.order.map((id) => this.store.get(id)!.peek());
+  }
+
+  /**
+   * Subscribe to all data changes — `listener` runs immediately with the current
+   * rows and again whenever any cell, row, or the dataset changes. The consumer
+   * stays stateless: it always receives the latest snapshot. Returns an
+   * unsubscribe. (Tracks every row, so it fires often on large/live datasets.)
+   */
+  subscribe(listener: (rows: Row[]) => void): Dispose {
+    return effect(() => {
+      this.structure.get();
+      listener(this.order.map((id) => this.store.get(id)!.get()));
+    });
+  }
+
+  /** Subscribe to selection changes — called immediately and on every change. */
+  onSelectionChange(listener: (rows: Row[]) => void): Dispose {
+    return effect(() => {
+      this.selected.get();
+      listener(this.selectedRows());
+    });
+  }
+
+  /** Subscribe to view-state changes (sort / filter / pagination / grouping). */
+  onStateChange(listener: () => void): Dispose {
+    return effect(() => {
+      this.sort.get();
+      this.quick.get();
+      this.colFilters.get();
+      this.page.get();
+      this.pageSize.get();
+      this.grouping.get();
+      listener();
+    });
+  }
+
   rowIdAt(index: number): string | undefined {
     return this.displayRowIds.get()[index];
   }

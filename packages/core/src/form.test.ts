@@ -141,6 +141,21 @@ describe("submission pipeline", () => {
   });
 });
 
+describe("subscribe / getValues (stateless consumer)", () => {
+  it("pushes the latest values immediately and on every change", () => {
+    const form = new Form(schema);
+    const seen: unknown[] = [];
+    const off = form.subscribe((v) => seen.push(v.email));
+    expect(seen).toEqual([""]); // immediate
+    form.setValue("email", "a@b.com");
+    expect(seen).toEqual(["", "a@b.com"]);
+    off();
+    form.setValue("email", "x@y.com");
+    expect(seen).toEqual(["", "a@b.com"]); // unsubscribed
+    expect(form.getValues().email).toBe("x@y.com"); // snapshot still current
+  });
+});
+
 describe("reset", () => {
   it("restores initial values", () => {
     const form = new Form(schema, { email: "a@b.com" });
