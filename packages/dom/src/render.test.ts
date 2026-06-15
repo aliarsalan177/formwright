@@ -187,4 +187,56 @@ describe("mount", () => {
     // After dispose, setting a value must not throw or touch removed nodes.
     expect(() => form.setValue("email", "x@y.com")).not.toThrow();
   });
+
+  it("disables non-submit actions and shows skeleton while submitting", async () => {
+    let resolveSend!: (value: unknown) => void;
+    const send = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveSend = resolve;
+        }),
+    );
+    const host = document.createElement("div");
+    const form = new Form(
+      {
+        id: "f",
+        version: "1.0",
+        fields: [{ id: "name", type: "text", validation: { kind: "string", required: true } }],
+        actions: [
+          { name: "save", role: "submit", label: "Save" },
+          { name: "delete", role: "button", variant: "danger", label: "Delete" },
+          { name: "clear", role: "reset", label: "Clear" },
+        ],
+      },
+      { name: "Ada" },
+      { send },
+    );
+    mount(form, host);
+    form.setValue("name", "Ada");
+
+    const save = host.querySelector('button[type="submit"]') as HTMLButtonElement;
+    const del = host.querySelector(".fw-action-danger") as HTMLButtonElement;
+    const clear = host.querySelectorAll(".fw-action")[1] as HTMLButtonElement;
+
+    const submitPromise = form.submit();
+    expect(form.isSubmitting.get()).toBe(true);
+    expect(save.disabled).toBe(true);
+    expect(save.classList.contains("fw-action-loading")).toBe(true);
+    expect(save.textContent).toBe("Save…");
+    expect(del.disabled).toBe(true);
+    expect(clear.disabled).toBe(true);
+    expect(host.querySelector(".fw-skeleton-overlay:not([hidden])")).toBeTruthy();
+    expect(host.querySelector(".fw-form-body-loading")).toBeTruthy();
+
+    resolveSend({ ok: true });
+    await submitPromise;
+
+    expect(form.isSubmitting.get()).toBe(false);
+    expect(save.disabled).toBe(false);
+    expect(save.classList.contains("fw-action-loading")).toBe(false);
+    expect(save.textContent).toBe("Save");
+    expect(del.disabled).toBe(false);
+    expect(clear.disabled).toBe(false);
+    expect(host.querySelector(".fw-skeleton-overlay[hidden]")).toBeTruthy();
+  });
 });

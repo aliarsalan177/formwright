@@ -61,8 +61,16 @@ export {
   type ErrorHandler,
   type SuccessScreenContext,
   type DomRendererOptions,
+  type LoadingReason,
 } from "./form.js";
 export { interpolateTemplate } from "./interpolate.js";
+export {
+  buildSkeletonPlanFromForm,
+  buildSkeletonPlanFromNodes,
+  buildSkeletonPlanFromSchemas,
+  type SkeletonNode,
+  type SkeletonVariant,
+} from "./skeleton.js";
 export {
   loadPersisted,
   savePersisted,

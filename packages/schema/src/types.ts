@@ -175,6 +175,8 @@ export interface FieldSchema {
   readonly colSpan?: number;
   /** Extra class(es) on the field wrapper (e.g. Tailwind utilities). */
   readonly class?: string;
+  /** Skeleton placeholder overrides for loading states. */
+  readonly skeleton?: SkeletonFieldOptions;
   /** Per-part class overrides (wrapper, label, control, help, description, error). */
   readonly classes?: FieldClasses;
   readonly defaultValue?: FieldValue;
@@ -269,6 +271,42 @@ export interface SubmitSchema {
   readonly onError?: string;
 }
 
+/** Skeleton placeholder shape hint for a field type. */
+export type SkeletonVariant =
+  | "text"
+  | "textarea"
+  | "select"
+  | "toggle"
+  | "checkbox"
+  | "radio"
+  | "date"
+  | "file"
+  | "range"
+  | "color"
+  | "heading"
+  | "separator"
+  | "paragraph"
+  | "unknown";
+
+/** Per-field skeleton override. */
+export interface SkeletonFieldOptions {
+  readonly variant?: SkeletonVariant;
+  /** Textarea / paragraph line count. */
+  readonly lines?: number;
+}
+
+/** Form-level loading UX (skeleton overlay, step transitions). */
+export interface LoadingSchema {
+  /** Show skeleton on submit until response (default `true`). */
+  readonly onSubmit?: boolean;
+  /** Show skeleton when navigating wizard steps (default `true`). */
+  readonly onStepChange?: boolean;
+  /** Min duration ms to avoid flash (default 150). */
+  readonly minDuration?: number;
+  /** Step transition: `"slide"` | `"fade"` | `"none"` (default `"slide"`). */
+  readonly stepTransition?: "slide" | "fade" | "none";
+}
+
 /** Shown after a successful submit when declared on the form schema. */
 export interface SuccessScreenSchema {
   readonly heading?: Resolvable<string>;
@@ -313,6 +351,8 @@ export interface FormSchema {
   readonly locales?: readonly string[];
   /** Locales rendered right-to-left (defaults to the common RTL set: ar, he, fa, ur, …). */
   readonly rtlLocales?: readonly string[];
+  /** Loading UX: submit skeleton overlay, step transitions. */
+  readonly loading?: LoadingSchema;
   /** Action buttons rendered at the bottom of the form (defaults to a single Submit). */
   readonly actions?: readonly FormAction[];
   /** How action buttons are aligned: `"start"` (default), `"end"`, or `"between"`. */

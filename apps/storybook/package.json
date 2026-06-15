@@ -1,0 +1,29 @@
+{
+  "name": "@formwright/storybook",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "storybook dev -p 6006",
+    "build": "storybook build -o dist",
+    "preview": "npx serve dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@formwright/core": "workspace:*",
+    "@formwright/dom": "workspace:*",
+    "@formwright/schema": "workspace:*",
+    "@formwright/grid-core": "workspace:*",
+    "@formwright/grid-dom": "workspace:*"
+  },
+  "devDependencies": {
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/addon-links": "^8.6.14",
+    "@storybook/blocks": "^8.6.14",
+    "@storybook/html": "^8.6.14",
+    "@storybook/html-vite": "^8.6.14",
+    "storybook": "^8.6.14",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  }
+}
