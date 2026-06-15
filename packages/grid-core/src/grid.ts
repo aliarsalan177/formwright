@@ -6,8 +6,8 @@ import {
   type Dispose,
   type ReadSignal,
   type WriteSignal,
-} from "@wright/reactive";
-import type { GridSchema, Row, SortDirection } from "@gridwright/schema";
+} from "@formwright/reactive";
+import type { GridSchema, Row, SortDirection } from "@formwright/grid-schema";
 import { resolveColumn, type ResolvedColumn } from "./columns.js";
 
 export type SelectionMode = "none" | "single" | "multi";
@@ -117,9 +117,18 @@ export class Grid {
   private readonly selected = signal<ReadonlySet<string>>(new Set());
   private readonly expanded = signal<ReadonlySet<string>>(new Set());
 
+  // Reactive column state (resize / reorder / pin / visibility).
+  private readonly colByField: Map<string, ResolvedColumn>;
+  private readonly widthOverrides = signal<Record<string, number>>({});
+  private readonly orderSig: WriteSignal<string[]>;
+  private readonly hiddenSig = signal<ReadonlySet<string>>(new Set());
+  private readonly pinOverrides = signal<Record<string, "left" | "right" | "none">>({});
+
   private reqSeq = 0;
   private fetchDispose: Dispose | undefined;
 
+  /** Visible columns in render order: pinned-left, center, pinned-right. */
+  readonly orderedColumns: ReadSignal<ResolvedColumn[]>;
   /** Filtered + sorted row ids across the whole client dataset (client mode). */
   readonly viewRowIds: ReadSignal<string[]>;
   /** The ids to actually display — the current page (paginated) or the full view. */
@@ -133,6 +142,22 @@ export class Grid {
     options: GridOptions = {},
   ) {
     this.columns = schema.columns.map(resolveColumn);
+    this.colByField = new Map(this.columns.map((c) => [c.field, c]));
+    this.orderSig = signal(this.columns.map((c) => c.field));
+    this.orderedColumns = computed(() => {
+      const order = this.orderSig.get();
+      const hidden = this.hiddenSig.get();
+      const pins = this.pinOverrides.get();
+      const pinOf = (c: ResolvedColumn) => pins[c.field] ?? c.pinned ?? "none";
+      const cols = order
+        .map((f) => this.colByField.get(f))
+        .filter((c): c is ResolvedColumn => c !== undefined && !hidden.has(c.field));
+      return [
+        ...cols.filter((c) => pinOf(c) === "left"),
+        ...cols.filter((c) => pinOf(c) === "none"),
+        ...cols.filter((c) => pinOf(c) === "right"),
+      ];
+    });
     this.rowHeight = schema.rowHeight ?? 36;
     this.headerHeight = schema.headerHeight ?? 40;
     this.overscan = schema.overscan ?? 6;
@@ -493,6 +518,79 @@ export class Grid {
 
   expandedIds(): string[] {
     return [...this.expanded.get()];
+  }
+
+  // ---- columns: resize / reorder / pin / visibility ----------------------
+
+  /** Current width of a column (reactive). */
+  columnWidth(field: string): number {
+    return this.widthOverrides.get()[field] ?? this.colByField.get(field)?.width ?? 150;
+  }
+
+  setColumnWidth(field: string, width: number): void {
+    const min = this.colByField.get(field)?.minWidth ?? 60;
+    this.widthOverrides.update((prev) => ({ ...prev, [field]: Math.max(min, Math.round(width)) }));
+  }
+
+  /** Total width of all visible columns (reactive). */
+  totalColumnsWidth(): number {
+    return this.orderedColumns.get().reduce((w, c) => w + this.columnWidth(c.field), 0);
+  }
+
+  /** Field order (reactive) — does not account for pinning. */
+  columnOrder(): string[] {
+    return this.orderSig.get();
+  }
+
+  /** Move a column so it lands at `toIndex` in the field order. */
+  moveColumn(field: string, toIndex: number): void {
+    const order = [...this.orderSig.peek()];
+    const from = order.indexOf(field);
+    if (from === -1) return;
+    order.splice(from, 1);
+    order.splice(Math.max(0, Math.min(order.length, toIndex)), 0, field);
+    this.orderSig.set(order);
+  }
+
+  isColumnHidden(field: string): boolean {
+    return this.hiddenSig.get().has(field);
+  }
+
+  setColumnHidden(field: string, hidden: boolean): void {
+    const next = new Set(this.hiddenSig.peek());
+    if (hidden) next.add(field);
+    else next.delete(field);
+    this.hiddenSig.set(next);
+  }
+
+  /** Effective pin of a column (override, else the schema value). */
+  columnPin(field: string): "left" | "right" | "none" {
+    return this.pinOverrides.get()[field] ?? this.colByField.get(field)?.pinned ?? "none";
+  }
+
+  setColumnPin(field: string, pin: "left" | "right" | "none"): void {
+    this.pinOverrides.update((prev) => ({ ...prev, [field]: pin }));
+  }
+
+  /** Cumulative width to the left of a pinned-left column (for sticky offset). */
+  pinnedOffset(field: string): number {
+    const cols = this.orderedColumns.get();
+    const pin = this.columnPin(field);
+    if (pin === "left") {
+      let off = 0;
+      for (const c of cols) {
+        if (c.field === field) return off;
+        if (this.columnPin(c.field) === "left") off += this.columnWidth(c.field);
+      }
+    } else if (pin === "right") {
+      let off = 0;
+      for (let i = cols.length - 1; i >= 0; i--) {
+        const c = cols[i]!;
+        if (c.field === field) return off;
+        if (this.columnPin(c.field) === "right") off += this.columnWidth(c.field);
+      }
+    }
+    return 0;
   }
 
   // ---- viewport ----------------------------------------------------------

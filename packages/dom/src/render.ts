@@ -14,17 +14,25 @@ import type {
   Form,
   FormRenderer,
   GroupNode,
+  StepsNode,
 } from "@formwright/core";
 import { isPresentational, resolve, signal } from "@formwright/core";
 import { bindHidden, bindText, h, on, Scope } from "./internal.js";
 import { renderControl } from "./widgets.js";
 
-/** Render any node (leaf, group, or collection) into a fresh wrapper element. */
+/** Render any node (leaf, group, collection, or steps) into a fresh wrapper element. */
 function renderNode(form: Form, node: FieldNode, scope: Scope): HTMLElement {
   if (node.kind === "group") return renderGroup(form, node, scope);
   if (node.kind === "collection") return renderCollection(form, node, scope);
-  if (isPresentational(node.schema.type)) return renderPresentational(form, node, scope);
-  return renderLeaf(form, node, scope);
+  if (node.kind === "steps") return renderSteps(form, node, scope);
+  if (node.kind === "field") {
+    if (isPresentational(node.schema.type)) return renderPresentational(form, node, scope);
+    return renderLeaf(form, node, scope);
+  }
+  // `step` nodes render inside their parent `steps` container only.
+  const panel = h("div", { class: "fw-step-panel", "data-field": node.id });
+  renderFields(form, node.children, scope, panel);
+  return panel;
 }
 
 /** Add space-separated class tokens (e.g. Tailwind utilities) to an element. */
@@ -33,7 +41,10 @@ function addClass(el: HTMLElement, classes: string | undefined): void {
 }
 
 /** Apply a field's grid column span (for side-by-side layouts). */
-function applyColSpan(el: HTMLElement, field: FieldState | GroupNode | CollectionNode): void {
+function applyColSpan(
+  el: HTMLElement,
+  field: FieldState | GroupNode | CollectionNode | StepsNode,
+): void {
   const span = field.schema.colSpan;
   if (typeof span === "number") el.style.gridColumn = `span ${span}`;
 }
@@ -316,6 +327,153 @@ function renderGroup(form: Form, group: GroupNode, scope: Scope): HTMLElement {
   return fieldset;
 }
 
+/** A multi-step wizard: progress indicator, one step panel at a time, Back/Next/Submit. */
+function renderSteps(form: Form, steps: StepsNode, scope: Scope): HTMLElement {
+  const providers = form.options.providers;
+  const schema = steps.schema;
+  const wrapper = h("div", { class: "fw-steps", "data-field": steps.id });
+  applyColSpan(wrapper, steps);
+
+  const title = resolve(schema.label, providers);
+  if (typeof title === "string") {
+    const heading = h("div", { class: "fw-steps-title" });
+    heading.textContent = title;
+    wrapper.appendChild(heading);
+  }
+
+  const showProgress = schema.showProgress !== false;
+  const progressStyle = schema.layout ?? "bar";
+  const progress = h("div", { class: `fw-steps-progress fw-steps-progress-${progressStyle}` });
+  if (!showProgress) progress.hidden = true;
+  wrapper.appendChild(progress);
+
+  const panelsHost = h("div", { class: "fw-steps-panels" });
+  wrapper.appendChild(panelsHost);
+
+  const nav = h("div", { class: "fw-steps-nav" });
+  const backBtn = h("button", { type: "button", class: "fw-steps-back" });
+  const nextBtn = h("button", { type: "button", class: "fw-steps-next fw-action-primary" });
+  const submitBtn = h("button", { type: "submit", class: "fw-steps-submit fw-action-primary" });
+  nav.append(backBtn, nextBtn, submitBtn);
+  wrapper.appendChild(nav);
+
+  const prevLabel = resolve(schema.prevLabel, providers);
+  const nextLabel = resolve(schema.nextLabel, providers);
+  const submitLabel = resolve(schema.submitLabel, providers);
+  backBtn.textContent = typeof prevLabel === "string" ? prevLabel : "Back";
+  nextBtn.textContent = typeof nextLabel === "string" ? nextLabel : "Next";
+  submitBtn.textContent = typeof submitLabel === "string" ? submitLabel : "Submit";
+
+  on(scope, backBtn, "click", () => steps.prev());
+  on(scope, nextBtn, "click", () => steps.next());
+
+  scope.bind(() => {
+    submitBtn.disabled = form.isSubmitting.get();
+    submitBtn.textContent = form.isSubmitting.get()
+      ? `${typeof submitLabel === "string" ? submitLabel : "Submit"}…`
+      : typeof submitLabel === "string"
+        ? submitLabel
+        : "Submit";
+  });
+
+  let stepScope: Scope | null = null;
+  scope.bind(() => {
+    const index = steps.currentStep.get();
+    const total = steps.steps.length;
+    const isFirst = index === 0;
+    const isLast = index === total - 1;
+
+    backBtn.hidden = isFirst;
+    backBtn.style.display = isFirst ? "none" : "";
+    nextBtn.hidden = isLast;
+    nextBtn.style.display = isLast ? "none" : "";
+    submitBtn.hidden = !isLast;
+    submitBtn.style.display = isLast ? "" : "none";
+
+    stepScope?.dispose();
+    stepScope = new Scope();
+
+    progress.replaceChildren();
+    if (showProgress) {
+      steps.steps.forEach((step, i) => {
+        const stepTitle = resolve(step.schema.label, providers);
+        const label = typeof stepTitle === "string" ? stepTitle : step.id;
+        if (progressStyle === "tabs") {
+          const tab = h("button", {
+            type: "button",
+            class: "fw-steps-tab",
+            "data-step": String(i),
+          });
+          if (i === index) tab.setAttribute("aria-current", "step");
+          tab.textContent = label;
+          tab.disabled = i > index;
+          on(stepScope!, tab, "click", () => {
+            if (i <= index) steps.goTo(i);
+          });
+          progress.appendChild(tab);
+        } else if (progressStyle === "numbers") {
+          const item = h("div", {
+            class: "fw-steps-number",
+            "data-step": String(i),
+          });
+          if (i === index) item.setAttribute("aria-current", "step");
+          item.textContent = String(i + 1);
+          progress.appendChild(item);
+          if (i < total - 1) {
+            const sep = h("div", { class: "fw-steps-sep", "aria-hidden": "true" });
+            sep.textContent = "→";
+            progress.appendChild(sep);
+          }
+        } else {
+          const item = h("div", {
+            class: "fw-steps-bar-item",
+            "data-step": String(i),
+          });
+          if (i === index) item.setAttribute("aria-current", "step");
+          item.textContent = label;
+          progress.appendChild(item);
+        }
+      });
+    }
+
+    panelsHost.replaceChildren();
+    const step = steps.steps[index];
+    if (step) {
+      const panel = h("section", {
+        class: "fw-step-panel",
+        "data-step": String(index),
+        "aria-labelledby": `fw-step-${steps.id}-${index}`,
+      });
+      const stepTitle = resolve(step.schema.label, providers);
+      if (typeof stepTitle === "string") {
+        const head = h("h3", {
+          class: "fw-step-heading",
+          id: `fw-step-${steps.id}-${index}`,
+        });
+        head.textContent = stepTitle;
+        panel.appendChild(head);
+      }
+      const desc = resolve(step.schema.description, providers);
+      if (typeof desc === "string") {
+        const descEl = h("p", { class: "fw-step-description" });
+        descEl.textContent = desc;
+        panel.appendChild(descEl);
+      }
+      renderFields(form, step.children, stepScope!, panel);
+      panelsHost.appendChild(panel);
+    }
+  });
+  scope.add(() => stepScope?.dispose());
+
+  bindHidden(scope, wrapper, () => !steps.visible.get());
+  return wrapper;
+}
+
+/** True when the form tree contains a top-level steps container (nav replaces default actions). */
+function hasTopLevelSteps(form: Form): boolean {
+  return form.tree.some((node) => node.kind === "steps");
+}
+
 /** A `collection`: a repeatable list of rows with add/remove honouring min/max. */
 function renderCollection(form: Form, collection: CollectionNode, scope: Scope): HTMLElement {
   const providers = form.options.providers;
@@ -500,7 +658,7 @@ export function mount(form: Form, host: Element): Dispose {
 
   formEl.appendChild(renderAlert(form, scope));
   for (const node of form.tree) formEl.appendChild(renderNode(form, node, scope));
-  formEl.appendChild(renderActions(form, scope));
+  if (!hasTopLevelSteps(form)) formEl.appendChild(renderActions(form, scope));
 
   on(scope, formEl, "submit", (ev) => {
     ev.preventDefault();

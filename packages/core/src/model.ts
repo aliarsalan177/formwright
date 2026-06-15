@@ -42,10 +42,17 @@ export class FieldState {
 
   private validator: FieldValidator | null;
   private readonly rev = signal(0);
+  private readonly stepActive: ReadSignal<boolean> | undefined;
 
-  constructor(schema: FieldSchema, initial: FieldValue, getValue: ValueGetter) {
+  constructor(
+    schema: FieldSchema,
+    initial: FieldValue,
+    getValue: ValueGetter,
+    stepActive?: ReadSignal<boolean>,
+  ) {
     this.id = schema.id;
     this.schema = schema;
+    this.stepActive = stepActive;
     this.value = signal<FieldValue>(initial);
     this.error = signal<string | null>(null);
     this.touched = signal(false);
@@ -78,9 +85,13 @@ export class FieldState {
     this.rev.update((n) => n + 1);
   }
 
-  /** Run validation, store and return the error (or null). Hidden fields never error. */
-  validate(): string | null {
+  /** Run validation, store and return the error (or null). Hidden / inactive-step fields never error. */
+  validate(options?: { allSteps?: boolean }): string | null {
     if (!this.visible.peek()) {
+      this.error.set(null);
+      return null;
+    }
+    if (!options?.allSteps && this.stepActive && !this.stepActive.peek()) {
       this.error.set(null);
       return null;
     }

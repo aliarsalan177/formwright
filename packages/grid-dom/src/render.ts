@@ -1,5 +1,5 @@
-import { effect, signal, type Dispose, type WriteSignal } from "@wright/reactive";
-import type { Grid, ResolvedColumn } from "@gridwright/core";
+import { effect, signal, type Dispose, type WriteSignal } from "@formwright/reactive";
+import type { Grid, ResolvedColumn } from "@formwright/grid-core";
 import { beginEdit, makeCell, px, renderCellInto } from "./cells.js";
 import { buildHeader } from "./header.js";
 
@@ -24,7 +24,7 @@ export function mountVirtual(grid: Grid, host: Element): Dispose {
   const viewport = document.createElement("div");
   viewport.className = "gw-viewport";
 
-  const { header, filterRow, hasFilters } = buildHeader(grid, disposers, totalWidth, {
+  const { header, filterRow, hasFilters } = buildHeader(grid, disposers, {
     selection: false,
     expand: false,
   });

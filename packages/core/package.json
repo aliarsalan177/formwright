@@ -1,6 +1,6 @@
 {
   "name": "@formwright/core",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "Signal-reactive core and the Form class for Formwright.",
   "license": "MIT",
   "repository": {
@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@formwright/schema": "workspace:*",
-    "@wright/reactive": "workspace:*"
+    "@formwright/reactive": "workspace:*"
   },
   "publishConfig": {
     "access": "public"

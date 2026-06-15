@@ -71,6 +71,52 @@ describe("validateSchema", () => {
     });
     expect(r.ok).toBe(true);
   });
+
+  it("requires step children inside a steps container", () => {
+    const r = validateSchema({
+      id: "x",
+      version: "1",
+      fields: [
+        {
+          id: "wizard",
+          type: "steps",
+          fields: [{ id: "bad", type: "group", fields: [{ id: "a", type: "text" }] }],
+        },
+      ],
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.issues.some((i) => i.message.includes('"step"'))).toBe(true);
+    }
+  });
+
+  it("accepts a well-formed steps wizard", () => {
+    const r = validateSchema({
+      id: "x",
+      version: "1",
+      fields: [
+        {
+          id: "wizard",
+          type: "steps",
+          fields: [
+            {
+              id: "one",
+              type: "step",
+              label: "One",
+              fields: [{ id: "name", type: "text" }],
+            },
+            {
+              id: "two",
+              type: "step",
+              label: "Two",
+              fields: [{ id: "email", type: "email" }],
+            },
+          ],
+        },
+      ],
+    });
+    expect(r.ok).toBe(true);
+  });
 });
 
 describe("parseSchema", () => {

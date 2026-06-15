@@ -1,4 +1,4 @@
-import type { Row } from "@gridwright/schema";
+import type { Row } from "@formwright/grid-schema";
 
 /** Turn a raw cell value into display text. */
 export type ValueFormatter = (value: unknown, row: Row) => string;

@@ -36,6 +36,8 @@ export { FieldState, defaultValueFor } from "./model.js";
 export {
   GroupNode,
   CollectionNode,
+  StepsNode,
+  StepNode,
   buildTree,
   eachLeaf,
   isPresentational,

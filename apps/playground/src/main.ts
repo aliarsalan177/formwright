@@ -268,12 +268,108 @@ const SHOWCASE: FormSchema = {
   ],
 };
 
+const WIZARD: FormSchema = {
+  id: "signup-wizard",
+  version: "1.0",
+  title: "Create your account",
+  fields: [
+    {
+      id: "wizard",
+      type: "steps",
+      layout: "bar",
+      nextLabel: "Continue",
+      prevLabel: "Back",
+      submitLabel: "Create account",
+      fields: [
+        {
+          id: "personal",
+          type: "step",
+          label: "Personal",
+          description: "Tell us a bit about yourself.",
+          fields: [
+            {
+              id: "name",
+              type: "text",
+              label: "Full name",
+              placeholder: "Jane Doe",
+              validation: { kind: "string", required: true, minLength: 2 },
+            },
+            {
+              id: "phone",
+              type: "text",
+              label: "Phone",
+              placeholder: "+1 555 0100",
+            },
+          ],
+        },
+        {
+          id: "account",
+          type: "step",
+          label: "Account",
+          description: "Choose your login credentials.",
+          fields: [
+            {
+              id: "email",
+              type: "email",
+              label: "Email",
+              placeholder: "you@example.com",
+              validation: { kind: "string", format: "email", required: true },
+            },
+            {
+              id: "password",
+              type: "password",
+              label: "Password",
+              validation: { kind: "string", required: true, minLength: 8 },
+            },
+          ],
+        },
+        {
+          id: "preferences",
+          type: "step",
+          label: "Preferences",
+          description: "Optional — you can change these later.",
+          fields: [
+            {
+              id: "newsletter",
+              type: "toggle",
+              label: "Send me product updates",
+            },
+            {
+              id: "plan",
+              type: "radio",
+              label: "Plan",
+              options: [
+                { label: "Free", value: "free" },
+                { label: "Pro", value: "pro" },
+              ],
+              defaultValue: "free",
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  submit: { endpoint: { method: "POST", url: "/api/signup" } },
+};
+
+function wizardWithLayout(layout: "bar" | "tabs" | "numbers"): FormSchema {
+  return {
+    ...WIZARD,
+    fields: WIZARD.fields.map((field) => (field.type === "steps" ? { ...field, layout } : field)),
+  };
+}
+
 const EXAMPLES: Record<string, FormSchema> = {
   checkout: CHECKOUT,
   showcase: SHOWCASE,
   signup: SIGNUP,
+  wizard: WIZARD,
+  "wizard-tabs": wizardWithLayout("tabs"),
+  "wizard-numbers": wizardWithLayout("numbers"),
 };
 const STARTER = CHECKOUT;
+
+const WIZARD_EXAMPLES = new Set(["wizard", "wizard-tabs", "wizard-numbers"]);
 
 let currentForm: Form | null = null;
 let disposeValues: (() => void) | null = null;
@@ -329,8 +425,14 @@ function rebuild(): void {
     valuesEl.textContent = JSON.stringify(form.values.get(), null, 2);
   });
 
-  const count = result.value.fields.length;
-  setStatus("ok", `✓ Valid schema · ${count} field${count === 1 ? "" : "s"} rendered`);
+  updateDemoHint(result.value);
+  const steps = form.findSteps();
+  if (steps) {
+    setStatus("ok", `✓ Valid wizard · ${steps.steps.length} steps · use Back / Continue / Submit`);
+  } else {
+    const count = result.value.fields.length;
+    setStatus("ok", `✓ Valid schema · ${count} field${count === 1 ? "" : "s"} rendered`);
+  }
 }
 
 function setStatus(kind: "ok" | "error", message: string): void {
@@ -389,6 +491,41 @@ function loadExample(name: string): void {
   const schema = EXAMPLES[name];
   if (!schema) return;
   schemaEl.value = JSON.stringify(schema, null, 2);
+  const layoutEl = $<HTMLSelectElement>("wizard-layout");
+  if (WIZARD_EXAMPLES.has(name)) {
+    const layout = name === "wizard-tabs" ? "tabs" : name === "wizard-numbers" ? "numbers" : "bar";
+    layoutEl.value = layout;
+  }
+  rebuild();
+}
+
+/** Show wizard-specific controls and a short hint when the schema contains `steps`. */
+function updateDemoHint(schema: FormSchema): void {
+  const hasSteps = schema.fields.some((f) => f.type === "steps");
+  const hint = $<HTMLParagraphElement>("wizard-hint");
+  const layoutRow = $<HTMLDivElement>("wizard-layout-row");
+  hint.hidden = !hasSteps;
+  layoutRow.hidden = !hasSteps;
+  if (hasSteps) {
+    hint.textContent =
+      "Multi-step wizard: Continue validates the current step; Submit on the last step validates all steps and sends the nested payload.";
+  }
+}
+
+/** Swap the progress style on the in-editor wizard schema. */
+function setWizardLayout(layout: "bar" | "tabs" | "numbers"): void {
+  let schema: FormSchema;
+  try {
+    schema = JSON.parse(schemaEl.value) as FormSchema;
+  } catch {
+    return;
+  }
+  if (!schema.fields.some((f) => f.type === "steps")) return;
+  schemaEl.value = JSON.stringify(wizardWithLayout(layout), null, 2);
+  const exampleEl = $<HTMLSelectElement>("example");
+  if (layout === "tabs") exampleEl.value = "wizard-tabs";
+  else if (layout === "numbers") exampleEl.value = "wizard-numbers";
+  else exampleEl.value = "wizard";
   rebuild();
 }
 
@@ -397,6 +534,9 @@ schemaEl.addEventListener("input", debounce(rebuild, 250));
 $<HTMLButtonElement>("b-add").addEventListener("click", addField);
 $<HTMLSelectElement>("example").addEventListener("change", (e) => {
   loadExample((e.target as HTMLSelectElement).value);
+});
+$<HTMLSelectElement>("wizard-layout").addEventListener("change", (e) => {
+  setWizardLayout((e.target as HTMLSelectElement).value as "bar" | "tabs" | "numbers");
 });
 
 // Boot.

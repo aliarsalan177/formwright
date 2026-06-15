@@ -33,6 +33,8 @@ import {
   resetNodes,
   CollectionNode,
   GroupNode,
+  StepsNode,
+  StepNode,
   type FieldNode,
 } from "./nodes.js";
 import type { Providers } from "./providers.js";
@@ -210,16 +212,22 @@ export class Form {
   // ---- lifecycle ----------------------------------------------------------
 
   /** Validate every (visible) leaf field; returns true when the whole form is valid. */
-  validate(): boolean {
+  validate(options?: { allSteps?: boolean }): boolean {
+    const allSteps = options?.allSteps ?? false;
     return untrack(() => {
       let ok = true;
       batch(() => {
         eachLeaf(this.tree, (leaf) => {
-          if (leaf.validate() !== null) ok = false;
+          if (leaf.validate({ allSteps }) !== null) ok = false;
         });
       });
       return ok;
     });
+  }
+
+  /** Find the first `steps` container in the field tree (if any). */
+  findSteps(): StepsNode | undefined {
+    return findSteps(this.tree);
   }
 
   /**
@@ -232,7 +240,7 @@ export class Form {
    * `const res = await form.submit(); res.ok ? res.data : res.error`.
    */
   async submit(transform?: (values: FormValues, form: Form) => unknown): Promise<SubmitResult> {
-    if (!this.validate()) {
+    if (!this.validate({ allSteps: true })) {
       const errors = this.collectErrors();
       const error = new FormValidationError(errors);
       this.runErrorHandler(error);
@@ -445,8 +453,10 @@ function collectLeaves(tree: readonly FieldNode[]): Map<string, FieldState> {
     for (const node of nodes) {
       const path = prefix ? `${prefix}.${node.id}` : node.id;
       if (node.kind === "field") out.set(path, node);
-      else if (node.kind === "group") walk(node.children, path);
-      else {
+      else if (node.kind === "group" || node.kind === "step") walk(node.children, path);
+      else if (node.kind === "steps") {
+        for (const step of node.steps) walk(step.children, `${path}.${step.id}`);
+      } else {
         node.items.peek().forEach((row, i) => walk(row.group.children, `${path}.${i}`));
       }
     }
@@ -455,7 +465,7 @@ function collectLeaves(tree: readonly FieldNode[]): Map<string, FieldState> {
   return out;
 }
 
-/** Resolve a leaf field by dotted path, descending groups and collection rows. */
+/** Resolve a leaf field by dotted path, descending groups, steps, and collection rows. */
 function resolveLeaf(
   tree: readonly FieldNode[],
   rootByName: ReadonlyMap<string, FieldNode>,
@@ -465,8 +475,10 @@ function resolveLeaf(
   let node: FieldNode | undefined = rootByName.get(parts[0]!);
   for (let i = 1; i < parts.length && node; i++) {
     const part = parts[i]!;
-    if (node instanceof GroupNode) {
+    if (node instanceof GroupNode || node instanceof StepNode) {
       node = node.byName.get(part) as FieldNode | undefined;
+    } else if (node instanceof StepsNode) {
+      node = node.byName.get(part);
     } else if (node instanceof CollectionNode) {
       node = node.items.peek()[Number(part)]?.group;
     } else {
@@ -474,4 +486,20 @@ function resolveLeaf(
     }
   }
   return node && node.kind === "field" ? node : undefined;
+}
+
+function findSteps(tree: readonly FieldNode[]): StepsNode | undefined {
+  for (const node of tree) {
+    if (node.kind === "steps") return node;
+    if (node.kind === "group" || node.kind === "step") {
+      const found = findSteps(node.children);
+      if (found) return found;
+    } else if (node.kind === "collection") {
+      for (const row of node.items.peek()) {
+        const found = findSteps(row.group.children);
+        if (found) return found;
+      }
+    }
+  }
+  return undefined;
 }

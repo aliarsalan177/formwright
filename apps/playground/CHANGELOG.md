@@ -1,5 +1,25 @@
 # @formwright/playground
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @formwright/core@0.2.2
+  - @formwright/dom@0.2.2
+  - @formwright/schema@0.2.2
+
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @formwright/grid-core@0.2.0
+  - @formwright/grid-dom@0.2.0
+  - @formwright/core@0.2.1
+  - @formwright/dom@0.2.1
+  - @formwright/schema@0.2.1
+
 ## 0.2.0
 
 ### Patch Changes
@@ -9,8 +29,8 @@
   - @formwright/schema@0.2.0
   - @formwright/core@0.2.0
   - @formwright/dom@0.2.0
-  - @gridwright/core@0.1.1
-  - @gridwright/dom@0.1.1
+  - @formwright/grid-core@0.1.1
+  - @formwright/grid-dom@0.1.1
 
 ## 0.1.0
 

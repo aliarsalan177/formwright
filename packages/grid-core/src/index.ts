@@ -23,7 +23,7 @@ export {
   type ReadSignal,
   type WriteSignal,
   type Dispose,
-} from "@wright/reactive";
+} from "@formwright/reactive";
 export type {
   Row,
   CellValue,
@@ -32,5 +32,5 @@ export type {
   GridSchema,
   SortDirection,
   FilterKind,
-} from "@gridwright/schema";
-export { validateSchema } from "@gridwright/schema";
+} from "@formwright/grid-schema";
+export { validateSchema } from "@formwright/grid-schema";

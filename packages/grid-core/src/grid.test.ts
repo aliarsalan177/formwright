@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { effect } from "@wright/reactive";
+import { effect } from "@formwright/reactive";
 import { Grid } from "./index.js";
-import type { GridSchema, Row } from "@gridwright/schema";
+import type { GridSchema, Row } from "@formwright/grid-schema";
 
 const schema: GridSchema = {
   id: "people",

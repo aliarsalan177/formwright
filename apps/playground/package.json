@@ -1,6 +1,6 @@
 {
   "name": "@formwright/playground",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,8 +13,8 @@
     "@formwright/core": "workspace:*",
     "@formwright/dom": "workspace:*",
     "@formwright/schema": "workspace:*",
-    "@gridwright/core": "workspace:*",
-    "@gridwright/dom": "workspace:*"
+    "@formwright/grid-core": "workspace:*",
+    "@formwright/grid-dom": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.2",

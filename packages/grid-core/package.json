@@ -1,6 +1,6 @@
 {
-  "name": "@gridwright/core",
-  "version": "0.1.1",
+  "name": "@formwright/grid-core",
+  "version": "0.2.0",
   "description": "Signal-reactive grid engine — row model, column model, sorting/filtering, and viewport state.",
   "license": "MIT",
   "repository": {
@@ -25,6 +25,15 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "keywords": [
+    "grid",
+    "data-grid",
+    "table",
+    "virtualization",
+    "signals",
+    "schema-driven",
+    "gridwright"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -33,8 +42,8 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@gridwright/schema": "workspace:*",
-    "@wright/reactive": "workspace:*"
+    "@formwright/grid-schema": "workspace:*",
+    "@formwright/reactive": "workspace:*"
   },
   "publishConfig": {
     "access": "public"

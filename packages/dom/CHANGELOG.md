@@ -1,5 +1,21 @@
 # @formwright/dom
 
+## 0.2.2
+
+### Patch Changes
+
+- Pin `@formwright/reactive@0.2.1` so npm installs resolve the shared signal engine.
+- Updated dependencies
+  - @formwright/core@0.2.2
+  - @formwright/schema@0.2.2
+
+## 0.2.1
+
+### Patch Changes
+
+- @formwright/core@0.2.1
+- @formwright/schema@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
