@@ -36,7 +36,12 @@ export const Welcome: Story = {
         <li><strong>Settings Builder</strong> — iOS-style settings with instant / save modes</li>
         <li><strong>Gridwright</strong> — virtualized grid demos</li>
       </ul>
-      <p><code>pnpm --filter @formwright/storybook dev</code> · port 6006</p>
+      <p>
+        <a href="https://aliarsalan177.github.io/formwright/storybook/" target="_blank" rel="noreferrer"
+          >Live Storybook ↗</a
+        >
+        · <code>pnpm storybook</code> locally · port 6006
+      </p>
     `;
     return el;
   },

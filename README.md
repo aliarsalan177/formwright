@@ -12,7 +12,8 @@ out.
 [Form Builder (Forge)](https://aliarsalan177.github.io/formwright/forge.html) ·
 [Theme Builder](https://aliarsalan177.github.io/formwright/builder.html) ·
 [Settings Builder](https://aliarsalan177.github.io/formwright/settings.html) ·
-[Gridwright](https://aliarsalan177.github.io/formwright/grid.html)
+[Gridwright](https://aliarsalan177.github.io/formwright/grid.html) ·
+[Storybook](https://aliarsalan177.github.io/formwright/storybook/)
 
 **npm — Formwright:** [`@formwright/core`](https://www.npmjs.com/package/@formwright/core) ·
 [`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom) ·
@@ -745,9 +746,12 @@ pnpm build-storybook
 | **Apps**                   | Forge, theme builder, settings builder (mini embeds + full playground iframes) |
 
 ```bash
-pnpm storybook          # dev server on port 6006
-pnpm build-storybook    # static site → apps/storybook/dist
+pnpm storybook               # dev server on port 6006
+pnpm build-storybook         # static site → apps/storybook/dist
+pnpm build-storybook:pages   # GitHub Pages base path (/formwright/storybook/)
 ```
+
+**Live:** [Storybook on GitHub Pages](https://aliarsalan177.github.io/formwright/storybook/) (deployed with the playground via GitHub Actions).
 
 See also [SKELETON_PLAN.md](SKELETON_PLAN.md) for the upcoming schema-driven skeleton loaders and wizard step transitions.
 

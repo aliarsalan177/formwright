@@ -12,7 +12,9 @@ const config: StorybookConfig = {
   docs: { autodocs: "tag" },
   staticDirs: [{ from: path.join(dir, "../../playground"), to: "/playground" }],
   async viteFinal(config) {
+    const base = process.env.STORYBOOK_BASE ?? config.base ?? "/";
     return mergeConfig(config, {
+      base,
       resolve: {
         alias: {
           "@playground": path.join(dir, "../../playground/src"),
