@@ -300,7 +300,13 @@ function open(section: Section, stack: Section[]): void {
     const back = document.createElement("button");
     back.type = "button";
     back.className = "settings-back";
-    back.innerHTML = `<span class="settings-back-chev" aria-hidden="true">‹</span><span>${path[path.length - 2]!.title}</span>`;
+    const chev = document.createElement("span");
+    chev.className = "settings-back-chev";
+    chev.setAttribute("aria-hidden", "true");
+    chev.textContent = "‹";
+    const backLabel = document.createElement("span");
+    backLabel.textContent = path[path.length - 2]!.title;
+    back.append(chev, backLabel);
     back.addEventListener("click", () => open(path[path.length - 2]!, path.slice(0, -1)));
     lead.appendChild(back);
   }
@@ -377,10 +383,9 @@ function open(section: Section, stack: Section[]): void {
 
   // Drill-down rows for sub-sections.
   for (const child of section.children ?? []) {
-    const row = document.createElement("button");
+    const row = fillRow(document.createElement("button"), child);
     row.type = "button";
     row.className = "settings-childrow";
-    row.innerHTML = `<span class="s-ico">${child.icon}</span><span>${child.title}</span><span class="s-chev">›</span>`;
     row.addEventListener("click", () => open(child, [...path, child]));
     childrenEl.appendChild(row);
   }
@@ -394,12 +399,26 @@ function open(section: Section, stack: Section[]): void {
 function renderNav(): void {
   navEl.replaceChildren();
   for (const s of SECTIONS) {
-    const btn = document.createElement("button");
+    const btn = fillRow(document.createElement("button"), s);
     btn.dataset["section"] = s.id;
-    btn.innerHTML = `<span class="s-ico">${s.icon}</span><span>${s.title}</span><span class="s-chev">›</span>`;
     btn.addEventListener("click", () => open(s, [s]));
     navEl.appendChild(btn);
   }
+}
+
+/** Fill a row button with an icon, title, and trailing chevron — as text, never
+ * markup, so section data from an API can't inject HTML. */
+function fillRow(btn: HTMLButtonElement, s: Section): HTMLButtonElement {
+  const ico = document.createElement("span");
+  ico.className = "s-ico";
+  ico.textContent = s.icon;
+  const label = document.createElement("span");
+  label.textContent = s.title;
+  const chev = document.createElement("span");
+  chev.className = "s-chev";
+  chev.textContent = "›";
+  btn.append(ico, label, chev);
+  return btn;
 }
 
 renderNav();

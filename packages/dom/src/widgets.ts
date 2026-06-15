@@ -323,14 +323,20 @@ registerWidget("range", (ctx) => {
   const group = document.createElement("div");
   group.className = "fw-input-group fw-range";
 
+  const minN = num(props.min, field.schema.validation?.min ?? 0);
   const input = document.createElement("input");
   input.type = "range";
   input.className = "fw-range-input";
   input.id = commonId(field);
   input.name = field.id;
-  input.min = String(num(props.min, field.schema.validation?.min ?? 0));
+  input.min = String(minN);
   input.max = String(num(props.max, field.schema.validation?.max ?? 100));
   input.step = String(num(props.step, 1));
+
+  // A range with no numeric seed (no `defaultValue`) would otherwise submit the
+  // empty-string default while visually parked at min — commit min so the
+  // payload matches what the slider shows.
+  if (typeof field.value.peek() !== "number") form.setFieldValue(field, minN);
 
   const bubble = document.createElement("output");
   bubble.className = "fw-range-value";
@@ -338,7 +344,7 @@ registerWidget("range", (ctx) => {
 
   scope.bind(() => {
     const v = field.value.get();
-    const n = typeof v === "number" ? v : Number(input.min);
+    const n = typeof v === "number" ? v : minN;
     if (Number(input.value) !== n) input.value = String(n);
     bubble.textContent = `${input.value}${unit}`;
   });
@@ -433,11 +439,23 @@ registerWidget("file", (ctx) => {
 
   const prompt = document.createElement("div");
   prompt.className = "fw-dropzone-prompt";
-  prompt.innerHTML = `<span class="fw-dropzone-icon">⬆</span><span>Drag ${
-    multiple ? "files" : "a file"
-  } here, or <strong>browse</strong></span>${
-    accept ? `<small class="fw-dropzone-hint">${accept}</small>` : ""
-  }`;
+  // Built with textContent (not innerHTML) so a schema-provided `accept` string
+  // can never inject markup — the rest of the renderer follows the same rule.
+  const icon = document.createElement("span");
+  icon.className = "fw-dropzone-icon";
+  icon.textContent = "⬆";
+  const text = document.createElement("span");
+  text.append(
+    `Drag ${multiple ? "files" : "a file"} here, or `,
+    Object.assign(document.createElement("strong"), { textContent: "browse" }),
+  );
+  prompt.append(icon, text);
+  if (accept) {
+    const hint = document.createElement("small");
+    hint.className = "fw-dropzone-hint";
+    hint.textContent = accept;
+    prompt.append(hint);
+  }
 
   const previews = document.createElement("div");
   previews.className = "fw-file-previews";

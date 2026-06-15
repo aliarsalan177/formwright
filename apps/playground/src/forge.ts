@@ -253,7 +253,14 @@ function removeField(id: string): void {
   sync();
 }
 
-function patchField(id: string, partial: Record<string, unknown>): void {
+// `opts.inspector === false` skips rebuilding the inspector — used by text
+// inputs so editing a field doesn't destroy the very <input> being typed in
+// (which would steal focus after each keystroke).
+function patchField(
+  id: string,
+  partial: Record<string, unknown>,
+  opts: { inspector?: boolean } = {},
+): void {
   fields = fields.map((f) => {
     if (f.id !== id) return f;
     const next = { ...f, ...partial } as Record<string, unknown>;
@@ -261,7 +268,7 @@ function patchField(id: string, partial: Record<string, unknown>): void {
     for (const [k, v] of Object.entries(partial)) if (v === undefined) delete next[k];
     return next as unknown as FieldSchema;
   });
-  sync();
+  sync(opts);
 }
 
 function select(id: string): void {
@@ -312,7 +319,9 @@ function renderInspector(): void {
       inspectEl.append(
         row(
           "Content",
-          textInput(String(f.content ?? ""), (v) => patchField(f.id, { content: v })),
+          textInput(String(f.content ?? ""), (v) =>
+            patchField(f.id, { content: v }, { inspector: false }),
+          ),
         ),
       );
     } else {
@@ -328,18 +337,18 @@ function renderInspector(): void {
   inspectEl.append(
     row(
       "Label",
-      textInput(String(f.label ?? ""), (v) => patchField(f.id, { label: v })),
+      textInput(String(f.label ?? ""), (v) => patchField(f.id, { label: v }, { inspector: false })),
     ),
     row(
       "Placeholder",
       textInput(String(f.placeholder ?? ""), (v) =>
-        patchField(f.id, { placeholder: v || undefined }),
+        patchField(f.id, { placeholder: v || undefined }, { inspector: false }),
       ),
     ),
     row(
       "Description",
       textInput(String(f.description ?? ""), (v) =>
-        patchField(f.id, { description: v || undefined }),
+        patchField(f.id, { description: v || undefined }, { inspector: false }),
       ),
     ),
   );
@@ -386,7 +395,7 @@ function renderInspector(): void {
       line.className = "forge-opt";
       const lab = textInput(String(o.label), (v) => {
         const next = opts.map((opt, j) => (j === i ? { ...opt, label: v } : opt));
-        patchField(f.id, { options: next });
+        patchField(f.id, { options: next }, { inspector: false });
       });
       lab.placeholder = "Label";
       const rm = document.createElement("button");
@@ -417,11 +426,13 @@ function renderInspector(): void {
 function appendIdRow(f: FieldSchema): void {
   const id = textInput(f.id, (v) => {
     const clean = v.trim();
-    if (!clean || fields.some((o) => o.id === clean && o !== f)) return;
-    const wasSelected = selectedId === f.id;
-    fields = fields.map((o) => (o === f ? ({ ...o, id: clean } as FieldSchema) : o));
-    if (wasSelected) selectedId = clean;
-    sync();
+    // Resolve the current field via the live selection (not the captured `f`)
+    // so successive keystrokes keep targeting it after the id changes.
+    const cur = field(selectedId);
+    if (!cur || !clean || fields.some((o) => o.id === clean && o !== cur)) return;
+    fields = fields.map((o) => (o === cur ? ({ ...o, id: clean } as FieldSchema) : o));
+    selectedId = clean;
+    sync({ inspector: false });
   });
   inspectEl.append(row("Field id (payload key)", id));
 }
@@ -462,10 +473,11 @@ function renderSchema(): void {
 // ---- Sync ------------------------------------------------------------------
 
 let activeTab = "inspect";
-function sync(): void {
+function sync(opts: { inspector?: boolean } = {}): void {
   renderCanvas();
-  if (activeTab === "inspect") renderInspector();
-  else if (activeTab === "preview") renderPreview();
+  if (activeTab === "inspect") {
+    if (opts.inspector !== false) renderInspector();
+  } else if (activeTab === "preview") renderPreview();
   else renderSchema();
 }
 
