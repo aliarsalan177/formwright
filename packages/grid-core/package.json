@@ -1,6 +1,6 @@
 {
   "name": "@gridwright/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Signal-reactive grid engine — row model, column model, sorting/filtering, and viewport state.",
   "license": "MIT",
   "repository": {
