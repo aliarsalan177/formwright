@@ -47,6 +47,33 @@ describe("sorting", () => {
   });
 });
 
+describe("multi-column sort", () => {
+  const data: Row[] = [
+    { id: "1", name: "Bob", age: 30 },
+    { id: "2", name: "Bob", age: 20 },
+    { id: "3", name: "Amy", age: 40 },
+  ];
+
+  it("shift-adds a secondary sort and chains comparators", () => {
+    const g = new Grid(schema, data);
+    g.toggleSort("name"); // asc: Amy, then Bob/Bob
+    g.toggleSort("age", true); // add age asc → within Bob, 20 before 30
+    expect(g.sortModel()).toEqual([
+      { field: "name", dir: "asc" },
+      { field: "age", dir: "asc" },
+    ]);
+    expect(g.viewRowIds.get()).toEqual(["3", "2", "1"]); // Amy/40, Bob/20, Bob/30
+  });
+
+  it("non-additive toggle replaces the model", () => {
+    const g = new Grid(schema, data);
+    g.toggleSort("name");
+    g.toggleSort("age", true);
+    g.toggleSort("name"); // plain click resets to single name asc
+    expect(g.sortModel()).toEqual([{ field: "name", dir: "asc" }]);
+  });
+});
+
 describe("filtering", () => {
   it("quick filter matches across columns", () => {
     const g = new Grid(schema, rows);

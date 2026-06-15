@@ -14,7 +14,7 @@ import {
   type GridSchema,
   type Row,
 } from "@gridwright/core";
-import { mount, registerCellRenderer, registerFormatter } from "@gridwright/dom";
+import { downloadCsv, mount, registerCellRenderer, registerFormatter } from "@gridwright/dom";
 import "./grid.css";
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -107,6 +107,11 @@ let countDispose: Dispose | null = null;
 
 const quickInput = $<HTMLInputElement>("grid-quick");
 quickInput.addEventListener("input", () => active?.grid.setQuickFilter(quickInput.value));
+
+const exportBtn = $<HTMLButtonElement>("grid-export");
+exportBtn.addEventListener("click", () => {
+  if (active) downloadCsv(active.grid, "gridwright-export.csv");
+});
 
 function attachCount(grid: Grid): void {
   countDispose?.();
@@ -201,16 +206,18 @@ function exampleServer(host: HTMLElement): Mounted {
     if (q) {
       rows = rows.filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(q)));
     }
-    if (req.sort) {
-      const { field, dir } = req.sort;
+    if (req.sort.length) {
       rows = [...rows].sort((a, b) => {
-        const x = a[field];
-        const y = b[field];
-        const c =
-          typeof x === "number" && typeof y === "number"
-            ? x - y
-            : String(x).localeCompare(String(y));
-        return dir === "asc" ? c : -c;
+        for (const { field, dir } of req.sort) {
+          const x = a[field];
+          const y = b[field];
+          const c =
+            typeof x === "number" && typeof y === "number"
+              ? x - y
+              : String(x).localeCompare(String(y));
+          if (c !== 0) return dir === "asc" ? c : -c;
+        }
+        return 0;
       });
     }
     const start = (req.page - 1) * req.pageSize;

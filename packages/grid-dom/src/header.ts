@@ -58,10 +58,11 @@ export function buildHeader(
     header.appendChild(cell);
   }
 
-  const sortIndicators = new Map<string, HTMLElement>();
+  const hcells = new Map<string, { cell: HTMLElement; ind: HTMLElement }>();
   for (const col of grid.columns) {
     const hcell = document.createElement("div");
     hcell.className = "gw-hcell";
+    hcell.setAttribute("role", "columnheader");
     hcell.style.width = px(col.width);
     hcell.style.textAlign = col.align;
     const label = document.createElement("span");
@@ -69,19 +70,29 @@ export function buildHeader(
     label.textContent = col.header;
     const ind = document.createElement("span");
     ind.className = "gw-sort";
-    sortIndicators.set(col.field, ind);
+    hcells.set(col.field, { cell: hcell, ind });
     hcell.append(label, ind);
     if (col.sortable) {
       hcell.classList.add("gw-sortable");
-      hcell.addEventListener("click", () => grid.toggleSort(col.field));
+      // Shift-click adds a column to the multi-sort instead of replacing it.
+      hcell.addEventListener("click", (ev) => grid.toggleSort(col.field, ev.shiftKey));
     }
     header.appendChild(hcell);
   }
   disposers.push(
     effect(() => {
-      const s = grid.sortState();
-      for (const [field, ind] of sortIndicators) {
-        ind.textContent = s && s.field === field ? (s.dir === "asc" ? "▲" : "▼") : "";
+      const model = grid.sortModel();
+      const multi = model.length > 1;
+      for (const [field, { cell, ind }] of hcells) {
+        const i = model.findIndex((s) => s.field === field);
+        if (i === -1) {
+          ind.textContent = "";
+          cell.setAttribute("aria-sort", "none");
+        } else {
+          const dir = model[i]!.dir;
+          ind.textContent = (dir === "asc" ? "▲" : "▼") + (multi ? String(i + 1) : "");
+          cell.setAttribute("aria-sort", dir === "asc" ? "ascending" : "descending");
+        }
       }
     }),
   );

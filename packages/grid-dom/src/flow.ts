@@ -29,6 +29,8 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
 
   const root = document.createElement("div");
   root.className = "gw-grid gw-grid-flow";
+  root.setAttribute("role", "grid");
+  root.setAttribute("aria-colcount", String(grid.columns.length));
   const viewport = document.createElement("div");
   viewport.className = "gw-viewport";
 
@@ -58,6 +60,19 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
     }),
   );
 
+  // No-rows overlay.
+  const empty = document.createElement("div");
+  empty.className = "gw-empty";
+  empty.textContent = "No rows";
+  root.append(empty);
+  disposers.push(
+    effect(() => {
+      const n = grid.displayRowIds.get().length;
+      empty.style.display = n === 0 && !grid.loading() ? "flex" : "none";
+      root.setAttribute("aria-rowcount", String(grid.rowCount()));
+    }),
+  );
+
   // Pagination footer.
   if (grid.paginated) root.append(buildPager(grid, disposers));
 
@@ -74,6 +89,8 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
   function buildRow(id: string, index: number): void {
     const row = document.createElement("div");
     row.className = "gw-flowrow";
+    row.setAttribute("role", "row");
+    row.setAttribute("aria-rowindex", String(index + 1));
     if (index % 2 === 1) row.classList.add("gw-row-odd");
     row.style.width = px(totalWidth);
     row.style.minHeight = px(grid.rowHeight);
@@ -86,7 +103,9 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
       toggle.addEventListener("click", () => grid.toggleExpand(id));
       rowDisposers.push(
         effect(() => {
-          toggle.textContent = grid.isExpanded(id) ? "▾" : "▸";
+          const open = grid.isExpanded(id);
+          toggle.textContent = open ? "▾" : "▸";
+          toggle.setAttribute("aria-expanded", String(open));
         }),
       );
       row.appendChild(toggle);
@@ -105,6 +124,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
           const sel = grid.isSelected(id);
           cb.checked = sel;
           row.classList.toggle("gw-selected", sel);
+          row.setAttribute("aria-selected", String(sel));
         }),
       );
       selCell.appendChild(cb);

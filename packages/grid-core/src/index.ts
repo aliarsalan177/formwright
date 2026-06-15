@@ -11,6 +11,7 @@ export type {
 } from "./grid.js";
 export { resolveColumn } from "./columns.js";
 export type { ResolvedColumn } from "./columns.js";
+export { toCsv, type CsvOptions } from "./csv.js";
 
 // Re-export reactivity + schema types for convenience.
 export {

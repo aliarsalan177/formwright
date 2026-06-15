@@ -19,6 +19,8 @@ export function mountVirtual(grid: Grid, host: Element): Dispose {
 
   const root = document.createElement("div");
   root.className = "gw-grid";
+  root.setAttribute("role", "grid");
+  root.setAttribute("aria-colcount", String(grid.columns.length));
   const viewport = document.createElement("div");
   viewport.className = "gw-viewport";
 
@@ -35,6 +37,19 @@ export function mountVirtual(grid: Grid, host: Element): Dispose {
   if (hasFilters) viewport.append(filterRow);
   viewport.append(canvas);
   root.append(viewport);
+
+  const empty = document.createElement("div");
+  empty.className = "gw-empty";
+  empty.textContent = "No rows";
+  root.append(empty);
+  disposers.push(
+    effect(() => {
+      const n = grid.displayRowIds.get().length;
+      empty.style.display = n === 0 ? "flex" : "none";
+      root.setAttribute("aria-rowcount", String(grid.rowCount()));
+    }),
+  );
+
   host.append(root);
 
   const slots: Slot[] = [];
@@ -42,6 +57,7 @@ export function mountVirtual(grid: Grid, host: Element): Dispose {
   function createSlot(): Slot {
     const el = document.createElement("div");
     el.className = "gw-row";
+    el.setAttribute("role", "row");
     el.style.height = px(grid.rowHeight);
     el.style.width = px(totalWidth);
     const rowId = signal<string | null>(null);
