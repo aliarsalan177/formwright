@@ -525,7 +525,10 @@ mount(grid, document.getElementById("app")!, {
 | **Master / detail**    | Expandable rows; the detail panel renders anything — including another paginated grid from a second API                                                                |
 | **Editing**            | Inline cell editing (double-click), composable with live updates                                                                                                       |
 | **Filtering**          | Global filter across all columns **and** per-column filters                                                                                                            |
-| **Sorting**            | Click-to-sort (none → asc → desc), type-aware comparators                                                                                                              |
+| **Sorting**            | **Multi-column** (shift-click), type-aware comparators; header shows priority order                                                                                    |
+| **Columns**            | Reactive **resize** (drag), **reorder** (drag header), **pinning** (sticky left/right), and **visibility** — driven by a reactive column model                         |
+| **Accessibility**      | Full ARIA grid roles + `aria-sort`/`selected`/`expanded`/`rowcount`                                                                                                    |
+| **Export**             | CSV (`toCsv` / `downloadCsv`); no-rows + loading overlays                                                                                                              |
 | **Framework-agnostic** | One engine; bring your own framework via thin adapters (planned)                                                                                                       |
 
 Packages: [`@formwright/grid-schema`](https://www.npmjs.com/package/@formwright/grid-schema) ·

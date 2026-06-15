@@ -182,6 +182,43 @@ body {
   cursor: default;
 }
 
+/* Columns menu */
+.grid-colmenu {
+  position: relative;
+}
+.grid-cols-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 220px;
+  max-height: 320px;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+.grid-col-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  font-size: 13px;
+}
+.grid-col-row:hover {
+  background: var(--panel-2);
+}
+.grid-col-name {
+  flex: 1;
+}
+.grid-col-row .grid-select {
+  padding: 3px 6px;
+  font-size: 12px;
+}
+
 /* ---- Gridwright renderer skin ---- */
 .gw-grid {
   position: relative;
@@ -208,6 +245,7 @@ body {
   border-bottom: 1px solid var(--border);
 }
 .gw-hcell {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -218,6 +256,41 @@ body {
   overflow: hidden;
   border-right: 1px solid var(--border);
   user-select: none;
+}
+.gw-hlabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* drag-to-resize handle on the right edge of each header cell */
+.gw-resize {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 7px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.gw-resize:hover {
+  background: var(--accent);
+}
+
+/* pinned (sticky) columns need an opaque background over scrolling content */
+.gw-hcell.gw-pinned {
+  background: var(--panel-2);
+}
+.gw-cell.gw-pinned {
+  background: var(--panel);
+}
+.gw-row-odd .gw-cell.gw-pinned {
+  background: var(--panel-2);
+}
+.gw-pinned-left {
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.28);
+}
+.gw-pinned-right {
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.28);
 }
 .gw-hcell.gw-sortable {
   cursor: pointer;

@@ -1,21 +1,21 @@
 import { effect, signal, type Dispose, type WriteSignal } from "@formwright/reactive";
 import type { Grid, ResolvedColumn } from "@formwright/grid-core";
-import { beginEdit, makeCell, px, renderCellInto } from "./cells.js";
+import { beginEdit, bindCellWidthPin, makeCell, px, renderCellInto } from "./cells.js";
 import { buildHeader } from "./header.js";
 
 interface Slot {
   readonly el: HTMLElement;
   readonly rowId: WriteSignal<string | null>;
+  readonly disposers: Dispose[];
 }
 
 /**
  * Virtualized renderer — uniform row height, node-pooled rows. Only the visible
  * window exists in the DOM and a single cell updates surgically when its row
- * changes. Used for large/live datasets without master/detail.
+ * changes. Columns (width / order / pin) are reactive.
  */
 export function mountVirtual(grid: Grid, host: Element): Dispose {
   const disposers: Dispose[] = [];
-  const totalWidth = grid.columns.reduce((w, c) => w + c.width, 0);
 
   const root = document.createElement("div");
   root.className = "gw-grid";
@@ -31,7 +31,11 @@ export function mountVirtual(grid: Grid, host: Element): Dispose {
 
   const canvas = document.createElement("div");
   canvas.className = "gw-canvas";
-  canvas.style.width = px(totalWidth);
+  disposers.push(
+    effect(() => {
+      canvas.style.width = px(grid.totalColumnsWidth());
+    }),
+  );
 
   viewport.append(header);
   if (hasFilters) viewport.append(filterRow);
@@ -44,51 +48,66 @@ export function mountVirtual(grid: Grid, host: Element): Dispose {
   root.append(empty);
   disposers.push(
     effect(() => {
-      const n = grid.displayRowIds.get().length;
-      empty.style.display = n === 0 ? "flex" : "none";
+      empty.style.display = grid.displayRowIds.get().length === 0 ? "flex" : "none";
       root.setAttribute("aria-rowcount", String(grid.rowCount()));
     }),
   );
 
   host.append(root);
 
-  const slots: Slot[] = [];
+  let slots: Slot[] = [];
+  let colSig = "";
+
+  function disposeSlots(): void {
+    for (const slot of slots) for (const d of slot.disposers) d();
+    slots = [];
+    canvas.replaceChildren();
+  }
 
   function createSlot(): Slot {
     const el = document.createElement("div");
     el.className = "gw-row";
     el.setAttribute("role", "row");
     el.style.height = px(grid.rowHeight);
-    el.style.width = px(totalWidth);
     const rowId = signal<string | null>(null);
-    for (const col of grid.columns) {
+    const slot: Slot = { el, rowId, disposers: [] };
+    slot.disposers.push(
+      effect(() => {
+        el.style.width = px(grid.totalColumnsWidth());
+      }),
+    );
+    for (const col of grid.orderedColumns.peek()) {
       const cell = makeCell(col);
+      slot.disposers.push(bindCellWidthPin(grid, col, cell, 0));
       if (col.editable) {
         cell.addEventListener("dblclick", () => {
           const id = rowId.peek();
           if (id != null) beginEdit(grid, col, cell, id);
         });
       }
-      disposers.push(
+      slot.disposers.push(
         effect(() => {
           rowId.get();
           const id = rowId.peek();
-          if (id != null) grid.rowSignal(id).get(); // subscribe to row data
-          if (id == null) {
-            cell.textContent = "";
-            return;
-          }
-          renderCellInto(grid, col, cell, id);
+          if (id != null) grid.rowSignal(id).get();
+          if (id == null) cell.textContent = "";
+          else renderCellInto(grid, col, cell, id);
         }),
       );
       el.appendChild(cell);
     }
     canvas.appendChild(el);
-    return { el, rowId };
+    return slot;
   }
 
   disposers.push(
     effect(() => {
+      const cols = grid.orderedColumns.get();
+      const sig = cols.map((c) => c.field).join("|");
+      if (sig !== colSig) {
+        colSig = sig;
+        disposeSlots(); // column set changed → rebuild the pool
+      }
       const { start, end } = grid.visibleRange.get();
       const ids = grid.displayRowIds.get();
       canvas.style.height = px(grid.totalHeight());
@@ -120,6 +139,7 @@ export function mountVirtual(grid: Grid, host: Element): Dispose {
   grid.setViewportHeight(viewport.clientHeight);
 
   return () => {
+    disposeSlots();
     for (const d of disposers) d();
     viewport.removeEventListener("scroll", onScroll);
     ro?.disconnect();
