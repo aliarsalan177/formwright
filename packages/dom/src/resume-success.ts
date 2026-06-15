@@ -90,6 +90,7 @@ export function renderSuccessScreen(form: Form, scope: Scope): HTMLElement {
 
   scope.bind(() => {
     const show = form.showSuccessScreen.get();
+    form.successData.get(); // re-render when the submit response arrives
     panel.hidden = !show;
     panel.style.display = show ? "" : "none";
     if (!show || !cfg) return;

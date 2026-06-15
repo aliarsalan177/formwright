@@ -47,6 +47,9 @@ library, conditional-logic library, and per-framework bindings.
   row. Hidden fields are excluded from the payload automatically.
 - **Surgical DOM updates** — fine-grained signals update only the node that changed; no virtual
   DOM, no re-render. Real-time, field-by-field validation as the user types.
+- **Stateless consumption** — you never manage state. `form.subscribe(values => …)` pushes the
+  latest values immediately and on every change; `form.getValues()` snapshots on demand. The
+  signal graph is the single source of truth, so framework adapters stay one-liners.
 - **Runs everywhere** — vanilla JS, any bundler, or a CDN; the core owns state independently of
   rendering, so web-component and framework adapters drop in cleanly.
 
@@ -555,7 +558,12 @@ without touching the engine.
 ## Imperative API
 
 ```ts
-form.values; // reactive snapshot (nested)
+// Stateless consumption — you never manage state. `subscribe` pushes the latest
+// values immediately and on every change; `getValues()` is an on-demand snapshot.
+const off = form.subscribe((values) => render(values)); // returns an unsubscribe
+form.getValues(); // plain snapshot of all values right now
+
+form.values; // the underlying reactive signal (`.get()` / `.peek()`)
 form.getValue("billingAddress.name");
 form.setValue("country", "US");
 form.isDirty;
@@ -610,7 +618,8 @@ npm i @formwright/grid-core @formwright/grid-dom
 ```
 
 **Live demo:** https://aliarsalan177.github.io/formwright/grid.html (Live 50k · Server pagination ·
-Master/detail · Your-data) — the whole runtime + demo is **~8 KB gzipped**.
+Master/detail + selection · Grouping + aggregation · Your-data) — the whole runtime + demo is
+**~8 KB gzipped**.
 
 ```ts
 import { Grid } from "@formwright/grid-core";
@@ -636,12 +645,19 @@ mount(grid, document.getElementById("app")!, {
     /* mount a sub-grid, a form, a chart… */
   },
 });
+
+// Stateless consumption — you never mirror state; subscriptions push the latest.
+grid.subscribe((rows) => render(rows)); // any cell/row/dataset change → latest rows
+grid.onSelectionChange((selectedRows) => updateBulkBar(selectedRows));
+grid.onStateChange(() => persist(/* sort / filter / page / grouping changed */));
+grid.getData(); // plain snapshot of the current rows
 ```
 
 | Capability             | Gridwright                                                                                                                                                             |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Virtualization**     | Row windowing + DOM node pooling — only the visible window is in the DOM (tested at 50k rows)                                                                          |
 | **Surgical updates**   | A cell update re-renders only that cell; a live tick does **not** resort the view                                                                                      |
+| **Stateless API**      | `subscribe` / `onSelectionChange` / `onStateChange` push the latest on every change; `getData()` snapshots — the consumer never mirrors state                          |
 | **Pagination**         | Client-side or **server-side** (`datasource` returns `{ rows, total }`); built-in pager (first/prev/next/last), reactive `pagination()` state, `setPage`/`setPageSize` |
 | **Selection**          | `single` / `multi`, select-all-on-page, `selectedRows()` for bulk actions                                                                                              |
 | **Master / detail**    | Expandable rows; the detail panel renders anything — including another paginated grid from a second API                                                                |

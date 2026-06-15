@@ -261,6 +261,20 @@ export class Form {
     return this.field(path)?.value.peek();
   }
 
+  /** Current values as a plain snapshot (non-reactive). */
+  getValues(): FormValues {
+    return untrack(() => this.values.peek());
+  }
+
+  /**
+   * Subscribe to all value changes — `listener` is called immediately with the
+   * current values and again on every change. The consumer never tracks state:
+   * it always receives the latest snapshot. Returns an unsubscribe.
+   */
+  subscribe(listener: (values: FormValues) => void): Dispose {
+    return effect(() => listener(this.values.get()));
+  }
+
   setValue(path: string, value: FieldValue): void {
     const field = this.field(path);
     if (field) this.setFieldValue(field, value);
@@ -426,8 +440,8 @@ export class Form {
       this.runSuccessHandler(data);
       this.emit("success", data);
       if (this.schema.success || this.options.dom?.renderSuccess) {
-        this.succeeded.set(true);
         this.successPayload.set(data);
+        this.succeeded.set(true);
       }
       return { ok: true, data };
     } catch (error) {
