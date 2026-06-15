@@ -113,6 +113,52 @@ exportBtn.addEventListener("click", () => {
   if (active) downloadCsv(active.grid, "gridwright-export.csv");
 });
 
+// Columns menu — visibility + pin for the active grid.
+function buildColsPanel(): void {
+  const panel = $("grid-cols-panel");
+  panel.replaceChildren();
+  const g = active?.grid;
+  if (!g) return;
+  for (const col of g.columns) {
+    const row = document.createElement("label");
+    row.className = "grid-col-row";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = !g.isColumnHidden(col.field);
+    cb.addEventListener("change", () => g.setColumnHidden(col.field, !cb.checked));
+    const name = document.createElement("span");
+    name.className = "grid-col-name";
+    name.textContent = col.header;
+    const pin = document.createElement("select");
+    pin.className = "grid-select";
+    for (const [label, val] of [
+      ["—", "none"],
+      ["⇤", "left"],
+      ["⇥", "right"],
+    ] as const) {
+      const o = document.createElement("option");
+      o.value = val;
+      o.textContent = label;
+      if (g.columnPin(col.field) === val) o.selected = true;
+      pin.append(o);
+    }
+    pin.addEventListener("change", () =>
+      g.setColumnPin(col.field, pin.value as "none" | "left" | "right"),
+    );
+    row.append(cb, name, pin);
+    panel.append(row);
+  }
+}
+$<HTMLButtonElement>("grid-cols-btn").addEventListener("click", () => {
+  const p = $("grid-cols-panel");
+  const willShow = p.hidden;
+  if (willShow) buildColsPanel();
+  p.hidden = !willShow;
+});
+document.addEventListener("click", (e) => {
+  if (!$("grid-colmenu").contains(e.target as Node)) $("grid-cols-panel").hidden = true;
+});
+
 function attachCount(grid: Grid): void {
   countDispose?.();
   const el = $("grid-count");

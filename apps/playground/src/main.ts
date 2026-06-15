@@ -352,14 +352,265 @@ const WIZARD: FormSchema = {
   submit: { endpoint: { method: "POST", url: "/api/signup" } },
 };
 
-function wizardWithLayout(layout: "bar" | "tabs" | "numbers"): FormSchema {
+/** YYYY-MM-DD for today — blocks future dates of birth. */
+const TODAY = new Date().toISOString().slice(0, 10);
+
+// 3-step social-support application wizard — mirrors the Zod/RHF wizard in
+// social-support-wizard (personal info → family & financial → situation).
+const SOCIAL_SUPPORT: FormSchema = {
+  id: "social-support",
+  version: "1.0",
+  title: "Social Support Application",
+  fields: [
+    {
+      id: "wizard",
+      type: "steps",
+      layout: "bar",
+      nextLabel: "Next",
+      prevLabel: "Back",
+      submitLabel: "Submit application",
+      fields: [
+        {
+          id: "personal",
+          type: "step",
+          label: "Personal Information",
+          fields: [
+            {
+              id: "name",
+              type: "text",
+              label: "Name",
+              colSpan: 6,
+              autocomplete: "name",
+              validation: { kind: "string", required: true },
+            },
+            {
+              id: "nationalId",
+              type: "text",
+              label: "National ID",
+              colSpan: 6,
+              validation: {
+                kind: "string",
+                required: true,
+                pattern: "^\\d+$",
+                messages: { pattern: "Enter a valid National ID" },
+              },
+            },
+            {
+              id: "dateOfBirth",
+              type: "date",
+              label: "Date of Birth",
+              colSpan: 6,
+              autocomplete: "bday",
+              props: { max: TODAY },
+              validation: { kind: "string", required: true },
+            },
+            {
+              id: "gender",
+              type: "select",
+              label: "Gender",
+              colSpan: 6,
+              placeholder: "Select…",
+              options: [
+                { label: "Male", value: "male" },
+                { label: "Female", value: "female" },
+                { label: "Other", value: "other" },
+              ],
+              validation: { kind: "string", required: true },
+            },
+            {
+              id: "address",
+              type: "text",
+              label: "Address",
+              colSpan: 12,
+              autocomplete: "street-address",
+              validation: { kind: "string", required: true },
+            },
+            {
+              id: "city",
+              type: "text",
+              label: "City",
+              colSpan: 6,
+              autocomplete: "address-level2",
+              validation: { kind: "string", required: true },
+            },
+            {
+              id: "state",
+              type: "text",
+              label: "State",
+              colSpan: 6,
+              autocomplete: "address-level1",
+              validation: { kind: "string", required: true },
+            },
+            {
+              id: "country",
+              type: "text",
+              label: "Country",
+              colSpan: 6,
+              autocomplete: "country-name",
+              validation: { kind: "string", required: true },
+            },
+            {
+              id: "phone",
+              type: "text",
+              label: "Phone",
+              colSpan: 6,
+              autocomplete: "tel",
+              validation: {
+                kind: "string",
+                required: true,
+                pattern: "^[+]?[\\d\\s-]{7,15}$",
+                messages: { pattern: "Enter a valid phone number" },
+              },
+            },
+            {
+              id: "email",
+              type: "email",
+              label: "Email",
+              colSpan: 12,
+              autocomplete: "email",
+              validation: { kind: "string", format: "email", required: true },
+            },
+          ],
+        },
+        {
+          id: "family",
+          type: "step",
+          label: "Family & Financial Info",
+          fields: [
+            {
+              id: "maritalStatus",
+              type: "select",
+              label: "Marital Status",
+              colSpan: 6,
+              placeholder: "Select…",
+              options: [
+                { label: "Single", value: "single" },
+                { label: "Married", value: "married" },
+                { label: "Divorced", value: "divorced" },
+                { label: "Widowed", value: "widowed" },
+              ],
+              validation: { kind: "string", required: true },
+            },
+            {
+              id: "dependents",
+              type: "text",
+              label: "Dependents",
+              colSpan: 6,
+              validation: {
+                kind: "string",
+                required: true,
+                pattern: "^\\d+$",
+                messages: { pattern: "Must be 0 or more" },
+              },
+            },
+            {
+              id: "employmentStatus",
+              type: "select",
+              label: "Employment Status",
+              colSpan: 6,
+              placeholder: "Select…",
+              options: [
+                { label: "Employed", value: "employed" },
+                { label: "Unemployed", value: "unemployed" },
+                { label: "Self-employed", value: "selfEmployed" },
+                { label: "Student", value: "student" },
+                { label: "Retired", value: "retired" },
+              ],
+              validation: { kind: "string", required: true },
+            },
+            {
+              id: "monthlyIncome",
+              type: "text",
+              label: "Monthly Income",
+              colSpan: 6,
+              validation: {
+                kind: "string",
+                required: true,
+                pattern: "^\\d+$",
+                messages: { pattern: "Must be 0 or more" },
+              },
+            },
+            {
+              id: "housingStatus",
+              type: "select",
+              label: "Housing Status",
+              colSpan: 12,
+              placeholder: "Select…",
+              options: [
+                { label: "Owned", value: "owned" },
+                { label: "Rented", value: "rented" },
+                { label: "Living with family", value: "withFamily" },
+                { label: "No fixed housing", value: "homeless" },
+              ],
+              validation: { kind: "string", required: true },
+            },
+          ],
+        },
+        {
+          id: "situation",
+          type: "step",
+          label: "Situation Descriptions",
+          fields: [
+            {
+              id: "currentFinancialSituation",
+              type: "textarea",
+              label: "Current Financial Situation",
+              validation: {
+                kind: "string",
+                required: true,
+                minLength: 10,
+                messages: { minLength: "Please provide a little more detail" },
+              },
+            },
+            {
+              id: "employmentCircumstances",
+              type: "textarea",
+              label: "Employment Circumstances",
+              validation: {
+                kind: "string",
+                required: true,
+                minLength: 10,
+                messages: { minLength: "Please provide a little more detail" },
+              },
+            },
+            {
+              id: "reasonForApplying",
+              type: "textarea",
+              label: "Reason for Applying",
+              validation: {
+                kind: "string",
+                required: true,
+                minLength: 10,
+                messages: { minLength: "Please provide a little more detail" },
+              },
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  submit: { endpoint: { method: "POST", url: "/api/social-support" } },
+};
+
+function schemaWithStepsLayout(schema: FormSchema, layout: "bar" | "tabs" | "numbers"): FormSchema {
   return {
-    ...WIZARD,
-    fields: WIZARD.fields.map((field) => (field.type === "steps" ? { ...field, layout } : field)),
+    ...schema,
+    fields: schema.fields.map((field) => (field.type === "steps" ? { ...field, layout } : field)),
   };
 }
 
+function wizardWithLayout(layout: "bar" | "tabs" | "numbers"): FormSchema {
+  return schemaWithStepsLayout(WIZARD, layout);
+}
+
+function socialSupportWithLayout(layout: "bar" | "tabs" | "numbers"): FormSchema {
+  return schemaWithStepsLayout(SOCIAL_SUPPORT, layout);
+}
+
 const EXAMPLES: Record<string, FormSchema> = {
+  "social-support": SOCIAL_SUPPORT,
+  "social-support-tabs": socialSupportWithLayout("tabs"),
+  "social-support-numbers": socialSupportWithLayout("numbers"),
   checkout: CHECKOUT,
   showcase: SHOWCASE,
   signup: SIGNUP,
@@ -367,9 +618,16 @@ const EXAMPLES: Record<string, FormSchema> = {
   "wizard-tabs": wizardWithLayout("tabs"),
   "wizard-numbers": wizardWithLayout("numbers"),
 };
-const STARTER = CHECKOUT;
+const STARTER = SOCIAL_SUPPORT;
 
-const WIZARD_EXAMPLES = new Set(["wizard", "wizard-tabs", "wizard-numbers"]);
+const WIZARD_EXAMPLES = new Set([
+  "social-support",
+  "social-support-tabs",
+  "social-support-numbers",
+  "wizard",
+  "wizard-tabs",
+  "wizard-numbers",
+]);
 
 let currentForm: Form | null = null;
 let disposeValues: (() => void) | null = null;
@@ -493,7 +751,7 @@ function loadExample(name: string): void {
   schemaEl.value = JSON.stringify(schema, null, 2);
   const layoutEl = $<HTMLSelectElement>("wizard-layout");
   if (WIZARD_EXAMPLES.has(name)) {
-    const layout = name === "wizard-tabs" ? "tabs" : name === "wizard-numbers" ? "numbers" : "bar";
+    const layout = name.endsWith("-tabs") ? "tabs" : name.endsWith("-numbers") ? "numbers" : "bar";
     layoutEl.value = layout;
   }
   rebuild();
@@ -521,11 +779,13 @@ function setWizardLayout(layout: "bar" | "tabs" | "numbers"): void {
     return;
   }
   if (!schema.fields.some((f) => f.type === "steps")) return;
-  schemaEl.value = JSON.stringify(wizardWithLayout(layout), null, 2);
+  schemaEl.value = JSON.stringify(schemaWithStepsLayout(schema, layout), null, 2);
   const exampleEl = $<HTMLSelectElement>("example");
-  if (layout === "tabs") exampleEl.value = "wizard-tabs";
-  else if (layout === "numbers") exampleEl.value = "wizard-numbers";
-  else exampleEl.value = "wizard";
+  const isSocialSupport = schema.id === "social-support";
+  if (layout === "tabs") exampleEl.value = isSocialSupport ? "social-support-tabs" : "wizard-tabs";
+  else if (layout === "numbers")
+    exampleEl.value = isSocialSupport ? "social-support-numbers" : "wizard-numbers";
+  else exampleEl.value = isSocialSupport ? "social-support" : "wizard";
   rebuild();
 }
 

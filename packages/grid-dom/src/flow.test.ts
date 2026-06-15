@@ -15,6 +15,38 @@ const schema: GridSchema = {
 const makeRows = (n: number): Row[] =>
   Array.from({ length: n }, (_, i) => ({ id: String(i), name: `n${i}`, age: i }));
 
+describe("dynamic columns (resize / reorder / hide / pin)", () => {
+  it("reflects column resize, reorder, hide, and pin in the rendered header", () => {
+    const host = document.createElement("div");
+    const grid = new Grid(schema, makeRows(3), { pagination: { pageSize: 5 } });
+    mount(grid, host);
+
+    const headerFields = () =>
+      [...host.querySelectorAll<HTMLElement>(".gw-header .gw-hcell:not(.gw-lead) .gw-hlabel")].map(
+        (l) => l.textContent,
+      );
+    expect(headerFields()).toEqual(["Id", "Name", "Age"]);
+
+    grid.moveColumn("age", 0);
+    expect(headerFields()).toEqual(["Age", "Id", "Name"]);
+
+    grid.setColumnHidden("id", true);
+    expect(headerFields()).toEqual(["Age", "Name"]);
+
+    const nameCellNow = () =>
+      [...host.querySelectorAll<HTMLElement>(".gw-header .gw-hcell")].find((c) =>
+        c.textContent?.startsWith("Name"),
+      )!;
+    grid.setColumnWidth("name", 300);
+    expect(nameCellNow().style.width).toBe("300px");
+
+    grid.setColumnPin("name", "left"); // rebuilds the header → re-query
+    const pinned = nameCellNow();
+    expect(pinned.classList.contains("gw-pinned-left")).toBe(true);
+    expect(pinned.style.position).toBe("sticky");
+  });
+});
+
 describe("flow renderer (pagination/selection/detail)", () => {
   it("renders only the current page and a working pager", () => {
     const host = document.createElement("div");
