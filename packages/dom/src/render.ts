@@ -16,7 +16,8 @@ import type {
   GroupNode,
   StepsNode,
 } from "@formwright/core";
-import { isPresentational, resolve, signal } from "@formwright/core";
+import { buildSkeletonPlanFromForm, isPresentational, resolve, signal } from "@formwright/core";
+import { bindSubmitButton, bindDisabledWhileSubmitting } from "./actions.js";
 import { bindHidden, bindText, h, on, Scope } from "./internal.js";
 import { renderControl } from "./widgets.js";
 import {
@@ -24,6 +25,7 @@ import {
   renderResumeBanner,
   renderSuccessScreen,
 } from "./resume-success.js";
+import { renderSkeleton } from "./skeleton.js";
 import { wireStepUrlSync } from "./step-url.js";
 
 /** Render any node (leaf, group, collection, or steps) into a fresh wrapper element. */
@@ -373,19 +375,17 @@ function renderSteps(form: Form, steps: StepsNode, scope: Scope): HTMLElement {
   on(scope, backBtn, "click", () => steps.prev());
   on(scope, nextBtn, "click", () => steps.next());
 
+  bindDisabledWhileSubmitting(scope, backBtn, form);
+  bindDisabledWhileSubmitting(scope, nextBtn, form);
+  bindSubmitButton(scope, submitBtn, form, {
+    default: typeof submitLabel === "string" ? submitLabel : "Submit",
+    ...(typeof submitLabel === "string" ? { loading: `${submitLabel}…` } : {}),
+  });
+
   const urlPattern = schema.urlSync;
   if (urlPattern) {
     scope.add(wireStepUrlSync(form, steps, urlPattern, schema.urlSyncBy ?? "id", scope));
   }
-
-  scope.bind(() => {
-    submitBtn.disabled = form.isSubmitting.get();
-    submitBtn.textContent = form.isSubmitting.get()
-      ? `${typeof submitLabel === "string" ? submitLabel : "Submit"}…`
-      : typeof submitLabel === "string"
-        ? submitLabel
-        : "Submit";
-  });
 
   let stepScope: Scope | null = null;
   scope.bind(() => {
@@ -431,7 +431,9 @@ function renderSteps(form: Form, steps: StepsNode, scope: Scope): HTMLElement {
             });
             if (i === index) tab.setAttribute("aria-current", "step");
             tab.textContent = label;
-            tab.disabled = i > index;
+            scope.bind(() => {
+              tab.disabled = i > index || form.isSubmitting.get();
+            });
             on(stepScope!, tab, "click", () => {
               if (i <= index) steps.goTo(i);
             });
@@ -642,11 +644,7 @@ function renderActions(form: Form, scope: Scope): HTMLElement {
 
   if (!actions) {
     const submit = h("button", { type: "submit", class: "fw-submit" });
-    submit.textContent = "Submit";
-    scope.bind(() => {
-      submit.disabled = form.isSubmitting.get();
-      submit.textContent = form.isSubmitting.get() ? "Submitting…" : "Submit";
-    });
+    bindSubmitButton(scope, submit, form, { default: "Submit" });
     bar.appendChild(submit);
     return bar;
   }
@@ -657,12 +655,16 @@ function renderActions(form: Form, scope: Scope): HTMLElement {
     if (def.variant) btn.classList.add(`fw-action-${def.variant}`);
     if (def.fullWidth) btn.classList.add("fw-action-block");
     const label = resolve(def.label, providers);
-    btn.textContent = typeof label === "string" ? label : def.name;
+    const labelText = typeof label === "string" ? label : def.name;
+    btn.textContent = labelText;
     if (role === "submit") {
-      scope.bind(() => (btn.disabled = form.isSubmitting.get()));
-    } else if (role === "reset") {
-      on(scope, btn, "click", () => form.reset());
+      bindSubmitButton(scope, btn, form, { default: labelText });
     } else {
+      bindDisabledWhileSubmitting(scope, btn, form);
+    }
+    if (role === "reset") {
+      on(scope, btn, "click", () => form.reset());
+    } else if (role !== "submit") {
       on(scope, btn, "click", () => form.action(def.name));
     }
     bar.appendChild(btn);
@@ -679,6 +681,7 @@ export function mount(
   const scope = new Scope();
   const formEl = h("form", { class: "fw-form", novalidate: "" });
   const body = h("div", { class: "fw-form-body" });
+  const skeletonOverlay = h("div", { class: "fw-skeleton-overlay", hidden: "" });
 
   const title = resolve(form.schema.title, form.options.providers);
   if (typeof title === "string") {
@@ -697,7 +700,22 @@ export function mount(
   formEl.appendChild(renderAlert(form, scope));
   for (const node of form.tree) body.appendChild(renderNode(form, node, scope));
   if (!hasTopLevelSteps(form)) body.appendChild(renderActions(form, scope));
+  body.appendChild(skeletonOverlay);
   formEl.appendChild(body);
+
+  scope.bind(() => {
+    const submitting = form.isSubmitting.get();
+    const showSkeleton = submitting && form.schema.loading?.onSubmit !== false;
+    body.classList.toggle("fw-form-body-loading", submitting);
+    body.setAttribute("aria-busy", submitting ? "true" : "false");
+    if (showSkeleton) {
+      skeletonOverlay.replaceChildren(renderSkeleton(buildSkeletonPlanFromForm(form)));
+      skeletonOverlay.hidden = false;
+    } else {
+      skeletonOverlay.hidden = true;
+      skeletonOverlay.replaceChildren();
+    }
+  });
 
   const successHost = h("div", { class: "fw-success-host" });
   let customSuccessDispose: Dispose | null = null;

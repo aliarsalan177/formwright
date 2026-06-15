@@ -3,121 +3,281 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Formwright Playground — wizards, draft cache, success screens</title>
+    <title>Formwright — schema-driven forms &amp; grids</title>
     <meta
       name="description"
-      content="Edit a form schema and watch it render live — multi-step wizards with URL sync, consent-based draft caching, resume banners, and post-submit success screens."
+      content="Formwright and Gridwright — LLM-friendly, signal-reactive, framework-agnostic form and data-grid engines. Define once as JSON schema, render anywhere."
     />
+    <script type="module" src="/src/home.ts"></script>
   </head>
   <body>
-    <header class="topbar">
-      <div class="brand">
+    <header class="home-top">
+      <div class="home-brand">
         <strong>Formwright</strong>
-        <span class="tag">Playground</span>
+        <span class="home-tag">Monorepo</span>
       </div>
-      <div class="brand-links">
-        <a class="repo" href="./forge.html">Form Builder →</a>
-        <a class="repo" href="./builder.html">Theme Builder →</a>
-        <a class="repo" href="./settings.html">Settings Builder →</a>
-        <a class="repo" href="./grid.html">Data Grid →</a>
-        <a
-          class="repo"
-          href="https://github.com/aliarsalan177/formwright"
-          target="_blank"
-          rel="noreferrer"
+      <nav class="home-nav">
+        <a href="https://github.com/aliarsalan177/formwright" target="_blank" rel="noreferrer"
+          >GitHub ↗</a
         >
-          GitHub ↗
-        </a>
-      </div>
+        <a href="https://www.npmjs.com/org/formwright" target="_blank" rel="noreferrer">npm ↗</a>
+      </nav>
     </header>
 
-    <main class="layout">
-      <!-- 1. Build / generate the schema -->
-      <section class="panel">
-        <h2>1 · Schema</h2>
-        <div class="examples">
-          <label for="example">Example</label>
-          <select id="example">
-            <option value="wizard" selected>
-              Wizard — full UX (fill bar, URL sync, consent cache, success)
-            </option>
-            <option value="wizard-bar">Wizard — bar progress</option>
-            <option value="wizard-tabs">Wizard — tab progress</option>
-            <option value="wizard-numbers">Wizard — numbered progress</option>
-            <option value="signup">Sign up — consent-based draft cache</option>
-            <option value="social-support">Social Support — 3-step application</option>
-            <option value="social-support-tabs">Social Support — tab progress</option>
-            <option value="social-support-numbers">Social Support — numbered progress</option>
-            <option value="checkout">Checkout — group + collection + conditions</option>
-            <option value="showcase">Showcase — headings, tooltips, i18n, actions</option>
-          </select>
+    <main class="home">
+      <section class="home-hero">
+        <p class="home-kicker">Schema-driven · Signal-reactive · Framework-agnostic</p>
+        <h1>Build forms and data grids from data — not JSX.</h1>
+        <p class="home-lead">
+          Define a form or grid <strong>once as JSON</strong>, hand-written or LLM-generated. Render
+          to real DOM with surgical updates — no virtual DOM, no full re-render. Use vanilla JS, any
+          bundler, or bring your own React/Vue components.
+        </p>
+        <div class="home-cta">
+          <a class="home-btn home-btn-primary" href="./playground.html">Try the form playground</a>
+          <a class="home-btn" href="./grid.html">Try Gridwright</a>
         </div>
-        <div id="wizard-layout-row" class="examples wizard-layout-row" hidden>
-          <label for="wizard-layout">Wizard progress</label>
-          <select id="wizard-layout">
-            <option value="fill">Fill bar (%)</option>
-            <option value="bar">Bar labels</option>
-            <option value="tabs">Tabs</option>
-            <option value="numbers">Numbers</option>
-          </select>
-        </div>
-        <ul class="feature-legend" id="feature-legend" hidden>
-          <li><strong>Draft cache</strong> — opt-in local save (`persist.mode: "consent"`)</li>
-          <li><strong>Resume banner</strong> — restored after refresh</li>
-          <li><strong>URL sync</strong> — step in the address bar</li>
-          <li><strong>Success screen</strong> — `{{variables}}` from API response</li>
-        </ul>
-        <div class="builder">
-          <input id="b-id" placeholder="field id (e.g. email)" />
-          <input id="b-label" placeholder="label (e.g. Email)" />
-          <select id="b-type">
-            <option value="text">text</option>
-            <option value="email">email</option>
-            <option value="password">password</option>
-            <option value="number">number</option>
-            <option value="textarea">textarea</option>
-            <option value="checkbox">checkbox</option>
-            <option value="toggle">toggle</option>
-            <option value="select">select</option>
-            <option value="radio">radio</option>
-          </select>
-          <label class="req"><input id="b-required" type="checkbox" /> required</label>
-          <button id="b-add" type="button">+ Add field</button>
-        </div>
-        <textarea id="schema" spellcheck="false" aria-label="Schema JSON"></textarea>
-        <p id="schema-status" class="status"></p>
       </section>
 
-      <!-- 2. The live, working form -->
-      <section class="panel">
-        <h2>2 · Live form</h2>
-        <div id="feature-bar" class="feature-bar" hidden>
-          <span class="feature-chip" id="chip-step" hidden>Step —</span>
-          <span class="feature-chip" id="chip-url" hidden>URL —</span>
-          <span class="feature-chip" id="chip-consent" hidden>Draft —</span>
-          <span class="feature-chip" id="chip-resume" hidden>Resume —</span>
-          <span class="feature-chip" id="chip-success" hidden>Success —</span>
+      <section class="home-section">
+        <h2>Live playgrounds</h2>
+        <p class="home-section-lead">
+          Interactive demos shipped with this repo — edit schemas, drag fields, and watch the UI
+          update in real time.
+        </p>
+        <div class="home-cards">
+          <a class="home-card" href="./playground.html">
+            <span class="home-card-tag">Forms</span>
+            <h3>Form Playground</h3>
+            <p>
+              Live schema editor with wizards, consent-based draft cache, URL step sync, success
+              screens, and submit loading skeletons.
+            </p>
+            <span class="home-card-link">Open playground →</span>
+          </a>
+          <a class="home-card" href="./forge.html">
+            <span class="home-card-tag">Builder</span>
+            <h3>Forge — Form Builder</h3>
+            <p>
+              Drag field types onto a canvas, inspect properties, preview the live form, and export
+              the schema JSON.
+            </p>
+            <span class="home-card-link">Open Forge →</span>
+          </a>
+          <a class="home-card" href="./builder.html">
+            <span class="home-card-tag">Theme</span>
+            <h3>Theme Builder</h3>
+            <p>
+              Shopify-style section settings — each panel is a Formwright form driving a live theme
+              preview from one payload.
+            </p>
+            <span class="home-card-link">Open theme builder →</span>
+          </a>
+          <a class="home-card" href="./settings.html">
+            <span class="home-card-tag">Settings</span>
+            <h3>Settings Builder</h3>
+            <p>
+              iOS-style settings app with sidebar navigation, drill-down sections, and per-field
+              save endpoints.
+            </p>
+            <span class="home-card-link">Open settings builder →</span>
+          </a>
+          <a class="home-card" href="./grid.html">
+            <span class="home-card-tag">Grid</span>
+            <h3>Gridwright — Data Grid</h3>
+            <p>
+              Virtualized 50k rows, server pagination, master/detail selection, grouping with
+              aggregation, CSV export, and column controls.
+            </p>
+            <span class="home-card-link">Open grid demo →</span>
+          </a>
+          <div class="home-card home-card-muted">
+            <span class="home-card-tag">Catalog</span>
+            <h3>Storybook</h3>
+            <p>
+              Component stories for forms, wizards, grids, and mini embeds of the apps above. Run
+              locally with <code>pnpm storybook</code> (port 6006).
+            </p>
+            <span class="home-card-link home-card-note">Local dev only</span>
+          </div>
         </div>
-        <div id="demo-actions" class="demo-actions" hidden>
-          <button id="btn-refresh" type="button" class="demo-btn">↻ Simulate refresh</button>
-          <button id="btn-clear-draft" type="button" class="demo-btn demo-btn-muted">
-            Clear saved draft
-          </button>
-        </div>
-        <p id="wizard-hint" class="demo-hint" hidden></p>
-        <div id="form-host" class="form-host"></div>
       </section>
 
-      <!-- 3. The result -->
-      <section class="panel">
-        <h2>3 · Result</h2>
-        <h3>Live values</h3>
-        <pre id="values" class="result"></pre>
-        <h3>Last submitted payload</h3>
-        <pre id="payload" class="result">— submit the form —</pre>
+      <section class="home-section home-split">
+        <div>
+          <h2>What we support</h2>
+          <ul class="home-features">
+            <li>
+              <strong>Fields</strong> — text, email, select, toggle, file upload, date/time, color,
+              range, groups, collections, multi-step wizards
+            </li>
+            <li>
+              <strong>Conditional logic</strong> — <code>visibleWhen</code>,
+              <code>enabledWhen</code>, <code>requiredWhen</code> with JSONLogic
+            </li>
+            <li>
+              <strong>Validation</strong> — declarative rules, real-time per-field errors, custom
+              messages
+            </li>
+            <li>
+              <strong>Wizard UX</strong> — progress bar / tabs / fill bar, URL sync, resume draft,
+              success screen, consent-based caching
+            </li>
+            <li>
+              <strong>Submission</strong> — transform → send → handlers, action buttons, loading
+              states, skeleton overlay
+            </li>
+            <li>
+              <strong>Bring your own UI</strong> — custom widgets per field type; same clean payload
+            </li>
+            <li>
+              <strong>Gridwright</strong> — virtualized rows, sorting, filtering, pagination,
+              grouping, master/detail, CSV export
+            </li>
+            <li>
+              <strong>AI-native</strong> — <code>@formwright/ai</code> turns natural language into a
+              validated schema (Claude, GPT, Gemini, local models)
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h2>Quick start</h2>
+          <pre class="home-code"><code># Install
+npm i @formwright/core @formwright/dom
+
+# Grid (optional)
+npm i @formwright/grid-core @formwright/grid-dom</code></pre>
+          <pre class="home-code"><code>import "@formwright/dom"; // registers DOM renderer
+import { Form } from "@formwright/core";
+
+const form = new Form(schema, { email: "" });
+form.mount(document.getElementById("root"));
+
+const result = await form.submit();
+if (result.ok) console.log(result.data);</code></pre>
+          <p class="home-hint">
+            Full docs:
+            <a
+              href="https://github.com/aliarsalan177/formwright#readme"
+              target="_blank"
+              rel="noreferrer"
+              >README on GitHub ↗</a
+            >
+          </p>
+        </div>
+      </section>
+
+      <section class="home-section">
+        <h2>Packages</h2>
+        <p class="home-section-lead">
+          Published on npm under the
+          <a href="https://www.npmjs.com/org/formwright" target="_blank" rel="noreferrer"
+            >@formwright</a
+          >
+          scope. Apps in <code>apps/</code> are for demos and are not published.
+        </p>
+        <div class="home-packages">
+          <div class="home-pkg-group">
+            <h3>Formwright</h3>
+            <ul>
+              <li>
+                <a
+                  href="https://www.npmjs.com/package/@formwright/schema"
+                  target="_blank"
+                  rel="noreferrer"
+                  ><code>@formwright/schema</code></a
+                >
+                — types &amp; schema validation
+              </li>
+              <li>
+                <a
+                  href="https://www.npmjs.com/package/@formwright/reactive"
+                  target="_blank"
+                  rel="noreferrer"
+                  ><code>@formwright/reactive</code></a
+                >
+                — fine-grained signals (shared engine)
+              </li>
+              <li>
+                <a
+                  href="https://www.npmjs.com/package/@formwright/core"
+                  target="_blank"
+                  rel="noreferrer"
+                  ><code>@formwright/core</code></a
+                >
+                — <code>Form</code> class, validation, conditions, persist
+              </li>
+              <li>
+                <a
+                  href="https://www.npmjs.com/package/@formwright/dom"
+                  target="_blank"
+                  rel="noreferrer"
+                  ><code>@formwright/dom</code></a
+                >
+                — DOM renderer &amp; widgets
+              </li>
+              <li>
+                <a
+                  href="https://www.npmjs.com/package/@formwright/ai"
+                  target="_blank"
+                  rel="noreferrer"
+                  ><code>@formwright/ai</code></a
+                >
+                — LLM schema generation
+              </li>
+            </ul>
+          </div>
+          <div class="home-pkg-group">
+            <h3>Gridwright</h3>
+            <ul>
+              <li>
+                <a
+                  href="https://www.npmjs.com/package/@formwright/grid-schema"
+                  target="_blank"
+                  rel="noreferrer"
+                  ><code>@formwright/grid-schema</code></a
+                >
+                — grid column schema
+              </li>
+              <li>
+                <a
+                  href="https://www.npmjs.com/package/@formwright/grid-core"
+                  target="_blank"
+                  rel="noreferrer"
+                  ><code>@formwright/grid-core</code></a
+                >
+                — virtualized grid engine
+              </li>
+              <li>
+                <a
+                  href="https://www.npmjs.com/package/@formwright/grid-dom"
+                  target="_blank"
+                  rel="noreferrer"
+                  ><code>@formwright/grid-dom</code></a
+                >
+                — grid DOM renderer
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-section home-run">
+        <h2>Run locally</h2>
+        <pre class="home-code"><code>git clone https://github.com/aliarsalan177/formwright.git
+cd formwright && pnpm install
+pnpm --filter @formwright/playground dev   # http://localhost:5173
+pnpm storybook                             # http://localhost:6006</code></pre>
       </section>
     </main>
 
-    <script type="module" src="/src/main.ts"></script>
+    <footer class="home-footer">
+      <p>
+        MIT ·
+        <a href="https://github.com/aliarsalan177/formwright" target="_blank" rel="noreferrer"
+          >github.com/aliarsalan177/formwright</a
+        >
+      </p>
+    </footer>
   </body>
 </html>

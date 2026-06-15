@@ -13,6 +13,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: `${root}index.html`,
+        playground: `${root}playground.html`,
         builder: `${root}builder.html`,
         settings: `${root}settings.html`,
         forge: `${root}forge.html`,

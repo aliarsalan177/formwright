@@ -7,10 +7,12 @@ Define a form **once as data** — hand-written or LLM-generated — and render 
 `new Form(schema, initialValue)`, drive it imperatively, and get a typed, nested payload
 out.
 
-**Live demos:** [Playground](https://aliarsalan177.github.io/formwright/) ·
+**Live demos:** [Home](https://aliarsalan177.github.io/formwright/) ·
+[Form Playground](https://aliarsalan177.github.io/formwright/playground.html) ·
 [Form Builder (Forge)](https://aliarsalan177.github.io/formwright/forge.html) ·
 [Theme Builder](https://aliarsalan177.github.io/formwright/builder.html) ·
-[Settings Builder](https://aliarsalan177.github.io/formwright/settings.html)
+[Settings Builder](https://aliarsalan177.github.io/formwright/settings.html) ·
+[Gridwright](https://aliarsalan177.github.io/formwright/grid.html)
 
 **npm — Formwright:** [`@formwright/core`](https://www.npmjs.com/package/@formwright/core) ·
 [`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom) ·
@@ -22,7 +24,7 @@ out.
 [`@formwright/grid-schema`](https://www.npmjs.com/package/@formwright/grid-schema) ·
 [`@formwright/reactive`](https://www.npmjs.com/package/@formwright/reactive) (shared engine)
 
-**Live demo:** [Gridwright grid.html](https://aliarsalan177.github.io/formwright/grid.html)
+**Live demo:** [Gridwright grid.html](https://aliarsalan177.github.io/formwright/grid.html) (also linked from the [home page](https://aliarsalan177.github.io/formwright/))
 
 **~12 KB gzipped, zero dependencies** for the entire framework-agnostic runtime
 (`core` + `dom` + `schema`) — one engine in place of a separate form library, validation
@@ -435,7 +437,7 @@ new Form(
 );
 ```
 
-Try it live: open the [Playground](https://aliarsalan177.github.io/formwright/) and pick
+Try it live: open the [Form Playground](https://aliarsalan177.github.io/formwright/playground.html) and pick
 **Wizard — multi-step form (steps)** from the Example dropdown.
 
 ### Validation
@@ -502,7 +504,7 @@ uploads.
 
 A component that compiles to a custom element (Stencil, Lit, Angular Elements…) needs **no
 adapter at all** — just point the schema at its tag, value property, and change event. The
-[playground](https://aliarsalan177.github.io/formwright/) ships a live `<fw-rating>` demo:
+[Form playground](https://aliarsalan177.github.io/formwright/playground.html) ships a live `<fw-rating>` demo:
 
 ```jsonc
 // <fw-rating value="..."> emits a `rating-change` event
@@ -712,8 +714,9 @@ pnpm build
 pnpm --filter @formwright/playground dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) for the form playground, or
-[http://localhost:5173/grid.html](http://localhost:5173/grid.html) for the Gridwright demo.
+Open [http://localhost:5173](http://localhost:5173) for the project home and links to all demos, or
+[http://localhost:5173/playground.html](http://localhost:5173/playground.html) for the form
+playground and [http://localhost:5173/grid.html](http://localhost:5173/grid.html) for Gridwright.
 
 Edit a schema on the left, watch the form render live in the middle, and see the live
 values + submitted payload on the right.
@@ -726,7 +729,27 @@ pnpm build       # build all packages (turbo)
 pnpm test        # run unit tests
 pnpm typecheck   # type-check all packages
 pnpm format      # prettier
+pnpm storybook   # component catalog @ http://localhost:6006
+pnpm build-storybook
 ```
+
+### Storybook
+
+`apps/storybook` is an interactive catalog of Formwright and Gridwright features:
+
+| Section                    | Stories                                                                        |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| **Formwright / Forms**     | Sign up, checkout, showcase                                                    |
+| **Formwright / Wizard UX** | Full UX, bar/tabs/numbers progress                                             |
+| **Gridwright**             | Live updates, server pagination, master/detail, grouping, your data            |
+| **Apps**                   | Forge, theme builder, settings builder (mini embeds + full playground iframes) |
+
+```bash
+pnpm storybook          # dev server on port 6006
+pnpm build-storybook    # static site → apps/storybook/dist
+```
+
+See also [SKELETON_PLAN.md](SKELETON_PLAN.md) for the upcoming schema-driven skeleton loaders and wizard step transitions.
 
 pnpm + Turborepo monorepo; releases automated with
 [changesets](https://github.com/changesets/changesets). See

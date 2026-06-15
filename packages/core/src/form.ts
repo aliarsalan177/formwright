@@ -64,6 +64,9 @@ export interface DomRendererOptions {
   readonly renderSuccess?: (ctx: SuccessScreenContext, host: HTMLElement) => Dispose | void;
 }
 
+/** Why the form is in a loading state (skeleton overlay, disabled nav). */
+export type LoadingReason = "submit" | "step" | "init" | "provider";
+
 /** Form values — nested for `group` (object) and `collection` (array) fields. */
 export type FormValues = Record<string, unknown>;
 export type FormErrors = Record<string, string | null>;
@@ -136,6 +139,10 @@ export class Form {
   readonly persistConsented: ReadSignal<boolean>;
 
   private readonly submitting = signal(false);
+  private readonly _loadingReason = signal<LoadingReason | null>(null);
+  private readonly loading = computed(
+    () => this.submitting.get() || this._loadingReason.get() !== null,
+  );
   private readonly succeeded = signal(false);
   private readonly successPayload = signal<unknown | null>(null);
   private readonly resumeBanner = signal(false);
@@ -316,6 +323,16 @@ export class Form {
     return this.submitting;
   }
 
+  /** True when any loading reason is active (submit, step transition, …). */
+  get isLoading(): ReadSignal<boolean> {
+    return this.loading;
+  }
+
+  /** Which loading UX is active, or `null` when idle. */
+  get loadingReason(): ReadSignal<LoadingReason | null> {
+    return this._loadingReason;
+  }
+
   /** Build a success-screen context for custom renderers. */
   successContext(): SuccessScreenContext {
     const data = this.successPayload.peek();
@@ -427,6 +444,7 @@ export class Form {
     }
 
     this.submitting.set(true);
+    this._loadingReason.set("submit");
     const values = untrack(() => this.values.peek());
     const named = this.applyTransform(values);
     const payload = transform ? transform(named as FormValues, this) : named;
@@ -450,6 +468,7 @@ export class Form {
       return { ok: false, error };
     } finally {
       this.submitting.set(false);
+      this._loadingReason.set(null);
     }
   }
 

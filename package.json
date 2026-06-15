@@ -12,6 +12,8 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "storybook": "pnpm --filter @formwright/storybook dev",
+    "build-storybook": "pnpm --filter @formwright/storybook build",
     "test": "turbo run test",
     "test:watch": "vitest",
     "typecheck": "turbo run typecheck",

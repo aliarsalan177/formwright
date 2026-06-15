@@ -42,6 +42,19 @@ body {
   gap: 10px;
   font-size: 18px;
 }
+.brand-home {
+  color: inherit;
+  text-decoration: none;
+}
+.brand-home:hover {
+  color: var(--accent);
+}
+.brand-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+}
 .tag {
   font-size: 12px;
   color: var(--muted);
@@ -1063,6 +1076,172 @@ textarea#schema {
   .form-host .fw-actions .fw-action,
   .form-host .fw-actions .fw-submit {
     width: 100%;
+  }
+}
+
+/* ---- submit loading + skeleton overlay ---- */
+.form-host .fw-action-loading {
+  position: relative;
+  opacity: 0.85;
+  cursor: wait;
+}
+.form-host .fw-action-loading::after {
+  content: "";
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  margin-left: 0.45em;
+  vertical-align: -0.1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: fw-spin 0.65s linear infinite;
+}
+@keyframes fw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.form-host .fw-form-body {
+  position: relative;
+}
+.form-host .fw-form-body-loading .fw-field,
+.form-host .fw-form-body-loading .fw-actions,
+.form-host .fw-form-body-loading .fw-steps {
+  visibility: hidden;
+}
+.form-host .fw-skeleton-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 0.25rem 0;
+  pointer-events: none;
+}
+.form-host .fw-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1rem 1.25rem;
+}
+.form-host .fw-skeleton-label,
+.form-host .fw-skeleton-control,
+.form-host .fw-skeleton-line,
+.form-host .fw-skeleton-heading,
+.form-host .fw-skeleton-separator,
+.form-host .fw-skeleton-pill,
+.form-host .fw-skeleton-dropzone,
+.form-host .fw-skeleton-track,
+.form-host .fw-skeleton-switch,
+.form-host .fw-skeleton-swatch {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--border) 55%, transparent) 25%,
+    color-mix(in srgb, var(--border) 25%, transparent) 50%,
+    color-mix(in srgb, var(--border) 55%, transparent) 75%
+  );
+  background-size: 200% 100%;
+  animation: fw-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes fw-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.form-host .fw-skeleton-label {
+  height: 0.75rem;
+  width: 38%;
+  margin-bottom: 0.45rem;
+}
+.form-host .fw-skeleton-control {
+  height: 2.25rem;
+  width: 100%;
+}
+.form-host .fw-skeleton-line {
+  height: 0.85rem;
+  margin-bottom: 0.4rem;
+}
+.form-host .fw-skeleton-line-full {
+  width: 100%;
+}
+.form-host .fw-skeleton-line-medium {
+  width: 72%;
+}
+.form-host .fw-skeleton-heading {
+  height: 1.1rem;
+  width: 55%;
+  margin: 0.25rem 0 0.75rem;
+}
+.form-host .fw-skeleton-separator {
+  height: 1px;
+  width: 100%;
+  margin: 0.5rem 0;
+}
+.form-host .fw-skeleton-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.form-host .fw-skeleton-label-inline {
+  flex: 1;
+  margin-bottom: 0;
+}
+.form-host .fw-skeleton-switch {
+  width: 2.5rem;
+  height: 1.35rem;
+  flex-shrink: 0;
+}
+.form-host .fw-skeleton-pill {
+  height: 1.75rem;
+  width: 42%;
+  margin-top: 0.35rem;
+}
+.form-host .fw-skeleton-pill-short {
+  width: 34%;
+}
+.form-host .fw-skeleton-dropzone {
+  height: 5rem;
+  width: 100%;
+  border: 1px dashed color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--border) 15%, transparent);
+}
+.form-host .fw-skeleton-track {
+  height: 0.35rem;
+  width: 100%;
+  margin-top: 0.75rem;
+}
+.form-host .fw-skeleton-color-row {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+}
+.form-host .fw-skeleton-swatch {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+}
+.form-host .fw-skeleton-collection-item {
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .form-host .fw-action-loading::after,
+  .form-host .fw-skeleton-label,
+  .form-host .fw-skeleton-control,
+  .form-host .fw-skeleton-line,
+  .form-host .fw-skeleton-heading,
+  .form-host .fw-skeleton-separator,
+  .form-host .fw-skeleton-pill,
+  .form-host .fw-skeleton-dropzone,
+  .form-host .fw-skeleton-track,
+  .form-host .fw-skeleton-switch,
+  .form-host .fw-skeleton-swatch {
+    animation: none;
   }
 }
 

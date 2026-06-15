@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Formwright Playground — wizards, draft cache, success screens</title>
+    <meta
+      name="description"
+      content="Edit a form schema and watch it render live — multi-step wizards with URL sync, consent-based draft caching, resume banners, and post-submit success screens."
+    />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <a class="brand-home" href="./index.html"><strong>Formwright</strong></a>
+        <span class="tag">Playground</span>
+      </div>
+      <div class="brand-links">
+        <a class="repo" href="./index.html">Home</a>
+        <a class="repo" href="./forge.html">Form Builder</a>
+        <a class="repo" href="./builder.html">Theme Builder</a>
+        <a class="repo" href="./settings.html">Settings Builder</a>
+        <a class="repo" href="./grid.html">Data Grid</a>
+        <a
+          class="repo"
+          href="https://github.com/aliarsalan177/formwright"
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub ↗
+        </a>
+      </div>
+    </header>
+
+    <main class="layout">
+      <!-- 1. Build / generate the schema -->
+      <section class="panel">
+        <h2>1 · Schema</h2>
+        <div class="examples">
+          <label for="example">Example</label>
+          <select id="example">
+            <option value="wizard" selected>
+              Wizard — full UX (fill bar, URL sync, consent cache, success)
+            </option>
+            <option value="wizard-bar">Wizard — bar progress</option>
+            <option value="wizard-tabs">Wizard — tab progress</option>
+            <option value="wizard-numbers">Wizard — numbered progress</option>
+            <option value="signup">Sign up — consent-based draft cache</option>
+            <option value="social-support">Social Support — 3-step application</option>
+            <option value="social-support-tabs">Social Support — tab progress</option>
+            <option value="social-support-numbers">Social Support — numbered progress</option>
+            <option value="checkout">Checkout — group + collection + conditions</option>
+            <option value="showcase">Showcase — headings, tooltips, i18n, actions</option>
+          </select>
+        </div>
+        <div id="wizard-layout-row" class="examples wizard-layout-row" hidden>
+          <label for="wizard-layout">Wizard progress</label>
+          <select id="wizard-layout">
+            <option value="fill">Fill bar (%)</option>
+            <option value="bar">Bar labels</option>
+            <option value="tabs">Tabs</option>
+            <option value="numbers">Numbers</option>
+          </select>
+        </div>
+        <ul class="feature-legend" id="feature-legend" hidden>
+          <li><strong>Draft cache</strong> — opt-in local save (`persist.mode: "consent"`)</li>
+          <li><strong>Resume banner</strong> — restored after refresh</li>
+          <li><strong>URL sync</strong> — step in the address bar</li>
+          <li><strong>Success screen</strong> — `{{variables}}` from API response</li>
+        </ul>
+        <div class="builder">
+          <input id="b-id" placeholder="field id (e.g. email)" />
+          <input id="b-label" placeholder="label (e.g. Email)" />
+          <select id="b-type">
+            <option value="text">text</option>
+            <option value="email">email</option>
+            <option value="password">password</option>
+            <option value="number">number</option>
+            <option value="textarea">textarea</option>
+            <option value="checkbox">checkbox</option>
+            <option value="toggle">toggle</option>
+            <option value="select">select</option>
+            <option value="radio">radio</option>
+          </select>
+          <label class="req"><input id="b-required" type="checkbox" /> required</label>
+          <button id="b-add" type="button">+ Add field</button>
+        </div>
+        <textarea id="schema" spellcheck="false" aria-label="Schema JSON"></textarea>
+        <p id="schema-status" class="status"></p>
+      </section>
+
+      <!-- 2. The live, working form -->
+      <section class="panel">
+        <h2>2 · Live form</h2>
+        <div id="feature-bar" class="feature-bar" hidden>
+          <span class="feature-chip" id="chip-step" hidden>Step —</span>
+          <span class="feature-chip" id="chip-url" hidden>URL —</span>
+          <span class="feature-chip" id="chip-consent" hidden>Draft —</span>
+          <span class="feature-chip" id="chip-resume" hidden>Resume —</span>
+          <span class="feature-chip" id="chip-success" hidden>Success —</span>
+        </div>
+        <div id="demo-actions" class="demo-actions" hidden>
+          <button id="btn-refresh" type="button" class="demo-btn">↻ Simulate refresh</button>
+          <button id="btn-clear-draft" type="button" class="demo-btn demo-btn-muted">
+            Clear saved draft
+          </button>
+        </div>
+        <p id="wizard-hint" class="demo-hint" hidden></p>
+        <div id="form-host" class="form-host"></div>
+      </section>
+
+      <!-- 3. The result -->
+      <section class="panel">
+        <h2>3 · Result</h2>
+        <h3>Live values</h3>
+        <pre id="values" class="result"></pre>
+        <h3>Last submitted payload</h3>
+        <pre id="payload" class="result">— submit the form —</pre>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
