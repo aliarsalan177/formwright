@@ -59,6 +59,8 @@ export type FieldType =
   | "file" // native file input (override with a custom widget for uploads)
   | "group" // a nested object: produces `{ ...child values }`
   | "collection" // a repeatable list of groups: produces `[{ ... }, { ... }]`
+  | "steps" // a multi-step wizard: child `step` fields shown one at a time
+  | "step" // one wizard step (nested object, like `group`)
   | "heading" // presentational: a section title (no payload)
   | "separator" // presentational: a divider (no payload)
   | "paragraph" // presentational: static text (no payload)
@@ -195,8 +197,19 @@ export interface FieldSchema {
    * Container layout:
    *  - `group`: `"fieldset"` (default) or `"accordion"` (collapsible section).
    *  - `collection`: `"list"` (default), `"cards"`, or `"accordion"` (each row collapsible).
+   *  - `steps`: `"bar"` (default), `"tabs"`, or `"numbers"` progress indicator.
    */
-  readonly layout?: "fieldset" | "accordion" | "list" | "cards";
+  readonly layout?: "fieldset" | "accordion" | "list" | "cards" | "bar" | "tabs" | "numbers";
+  /** `steps` only: show a progress indicator (default `true`). */
+  readonly showProgress?: boolean;
+  /** `steps` only: validate the current step before advancing (default `true`). */
+  readonly validateOnNext?: boolean;
+  /** `steps` only: label for the Next button (default `"Next"`). */
+  readonly nextLabel?: Resolvable<string>;
+  /** `steps` only: label for the Back button (default `"Back"`). */
+  readonly prevLabel?: Resolvable<string>;
+  /** `steps` only: label for Submit on the last step (default `"Submit"`). */
+  readonly submitLabel?: Resolvable<string>;
   /** `collection` only: label for each row, e.g. "Contact". */
   readonly itemLabel?: Resolvable<string>;
   /** `collection` only: text for the add-row button (default: "Add"). */

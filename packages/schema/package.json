@@ -1,6 +1,6 @@
 {
   "name": "@formwright/schema",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "Schema types and runtime validator for Formwright.",
   "license": "MIT",
   "repository": {

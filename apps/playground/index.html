@@ -6,7 +6,7 @@
     <title>Formwright Playground — build forms from a schema in real time</title>
     <meta
       name="description"
-      content="Edit or generate a form schema and watch it render to real, surgically-updating DOM — then submit it and see the payload."
+      content="Edit or generate a form schema and watch it render to real, surgically-updating DOM — including multi-step wizards — then submit and see the payload."
     />
   </head>
   <body>
@@ -41,6 +41,17 @@
             <option value="checkout">Checkout — group + collection + conditions</option>
             <option value="showcase">Showcase — headings, tooltips, i18n, actions</option>
             <option value="signup">Sign up — simple conditional form</option>
+            <option value="wizard">Wizard — multi-step form (bar progress)</option>
+            <option value="wizard-tabs">Wizard — tab progress</option>
+            <option value="wizard-numbers">Wizard — numbered progress</option>
+          </select>
+        </div>
+        <div id="wizard-layout-row" class="examples wizard-layout-row" hidden>
+          <label for="wizard-layout">Wizard progress</label>
+          <select id="wizard-layout">
+            <option value="bar">Bar labels</option>
+            <option value="tabs">Tabs</option>
+            <option value="numbers">Numbers</option>
           </select>
         </div>
         <div class="builder">
@@ -67,6 +78,7 @@
       <!-- 2. The live, working form -->
       <section class="panel">
         <h2>2 · Live form</h2>
+        <p id="wizard-hint" class="demo-hint" hidden></p>
         <div id="form-host" class="form-host"></div>
       </section>
 

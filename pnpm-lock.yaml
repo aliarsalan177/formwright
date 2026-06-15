@@ -47,15 +47,15 @@ importers:
       '@formwright/dom':
         specifier: workspace:*
         version: link:../../packages/dom
+      '@formwright/grid-core':
+        specifier: workspace:*
+        version: link:../../packages/grid-core
+      '@formwright/grid-dom':
+        specifier: workspace:*
+        version: link:../../packages/grid-dom
       '@formwright/schema':
         specifier: workspace:*
         version: link:../../packages/schema
-      '@gridwright/core':
-        specifier: workspace:*
-        version: link:../../packages/grid-core
-      '@gridwright/dom':
-        specifier: workspace:*
-        version: link:../../packages/grid-dom
     devDependencies:
       typescript:
         specifier: ^5.7.2
@@ -75,12 +75,12 @@ importers:
 
   packages/core:
     dependencies:
+      '@formwright/reactive':
+        specifier: workspace:*
+        version: link:../reactive
       '@formwright/schema':
         specifier: workspace:*
         version: link:../schema
-      '@wright/reactive':
-        specifier: workspace:*
-        version: link:../reactive
 
   packages/dom:
     dependencies:
@@ -97,22 +97,22 @@ importers:
 
   packages/grid-core:
     dependencies:
-      '@gridwright/schema':
+      '@formwright/grid-schema':
         specifier: workspace:*
         version: link:../grid-schema
-      '@wright/reactive':
+      '@formwright/reactive':
         specifier: workspace:*
         version: link:../reactive
 
   packages/grid-dom:
     dependencies:
-      '@gridwright/core':
+      '@formwright/grid-core':
         specifier: workspace:*
         version: link:../grid-core
-      '@gridwright/schema':
+      '@formwright/grid-schema':
         specifier: workspace:*
         version: link:../grid-schema
-      '@wright/reactive':
+      '@formwright/reactive':
         specifier: workspace:*
         version: link:../reactive
     devDependencies:

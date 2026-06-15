@@ -1,4 +1,5 @@
-import type { Grid, ResolvedColumn } from "@gridwright/core";
+import { effect, type Dispose } from "@formwright/reactive";
+import type { Grid, ResolvedColumn } from "@formwright/grid-core";
 import { getCellRenderer, getFormatter } from "./registry.js";
 
 /** The cell currently being edited — its binding is paused so updates don't clobber the input. */
@@ -6,6 +7,50 @@ let editingCell: HTMLElement | null = null;
 
 export function px(n: number): string {
   return `${n}px`;
+}
+
+/** Apply sticky positioning for a pinned cell (header, filter, or body). */
+export function applyPin(grid: Grid, el: HTMLElement, field: string, leadingWidth: number): void {
+  const pin = grid.columnPin(field);
+  el.classList.remove("gw-pinned", "gw-pinned-left", "gw-pinned-right");
+  if (pin === "none") {
+    el.style.position = "";
+    el.style.left = "";
+    el.style.right = "";
+    el.style.zIndex = "";
+    return;
+  }
+  el.style.position = "sticky";
+  el.style.zIndex = "1";
+  el.classList.add("gw-pinned", pin === "left" ? "gw-pinned-left" : "gw-pinned-right");
+  if (pin === "left") {
+    el.style.left = px(leadingWidth + grid.pinnedOffset(field));
+    el.style.right = "";
+  } else {
+    el.style.right = px(grid.pinnedOffset(field));
+    el.style.left = "";
+  }
+}
+
+/** Reactively bind a cell's width and pin state. Returns a combined disposer. */
+export function bindCellWidthPin(
+  grid: Grid,
+  col: ResolvedColumn,
+  cell: HTMLElement,
+  leadingWidth: number,
+): Dispose {
+  const dw = effect(() => {
+    cell.style.width = px(grid.columnWidth(col.field));
+  });
+  const dp = effect(() => {
+    grid.columnPin(col.field);
+    grid.totalColumnsWidth(); // re-evaluate sticky offsets when widths/pins change
+    applyPin(grid, cell, col.field, leadingWidth);
+  });
+  return () => {
+    dw();
+    dp();
+  };
 }
 
 function cellText(col: ResolvedColumn, value: unknown, row: Record<string, unknown>): string {

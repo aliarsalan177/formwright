@@ -1,6 +1,6 @@
 {
-  "name": "@gridwright/schema",
-  "version": "0.1.0",
+  "name": "@formwright/grid-schema",
+  "version": "0.2.0",
   "description": "Column/grid schema types and a dependency-free validator for Gridwright.",
   "license": "MIT",
   "repository": {
@@ -25,6 +25,15 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "keywords": [
+    "grid",
+    "data-grid",
+    "table",
+    "virtualization",
+    "signals",
+    "schema-driven",
+    "gridwright"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",

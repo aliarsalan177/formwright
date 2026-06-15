@@ -1,4 +1,4 @@
-import type { ColumnDef, ColumnType } from "@gridwright/schema";
+import type { ColumnDef, ColumnType } from "@formwright/grid-schema";
 
 /** A column with every default resolved — what the renderer consumes. */
 export interface ResolvedColumn {

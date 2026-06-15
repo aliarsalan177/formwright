@@ -1,4 +1,4 @@
-import { toCsv, type CsvOptions, type Grid } from "@gridwright/core";
+import { toCsv, type CsvOptions, type Grid } from "@formwright/grid-core";
 
 /** Trigger a browser download of the grid's rows as a CSV file. */
 export function downloadCsv(grid: Grid, filename = "export.csv", options?: CsvOptions): void {

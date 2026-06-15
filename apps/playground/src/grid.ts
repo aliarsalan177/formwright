@@ -13,8 +13,8 @@ import {
   type GridDatasource,
   type GridSchema,
   type Row,
-} from "@gridwright/core";
-import { downloadCsv, mount, registerCellRenderer, registerFormatter } from "@gridwright/dom";
+} from "@formwright/grid-core";
+import { downloadCsv, mount, registerCellRenderer, registerFormatter } from "@formwright/grid-dom";
 import "./grid.css";
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;

@@ -1,5 +1,5 @@
 /**
- * `@wright/reactive` — fine-grained reactivity shared by Formwright and Gridwright.
+ * `@formwright/reactive` — fine-grained reactivity shared by Formwright and Gridwright.
  *
  * A small, correct, **zero-dependency** push-pull implementation:
  *  - {@link signal} holds a value and the set of observers that read it.

@@ -10,17 +10,19 @@ out.
 **Live demos:** [Playground](https://aliarsalan177.github.io/formwright/) ·
 [Form Builder (Forge)](https://aliarsalan177.github.io/formwright/forge.html) ·
 [Theme Builder](https://aliarsalan177.github.io/formwright/builder.html) ·
-[Settings Builder](https://aliarsalan177.github.io/formwright/settings.html) ·
-[Data Grid (Gridwright)](https://aliarsalan177.github.io/formwright/grid.html)
+[Settings Builder](https://aliarsalan177.github.io/formwright/settings.html)
 
-> **Also in this repo: [Gridwright](#gridwright--schema-driven-data-grid)** — a sibling
-> schema-driven, virtualized **data grid** built on the same signal core. AG-Grid-Enterprise
-> features (server pagination, master/detail, selection, live updates) for free, framework-agnostic.
-
-**npm:** [`@formwright/core`](https://www.npmjs.com/package/@formwright/core) ·
+**npm — Formwright:** [`@formwright/core`](https://www.npmjs.com/package/@formwright/core) ·
 [`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom) ·
 [`@formwright/schema`](https://www.npmjs.com/package/@formwright/schema) ·
 [`@formwright/ai`](https://www.npmjs.com/package/@formwright/ai)
+
+**npm — Gridwright:** [`@formwright/grid-core`](https://www.npmjs.com/package/@formwright/grid-core) ·
+[`@formwright/grid-dom`](https://www.npmjs.com/package/@formwright/grid-dom) ·
+[`@formwright/grid-schema`](https://www.npmjs.com/package/@formwright/grid-schema) ·
+[`@formwright/reactive`](https://www.npmjs.com/package/@formwright/reactive) (shared engine)
+
+**Live demo:** [Gridwright grid.html](https://aliarsalan177.github.io/formwright/grid.html)
 
 **~12 KB gzipped, zero dependencies** for the entire framework-agnostic runtime
 (`core` + `dom` + `schema`) — one engine in place of a separate form library, validation
@@ -37,6 +39,8 @@ library, conditional-logic library, and per-framework bindings.
   custom element, or a native tag, all from the schema. The form still produces one clean payload.
 - **Nested objects and repeatable collections** — `group` and `collection` fields yield
   `{ items: {…} }` and `[{…}, {…}]`, with add/remove rows and `min`/`max`.
+- **Multi-step wizards** — `steps` + `step` fields split a long form into guided steps with
+  Back/Next/Submit navigation, per-step validation, and a nested payload — no extra library.
 - **Conditional logic as data** — `visibleWhen` / `enabledWhen` / `requiredWhen` resolve
   lexically (sibling, then outward), so an outer toggle can hide a field deep inside a collection
   row. Hidden fields are excluded from the payload automatically.
@@ -53,7 +57,7 @@ One schema, one engine — no add-on libraries required:
   **color** (swatch + hex), **range** (slider with live value bubble),
   **date / time / datetime / daterange** (with or without time), drag-and-drop **file** upload
   (multi/single, accept, thumbnails), nested **group** (object), repeatable **collection**
-  (array, add/remove, `min`/`max`), plus any custom type.
+  (array, add/remove, `min`/`max`), **multi-step wizard** (`steps` + `step`), plus any custom type.
 - **Authoring & layout** — `heading`, `separator`, `paragraph`, per-field **tooltips** and
   `description`, **required marker** next to the label, side-by-side fields via **`colSpan`**,
   in-input **slots** (start/end), iPad-style **`labelPosition: "start"`** rows, and a dismissible
@@ -210,7 +214,8 @@ A field is resolved to a widget by `type` and keyed by `id`.
 `text` · `email` · `password` · `number` · `textarea` · `select` · `radio` · `checkbox` ·
 `toggle` · `color` · `range` · `date` · `time` · `datetime` · `daterange` · `file` ·
 `heading` · `separator` · `paragraph` (presentational) ·
-`group` (nested object) · `collection` (repeatable list) —
+`group` (nested object) · `collection` (repeatable list) ·
+`steps` (wizard container) · `step` (one wizard step) —
 plus any custom type via `registerWidget`.
 
 ### Conditional logic (as data)
@@ -258,6 +263,67 @@ Conditions resolve **lexically** (sibling → enclosing scope → form root), so
 toggle can hide a field nested inside a group or a collection row, and a field can react to
 a sibling in its own row.
 
+### Multi-step wizards
+
+Wrap fields in a `steps` container; each child must be a `step` (like a titled group, shown
+one at a time):
+
+```jsonc
+{
+  "id": "wizard",
+  "type": "steps",
+  "layout": "bar", // "bar" | "tabs" | "numbers"
+  "showProgress": true,
+  "validateOnNext": true,
+  "nextLabel": "Continue",
+  "prevLabel": "Back",
+  "submitLabel": "Create account",
+  "fields": [
+    {
+      "id": "personal",
+      "type": "step",
+      "label": "Personal",
+      "description": "Tell us about yourself.",
+      "fields": [
+        { "id": "name", "type": "text", "validation": { "kind": "string", "required": true } },
+      ],
+    },
+    {
+      "id": "account",
+      "type": "step",
+      "label": "Account",
+      "fields": [
+        {
+          "id": "email",
+          "type": "email",
+          "validation": { "kind": "string", "format": "email", "required": true },
+        },
+      ],
+    },
+  ],
+}
+```
+
+→ payload:
+
+```jsonc
+{
+  "wizard": {
+    "personal": { "name": "Ada" },
+    "account": { "email": "ada@example.com" },
+  },
+}
+```
+
+- **Next** validates the current step only; **Submit** (on the last step) validates every step.
+- Inactive steps are skipped during step-by-step validation but included in the final payload.
+- Imperative control: `form.findSteps()?.next()`, `.prev()`, `.goTo(index)`, `.validateStep()`.
+- When a top-level `steps` field is present, the renderer supplies its own Back/Next/Submit bar
+  (root `actions` are omitted).
+
+Try it live: open the [Playground](https://aliarsalan177.github.io/formwright/) and pick
+**Wizard — multi-step form (steps)** from the Example dropdown.
+
 ### Validation
 
 Declarative rules — `required`, `min`/`max`, `minLength`/`maxLength`, `pattern`,
@@ -278,7 +344,7 @@ import "@formwright/dom";
 
 // Claude (default — uses ANTHROPIC_API_KEY, model claude-opus-4-8)
 const { schema } = await generateSchema(
-  "a checkout form with a promo code shown only for the annual Pro plan",
+  "a 3-step signup wizard: personal info, account credentials, then preferences",
 );
 new Form(schema).mount(document.getElementById("root")!);
 
@@ -351,8 +417,8 @@ Each is the same `mount` adapter as React above — render the component into `h
 
 ## Styling — your CSS or Tailwind, your layout
 
-The renderer ships **unstyled** with stable class hooks (`.fw-field`, `.fw-group`, `.fw-error`,
-`.fw-switch`, …) — bring your own stylesheet. Or override per field, right in the schema, with
+The renderer ships **unstyled** with stable class hooks (`.fw-field`, `.fw-group`, `.fw-steps`,
+`.fw-step-panel`, `.fw-error`, `.fw-switch`, …) — bring your own stylesheet. Or override per field, right in the schema, with
 any classes or **Tailwind utilities**:
 
 ```jsonc
@@ -415,12 +481,18 @@ engine. Each row's data is its own signal, so a single cell updates **surgically
 re-render, no reflow) — the property that makes real-time data smooth where framework-reconciled
 grids stutter. It ships the features AG Grid charges for — **for free, MIT**.
 
+**Install:**
+
+```bash
+npm i @formwright/grid-core @formwright/grid-dom
+```
+
 **Live demo:** https://aliarsalan177.github.io/formwright/grid.html (Live 50k · Server pagination ·
 Master/detail · Your-data) — the whole runtime + demo is **~8 KB gzipped**.
 
 ```ts
-import { Grid } from "@gridwright/core";
-import { mount } from "@gridwright/dom";
+import { Grid } from "@formwright/grid-core";
+import { mount } from "@formwright/grid-dom";
 
 const grid = new Grid(
   {
@@ -456,24 +528,32 @@ mount(grid, document.getElementById("app")!, {
 | **Sorting**            | Click-to-sort (none → asc → desc), type-aware comparators                                                                                                              |
 | **Framework-agnostic** | One engine; bring your own framework via thin adapters (planned)                                                                                                       |
 
-Packages: [`@gridwright/schema`](packages/grid-schema) · [`@gridwright/core`](packages/grid-core) ·
-[`@gridwright/dom`](packages/grid-dom). Both Formwright and Gridwright share
-[`@wright/reactive`](packages/reactive), the extracted zero-dependency signal core — so a Gridwright
-cell editor can be a Formwright field. See [TABLE_PLAN.md](TABLE_PLAN.md) for the roadmap.
+Packages: [`@formwright/grid-schema`](https://www.npmjs.com/package/@formwright/grid-schema) ·
+[`@formwright/grid-core`](https://www.npmjs.com/package/@formwright/grid-core) ·
+[`@formwright/grid-dom`](https://www.npmjs.com/package/@formwright/grid-dom).
+Both Formwright and Gridwright share
+[`@formwright/reactive`](https://www.npmjs.com/package/@formwright/reactive), the extracted
+zero-dependency signal core — so a Gridwright cell editor can be a Formwright field.
+See [TABLE_PLAN.md](TABLE_PLAN.md) for the roadmap.
 
 ## Packages
 
-| Package                                                                  | Description                                                   |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------- | ---------------- |
-| Package                                                                  | Description                                                   | Size (min+gzip)  |
-| ------------------------------------------------------------------------ | ----------------------------------------------------          | ---------------- |
-| [`@formwright/schema`](https://www.npmjs.com/package/@formwright/schema) | Schema types + dependency-free validator                      | ~1.2 KB          |
-| [`@formwright/core`](https://www.npmjs.com/package/@formwright/core)     | Signal reactivity + the `Form` class                          | ~5.8 KB          |
-| [`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom)       | Surgical direct-DOM renderer + widget adapters                | ~4.8 KB          |
-| [`@formwright/ai`](https://www.npmjs.com/package/@formwright/ai)         | Generate a validated schema from a description (any language) | optional, server |
-| **Full runtime** (`schema` + `core` + `dom`)                             | Everything above to render & submit a form                    | **~12 KB**       |
+| Package                                                                            | Description                                                   |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------- | ---------------- |
+| Package                                                                            | Description                                                   | Size (min+gzip)  |
+| ------------------------------------------------------------------------           | ----------------------------------------------------          | ---------------- |
+| [`@formwright/schema`](https://www.npmjs.com/package/@formwright/schema)           | Schema types + dependency-free validator                      | ~1.2 KB          |
+| [`@formwright/core`](https://www.npmjs.com/package/@formwright/core)               | Signal reactivity + the `Form` class                          | ~5.8 KB          |
+| [`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom)                 | Surgical direct-DOM renderer + widget adapters                | ~4.8 KB          |
+| [`@formwright/ai`](https://www.npmjs.com/package/@formwright/ai)                   | Generate a validated schema from a description (any language) | optional, server |
+| **Formwright runtime** (`schema` + `core` + `dom`)                                 | Everything above to render & submit a form                    | **~12 KB**       |
+| [`@formwright/grid-schema`](https://www.npmjs.com/package/@formwright/grid-schema) | Grid/column schema types + validator                          | ~1.5 KB          |
+| [`@formwright/grid-core`](https://www.npmjs.com/package/@formwright/grid-core)     | Signal-reactive grid engine (sort, filter, pagination, …)     | ~5 KB            |
+| [`@formwright/grid-dom`](https://www.npmjs.com/package/@formwright/grid-dom)       | Virtualized direct-DOM renderer                               | ~4 KB            |
+| [`@formwright/reactive`](https://www.npmjs.com/package/@formwright/reactive)       | Shared zero-dep signal engine (Formwright + Gridwright)       | ~1 KB            |
+| **Gridwright runtime** (`schema` + `core` + `dom`)                                 | Virtualized grid with surgical cell updates                   | **~8 KB**        |
 
-**No third-party runtime dependencies** (the only dependency is `@wright/reactive`, our own
+**No third-party runtime dependencies** (the only dependency is `@formwright/reactive`, our own
 zero-dependency signal core, shared with the Gridwright data grid). Tree-shakeable subpath
 exports — pull only what you use. Ships
 ESM + CJS + types, and works straight from a CDN (`esm.sh`) with no build step. For comparison,
@@ -482,9 +562,16 @@ logic, nesting, i18n, custom widgets, and the submission pipeline in the box.
 
 ## Run the playground locally
 
-````bash
+```bash
+git clone https://github.com/aliarsalan177/formwright.git
+cd formwright
 pnpm install
-fw-group fw-accordion```
+pnpm build
+pnpm --filter @formwright/playground dev
+```
+
+Open [http://localhost:5173](http://localhost:5173) for the form playground, or
+[http://localhost:5173/grid.html](http://localhost:5173/grid.html) for the Gridwright demo.
 
 Edit a schema on the left, watch the form render live in the middle, and see the live
 values + submitted payload on the right.
@@ -497,7 +584,7 @@ pnpm build       # build all packages (turbo)
 pnpm test        # run unit tests
 pnpm typecheck   # type-check all packages
 pnpm format      # prettier
-````
+```
 
 pnpm + Turborepo monorepo; releases automated with
 [changesets](https://github.com/changesets/changesets). See

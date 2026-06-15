@@ -1,5 +1,5 @@
-import type { Dispose } from "@wright/reactive";
-import type { Grid } from "@gridwright/core";
+import type { Dispose } from "@formwright/reactive";
+import type { Grid } from "@formwright/grid-core";
 import { mountVirtual } from "./render.js";
 import { mountFlow, type FlowOptions } from "./flow.js";
 

@@ -1,6 +1,6 @@
 {
   "name": "@formwright/ai",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "Generate a validated Formwright schema from a natural-language description using Claude.",
   "license": "MIT",
   "repository": {

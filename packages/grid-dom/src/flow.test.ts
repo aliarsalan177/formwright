@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { Grid } from "@gridwright/core";
-import type { GridSchema, Row } from "@gridwright/schema";
+import { Grid } from "@formwright/grid-core";
+import type { GridSchema, Row } from "@formwright/grid-schema";
 import { mount } from "./index.js";
 
 const schema: GridSchema = {

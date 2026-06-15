@@ -263,6 +263,19 @@ textarea#schema {
 .examples select {
   flex: 1;
 }
+.wizard-layout-row {
+  margin-top: -4px;
+}
+.demo-hint {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent, #2563eb) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 25%, transparent);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+}
 
 /* ---- modern controls ---- */
 
@@ -309,6 +322,122 @@ textarea#schema {
 .form-host .fw-description {
   color: var(--muted);
   font-size: 12px;
+}
+
+/* Multi-step wizard */
+.form-host .fw-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.form-host .fw-steps-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+.form-host .fw-steps-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.form-host .fw-steps-progress-bar {
+  gap: 4px;
+}
+.form-host .fw-steps-bar-item {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--surface, #f4f4f5);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.form-host .fw-steps-bar-item[aria-current="step"] {
+  background: var(--accent, #2563eb);
+  color: #fff;
+  font-weight: 600;
+}
+.form-host .fw-steps-tab {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+}
+.form-host .fw-steps-tab[aria-current="step"] {
+  border-color: var(--accent, #2563eb);
+  background: var(--accent, #2563eb);
+  color: #fff;
+}
+.form-host .fw-steps-tab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.form-host .fw-steps-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface, #f4f4f5);
+  color: var(--muted);
+}
+.form-host .fw-steps-number[aria-current="step"] {
+  background: var(--accent, #2563eb);
+  color: #fff;
+}
+.form-host .fw-steps-sep {
+  color: var(--muted);
+  font-size: 12px;
+}
+.form-host .fw-step-heading {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+.form-host .fw-step-description {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.form-host .fw-steps-nav {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.form-host .fw-steps-back,
+.form-host .fw-steps-next,
+.form-host .fw-steps-submit {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface, #fff);
+  cursor: pointer;
+  font-size: 14px;
+}
+.form-host .fw-steps-next,
+.form-host .fw-steps-submit {
+  margin-left: auto;
+  border-color: var(--accent, #2563eb);
+  background: var(--accent, #2563eb);
+  color: #fff;
+}
+.form-host .fw-steps-back:hover,
+.form-host .fw-steps-next:hover,
+.form-host .fw-steps-submit:hover {
+  filter: brightness(0.95);
+}
+.form-host .fw-steps-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* iOS-style toggle switch */

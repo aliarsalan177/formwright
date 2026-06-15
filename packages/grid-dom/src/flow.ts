@@ -1,6 +1,6 @@
-import { effect, type Dispose } from "@wright/reactive";
-import type { Grid } from "@gridwright/core";
-import { beginEdit, makeCell, px, renderCellInto } from "./cells.js";
+import { effect, type Dispose } from "@formwright/reactive";
+import type { Grid } from "@formwright/grid-core";
+import { beginEdit, bindCellWidthPin, makeCell, px, renderCellInto } from "./cells.js";
 import { buildHeader, EXP_W, SEL_W } from "./header.js";
 
 /** Mount a detail panel for an expanded row; return a disposer to tear it down. */
@@ -24,7 +24,6 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
   const disposers: Dispose[] = [];
   const rowDisposers: Dispose[] = [];
   const detailDisposers = new Map<string, Dispose>();
-  const dataWidth = grid.columns.reduce((w, c) => w + c.width, 0);
   const hasSelection = grid.selectionMode !== "none";
 
   const root = document.createElement("div");
@@ -34,15 +33,19 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
   const viewport = document.createElement("div");
   viewport.className = "gw-viewport";
 
-  const { header, filterRow, hasFilters, leadingWidth } = buildHeader(grid, disposers, dataWidth, {
+  const { header, filterRow, hasFilters, leadingWidth } = buildHeader(grid, disposers, {
     selection: hasSelection,
     expand: grid.masterDetail,
   });
-  const totalWidth = dataWidth + leadingWidth;
+  const totalWidth = () => leadingWidth + grid.totalColumnsWidth();
 
   const body = document.createElement("div");
   body.className = "gw-body";
-  body.style.width = px(totalWidth);
+  disposers.push(
+    effect(() => {
+      body.style.width = px(totalWidth());
+    }),
+  );
 
   viewport.append(header);
   if (hasFilters) viewport.append(filterRow);
@@ -92,8 +95,12 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
     row.setAttribute("role", "row");
     row.setAttribute("aria-rowindex", String(index + 1));
     if (index % 2 === 1) row.classList.add("gw-row-odd");
-    row.style.width = px(totalWidth);
     row.style.minHeight = px(grid.rowHeight);
+    rowDisposers.push(
+      effect(() => {
+        row.style.width = px(totalWidth());
+      }),
+    );
 
     if (grid.masterDetail) {
       const toggle = document.createElement("button");
@@ -131,8 +138,9 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
       row.appendChild(selCell);
     }
 
-    for (const col of grid.columns) {
+    for (const col of grid.orderedColumns.peek()) {
       const cell = makeCell(col);
+      rowDisposers.push(bindCellWidthPin(grid, col, cell, leadingWidth));
       if (col.editable) {
         cell.addEventListener("dblclick", () => beginEdit(grid, col, cell, id));
       }
@@ -155,7 +163,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
           if (open && !existing) {
             const panel = document.createElement("div");
             panel.className = "gw-detail";
-            panel.style.width = px(totalWidth);
+            panel.style.width = px(totalWidth());
             body.insertBefore(panel, row.nextSibling);
             const data = grid.getRow(id);
             const dispose = data ? options.detail!(data, panel, id) : undefined;
@@ -172,10 +180,11 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
     }
   }
 
-  // Re-render the row list when the displayed page / data changes.
+  // Re-render the row list when the displayed page / data / column set changes.
   disposers.push(
     effect(() => {
       const ids = grid.displayRowIds.get();
+      grid.orderedColumns.get(); // rebuild rows when columns reorder / hide / pin
       disposeRows();
       ids.forEach((id, i) => buildRow(id, i));
     }),

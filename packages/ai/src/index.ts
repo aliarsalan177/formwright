@@ -151,6 +151,15 @@ Field types:
 - "select" | "radio" — need "options": [{ "label": string, "value": string|number }]
 - "group" — a nested object; needs "fields": [ ...child fields ]. Produces an object in the payload.
 - "collection" — a repeatable list of objects; needs "fields", optional "itemLabel", "addLabel", "minItems", "maxItems". Produces an array of objects.
+- "steps" — a multi-step wizard; needs "fields": [ step, step, … ]. Each child must have "type": "step".
+- "step" — one wizard step (like a group); needs "label", optional "description", and "fields". Produces a nested object in the payload under the step id.
+
+For multi-step / wizard forms, wrap steps in a "steps" container:
+{ "id": "wizard", "type": "steps", "layout": "bar"|"tabs"|"numbers", "fields": [
+  { "id": "personal", "type": "step", "label": "Personal", "fields": [ ... ] },
+  { "id": "account", "type": "step", "label": "Account", "fields": [ ... ] }
+]}
+Optional on "steps": "showProgress" (default true), "validateOnNext" (default true), "nextLabel", "prevLabel", "submitLabel".
 
 Validation (optional): "validation": { "kind": "string"|"number", "required"?, "min"?, "max"?, "minLength"?, "maxLength"?, "pattern"?, "format"?: "email"|"url"|"uuid", "message"? }.
 

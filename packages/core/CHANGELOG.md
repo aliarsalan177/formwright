@@ -1,5 +1,20 @@
 # @formwright/core
 
+## 0.2.2
+
+### Patch Changes
+
+- Pin `@formwright/reactive@0.2.1` so npm installs resolve the shared signal engine.
+  - @formwright/schema@0.2.2
+
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @formwright/reactive@0.2.1
+  - @formwright/schema@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
@@ -27,10 +42,10 @@
   - `@formwright/ai`: generate a validated schema from a natural-language description in any language, provider-agnostic (Claude default, OpenAI, or a custom provider), with a validate→repair loop.
 
 - 1e75258: Extract the zero-dependency signal engine (`signal`/`computed`/`effect`/`batch`/`untrack`/`isTracking`)
-  into a new shared package, **`@wright/reactive`**, so it can back both Formwright and the upcoming
+  into a new shared package, **`@formwright/reactive`**, so it can back both Formwright and the upcoming
   Gridwright data grid from a single instance.
 
-  `@formwright/core` now depends on `@wright/reactive` and re-exports it; the public
+  `@formwright/core` now depends on `@formwright/reactive` and re-exports it; the public
   `@formwright/core/reactive` subpath is unchanged, so this is non-breaking for consumers.
 
 ### Patch Changes
@@ -38,7 +53,7 @@
 - Updated dependencies [0b57dd5]
 - Updated dependencies [1e75258]
   - @formwright/schema@0.2.0
-  - @wright/reactive@0.2.0
+  - @formwright/reactive@0.2.0
 
 ## 0.1.0
 
