@@ -12,7 +12,9 @@
   "dependencies": {
     "@formwright/core": "workspace:*",
     "@formwright/dom": "workspace:*",
-    "@formwright/schema": "workspace:*"
+    "@formwright/schema": "workspace:*",
+    "@gridwright/core": "workspace:*",
+    "@gridwright/dom": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.2",

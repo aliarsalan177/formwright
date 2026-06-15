@@ -1,17 +1,20 @@
 {
-  "name": "@formwright/core",
+  "name": "@gridwright/dom",
   "version": "0.1.0",
-  "description": "Signal-reactive core and the Form class for Formwright.",
+  "description": "Virtual-DOM-free, virtualized renderer for Gridwright — sticky header, sorting, inline editing.",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/aliarsalan177/formwright.git",
-    "directory": "packages/core"
+    "directory": "packages/grid-dom"
   },
   "homepage": "https://github.com/aliarsalan177/formwright#readme",
   "bugs": "https://github.com/aliarsalan177/formwright/issues",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/index.js",
+    "./dist/index.cjs"
+  ],
   "files": [
     "dist"
   ],
@@ -20,11 +23,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./reactive": {
-      "types": "./dist/reactive.d.ts",
-      "import": "./dist/reactive.js",
-      "require": "./dist/reactive.cjs"
     }
   },
   "main": "./dist/index.cjs",
@@ -38,8 +36,12 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@formwright/schema": "workspace:*",
+    "@gridwright/core": "workspace:*",
+    "@gridwright/schema": "workspace:*",
     "@wright/reactive": "workspace:*"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1"
   },
   "publishConfig": {
     "access": "public"

@@ -10,7 +10,12 @@ out.
 **Live demos:** [Playground](https://aliarsalan177.github.io/formwright/) ·
 [Form Builder (Forge)](https://aliarsalan177.github.io/formwright/forge.html) ·
 [Theme Builder](https://aliarsalan177.github.io/formwright/builder.html) ·
-[Settings Builder](https://aliarsalan177.github.io/formwright/settings.html)
+[Settings Builder](https://aliarsalan177.github.io/formwright/settings.html) ·
+[Data Grid (Gridwright)](https://aliarsalan177.github.io/formwright/grid.html)
+
+> **Also in this repo: [Gridwright](#gridwright--schema-driven-data-grid)** — a sibling
+> schema-driven, virtualized **data grid** built on the same signal core. AG-Grid-Enterprise
+> features (server pagination, master/detail, selection, live updates) for free, framework-agnostic.
 
 **npm:** [`@formwright/core`](https://www.npmjs.com/package/@formwright/core) ·
 [`@formwright/dom`](https://www.npmjs.com/package/@formwright/dom) ·
@@ -402,6 +407,60 @@ Two integration responsibilities remain yours, as with any app:
 - **Submission** — the payload is validated client-side for UX, but, like any client, treat it as
   untrusted on the server: always re-validate and authorize there.
 
+## Gridwright — schema-driven data grid
+
+A sibling package in this monorepo: **Gridwright** applies the same idea to data grids — a grid
+described as **data** (column defs), rendered by a tiny **signal-reactive, virtual-DOM-free**
+engine. Each row's data is its own signal, so a single cell updates **surgically** (no row
+re-render, no reflow) — the property that makes real-time data smooth where framework-reconciled
+grids stutter. It ships the features AG Grid charges for — **for free, MIT**.
+
+**Live demo:** https://aliarsalan177.github.io/formwright/grid.html (Live 50k · Server pagination ·
+Master/detail · Your-data) — the whole runtime + demo is **~8 KB gzipped**.
+
+```ts
+import { Grid } from "@gridwright/core";
+import { mount } from "@gridwright/dom";
+
+const grid = new Grid(
+  {
+    id: "trades",
+    columns: [
+      { field: "symbol", width: 110 },
+      { field: "price", type: "number", valueFormatter: "currency", editable: true },
+      { field: "change", type: "number", cellRenderer: "change" },
+      { field: "status", cellRenderer: "badge" },
+    ],
+  },
+  rows, // your array — or omit and pass a `datasource` for server mode
+  { pagination: { pageSize: 25 }, selection: "multi", masterDetail: true },
+);
+
+mount(grid, document.getElementById("app")!, {
+  // master/detail: render anything for an expanded row — including another grid
+  detail: (row, panel) => {
+    /* mount a sub-grid, a form, a chart… */
+  },
+});
+```
+
+| Capability             | Gridwright                                                                                                                                                             |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Virtualization**     | Row windowing + DOM node pooling — only the visible window is in the DOM (tested at 50k rows)                                                                          |
+| **Surgical updates**   | A cell update re-renders only that cell; a live tick does **not** resort the view                                                                                      |
+| **Pagination**         | Client-side or **server-side** (`datasource` returns `{ rows, total }`); built-in pager (first/prev/next/last), reactive `pagination()` state, `setPage`/`setPageSize` |
+| **Selection**          | `single` / `multi`, select-all-on-page, `selectedRows()` for bulk actions                                                                                              |
+| **Master / detail**    | Expandable rows; the detail panel renders anything — including another paginated grid from a second API                                                                |
+| **Editing**            | Inline cell editing (double-click), composable with live updates                                                                                                       |
+| **Filtering**          | Global filter across all columns **and** per-column filters                                                                                                            |
+| **Sorting**            | Click-to-sort (none → asc → desc), type-aware comparators                                                                                                              |
+| **Framework-agnostic** | One engine; bring your own framework via thin adapters (planned)                                                                                                       |
+
+Packages: [`@gridwright/schema`](packages/grid-schema) · [`@gridwright/core`](packages/grid-core) ·
+[`@gridwright/dom`](packages/grid-dom). Both Formwright and Gridwright share
+[`@wright/reactive`](packages/reactive), the extracted zero-dependency signal core — so a Gridwright
+cell editor can be a Formwright field. See [TABLE_PLAN.md](TABLE_PLAN.md) for the roadmap.
+
 ## Packages
 
 | Package                                                                  | Description                                                   |
@@ -414,7 +473,9 @@ Two integration responsibilities remain yours, as with any app:
 | [`@formwright/ai`](https://www.npmjs.com/package/@formwright/ai)         | Generate a validated schema from a description (any language) | optional, server |
 | **Full runtime** (`schema` + `core` + `dom`)                             | Everything above to render & submit a form                    | **~12 KB**       |
 
-**Zero runtime dependencies.** Tree-shakeable subpath exports — pull only what you use. Ships
+**No third-party runtime dependencies** (the only dependency is `@wright/reactive`, our own
+zero-dependency signal core, shared with the Gridwright data grid). Tree-shakeable subpath
+exports — pull only what you use. Ships
 ESM + CJS + types, and works straight from a CDN (`esm.sh`) with no build step. For comparison,
 that's smaller than most single-purpose form libraries — and it includes validation, conditional
 logic, nesting, i18n, custom widgets, and the submission pipeline in the box.

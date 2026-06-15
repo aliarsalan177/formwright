@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { batch, computed, effect, signal, untrack } from "./reactive.js";
+import { batch, computed, effect, signal, untrack } from "./index.js";
 
 describe("signal", () => {
   it("reads and writes", () => {

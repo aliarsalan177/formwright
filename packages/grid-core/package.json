@@ -1,12 +1,12 @@
 {
-  "name": "@formwright/core",
+  "name": "@gridwright/core",
   "version": "0.1.0",
-  "description": "Signal-reactive core and the Form class for Formwright.",
+  "description": "Signal-reactive grid engine — row model, column model, sorting/filtering, and viewport state.",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/aliarsalan177/formwright.git",
-    "directory": "packages/core"
+    "directory": "packages/grid-core"
   },
   "homepage": "https://github.com/aliarsalan177/formwright#readme",
   "bugs": "https://github.com/aliarsalan177/formwright/issues",
@@ -20,11 +20,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./reactive": {
-      "types": "./dist/reactive.d.ts",
-      "import": "./dist/reactive.js",
-      "require": "./dist/reactive.cjs"
     }
   },
   "main": "./dist/index.cjs",
@@ -38,7 +33,7 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@formwright/schema": "workspace:*",
+    "@gridwright/schema": "workspace:*",
     "@wright/reactive": "workspace:*"
   },
   "publishConfig": {
