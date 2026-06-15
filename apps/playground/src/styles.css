@@ -277,6 +277,67 @@ textarea#schema {
   line-height: 1.45;
 }
 
+.feature-legend {
+  margin: 0 0 12px;
+  padding: 10px 12px 10px 28px;
+  border-radius: 8px;
+  background: var(--surface-2, #f8fafc);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.feature-legend li + li {
+  margin-top: 4px;
+}
+
+.feature-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.feature-chip {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  background: var(--surface-2, #f1f5f9);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.feature-chip.on {
+  background: color-mix(in srgb, var(--accent, #2563eb) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent, #2563eb) 35%, transparent);
+  color: var(--text);
+}
+
+.demo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.demo-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--accent, #2563eb);
+  background: var(--accent, #2563eb);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+.demo-btn:hover {
+  filter: brightness(1.05);
+}
+.demo-btn-muted {
+  border-color: var(--border);
+  background: var(--surface, #fff);
+  color: var(--text);
+}
+
 /* ---- modern controls ---- */
 
 /* Lay check-like fields out as a row: [control] [label] (default toggle/checkbox). */

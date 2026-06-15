@@ -21,6 +21,14 @@ const statusEl = $<HTMLParagraphElement>("schema-status");
 const hostEl = $<HTMLDivElement>("form-host");
 const valuesEl = $<HTMLPreElement>("values");
 const payloadEl = $<HTMLPreElement>("payload");
+const featureBarEl = $<HTMLDivElement>("feature-bar");
+const demoActionsEl = $<HTMLDivElement>("demo-actions");
+const featureLegendEl = $<HTMLUListElement>("feature-legend");
+const chipStep = $<HTMLSpanElement>("chip-step");
+const chipUrl = $<HTMLSpanElement>("chip-url");
+const chipConsent = $<HTMLSpanElement>("chip-consent");
+const chipResume = $<HTMLSpanElement>("chip-resume");
+const chipSuccess = $<HTMLSpanElement>("chip-success");
 
 const SIGNUP: FormSchema = {
   id: "signup",
@@ -617,45 +625,53 @@ const SOCIAL_SUPPORT: FormSchema = {
   submit: { endpoint: { method: "POST", url: "/api/social-support" } },
 };
 
-function schemaWithStepsLayout(schema: FormSchema, layout: "bar" | "tabs" | "numbers"): FormSchema {
+function schemaWithStepsLayout(
+  schema: FormSchema,
+  layout: "bar" | "tabs" | "numbers" | "fill",
+): FormSchema {
   return {
     ...schema,
     fields: schema.fields.map((field) => (field.type === "steps" ? { ...field, layout } : field)),
   };
 }
 
-function wizardWithLayout(layout: "bar" | "tabs" | "numbers"): FormSchema {
+function wizardWithLayout(layout: "bar" | "tabs" | "numbers" | "fill"): FormSchema {
   return schemaWithStepsLayout(WIZARD, layout);
 }
 
-function socialSupportWithLayout(layout: "bar" | "tabs" | "numbers"): FormSchema {
+function socialSupportWithLayout(layout: "bar" | "tabs" | "numbers" | "fill"): FormSchema {
   return schemaWithStepsLayout(SOCIAL_SUPPORT, layout);
 }
 
 const EXAMPLES: Record<string, FormSchema> = {
+  wizard: WIZARD,
+  "wizard-bar": wizardWithLayout("bar"),
+  "wizard-tabs": wizardWithLayout("tabs"),
+  "wizard-numbers": wizardWithLayout("numbers"),
+  signup: SIGNUP,
   "social-support": SOCIAL_SUPPORT,
   "social-support-tabs": socialSupportWithLayout("tabs"),
   "social-support-numbers": socialSupportWithLayout("numbers"),
   checkout: CHECKOUT,
   showcase: SHOWCASE,
-  signup: SIGNUP,
-  wizard: WIZARD,
-  "wizard-tabs": wizardWithLayout("tabs"),
-  "wizard-numbers": wizardWithLayout("numbers"),
 };
-const STARTER = SOCIAL_SUPPORT;
+const STARTER = WIZARD;
 
 const WIZARD_EXAMPLES = new Set([
+  "wizard",
+  "wizard-bar",
+  "wizard-tabs",
+  "wizard-numbers",
   "social-support",
   "social-support-tabs",
   "social-support-numbers",
-  "wizard",
-  "wizard-tabs",
-  "wizard-numbers",
 ]);
+
+type StepLayout = "bar" | "tabs" | "numbers" | "fill";
 
 let currentForm: Form | null = null;
 let disposeValues: (() => void) | null = null;
+let disposeFeatures: (() => void) | null = null;
 
 /** (Re)build the Form from the textarea contents and mount it. */
 function rebuild(): void {
@@ -678,24 +694,38 @@ function rebuild(): void {
 
   // Tear down the previous instance before mounting a new one.
   disposeValues?.();
+  disposeFeatures?.();
   currentForm?.destroy();
   hostEl.replaceChildren();
   payloadEl.textContent = "— submit the form —";
 
-  const persistKey = result.value.persist ? `formwright-playground-${result.value.id}` : undefined;
+  const schema = result.value;
+  const persistKey = schema.persist ? `formwright-playground-${schema.id}` : undefined;
+  const hasSteps = schema.fields.some((f) => f.type === "steps");
+  const stepsField = schema.fields.find((f) => f.type === "steps");
+  const hasUrlSync = stepsField?.type === "steps" && !!stepsField.urlSync;
+  const hasPersist = !!schema.persist;
+  const hasSuccess = !!schema.success;
+
   const form = new Form(
-    result.value,
+    schema,
     {},
     {
       ...(persistKey ? { persistKey } : {}),
       send: async (payload) => {
         const p = payload as {
-          wizard?: { account?: { email?: string }; preferences?: { plan?: string } };
+          wizard?: {
+            account?: { email?: string };
+            preferences?: { plan?: string };
+          };
+          email?: string;
         };
+        const email = p.wizard?.account?.email ?? p.email ?? "";
+        const plan = p.wizard?.preferences?.plan ?? "free";
         return {
           referenceId: `REF-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-          email: p.wizard?.account?.email ?? "",
-          plan: p.wizard?.preferences?.plan ?? "free",
+          email,
+          plan,
         };
       },
       handlers: {
@@ -714,6 +744,10 @@ function rebuild(): void {
     payloadEl.classList.add("ok");
   });
   form.on("action", (p) => setStatus("ok", `Action: ${(p as { name: string }).name}`));
+  form.on("step", (p) => {
+    const { index, id } = p as { index: number; id: string };
+    setStatus("ok", `→ Step ${index + 1} · ${id}${hasUrlSync ? ` · ${location.pathname}` : ""}`);
+  });
 
   form.mount(hostEl);
 
@@ -722,15 +756,20 @@ function rebuild(): void {
     valuesEl.textContent = JSON.stringify(form.values.get(), null, 2);
   });
 
-  updateDemoHint(result.value);
+  disposeFeatures = wireFeatureBar(form, schema);
+  updateDemoHint(schema);
+  setFeatureChrome(hasSteps, hasUrlSync, hasPersist, hasSuccess, !!persistKey);
+
   const steps = form.findSteps();
-  if (steps) {
-    setStatus(
-      "ok",
-      `✓ Wizard · ${steps.steps.length} steps · draft auto-saves · URL sync · success screen on submit`,
-    );
+  const features: string[] = [];
+  if (hasSteps) features.push(`${steps?.steps.length ?? 0} steps`);
+  if (hasPersist) features.push("consent cache");
+  if (hasUrlSync) features.push("URL sync");
+  if (hasSuccess) features.push("success screen");
+  if (features.length) {
+    setStatus("ok", `✓ ${schema.title ?? schema.id} · ${features.join(" · ")}`);
   } else {
-    const count = result.value.fields.length;
+    const count = schema.fields.length;
     setStatus("ok", `✓ Valid schema · ${count} field${count === 1 ? "" : "s"} rendered`);
   }
 }
@@ -786,6 +825,86 @@ function addField(): void {
   rebuild();
 }
 
+/** Live chips for wizard UX + draft caching. */
+function wireFeatureBar(form: Form, schema: FormSchema): () => void {
+  const stepsNode = form.findSteps();
+  const stepsField = schema.fields.find((f) => f.type === "steps");
+  const urlSync = stepsField?.type === "steps" ? stepsField.urlSync : undefined;
+  const consentMode = schema.persist?.mode === "consent";
+
+  return effect(() => {
+    if (stepsNode) {
+      const { index, id } = stepsNode.activeStep();
+      chipStep.hidden = false;
+      chipStep.textContent = `Step ${index + 1}/${stepsNode.steps.length} · ${id}`;
+      chipStep.classList.toggle("on", true);
+    } else {
+      chipStep.hidden = true;
+    }
+
+    if (urlSync) {
+      chipUrl.hidden = false;
+      chipUrl.textContent = `URL ${location.pathname}`;
+      chipUrl.classList.toggle("on", location.pathname.includes("/apply/step/"));
+    } else {
+      chipUrl.hidden = true;
+    }
+
+    if (schema.persist) {
+      chipConsent.hidden = false;
+      if (form.showPersistConsent.get()) {
+        chipConsent.textContent = "Draft — awaiting consent";
+        chipConsent.classList.remove("on");
+      } else if (form.persistConsented.get()) {
+        chipConsent.textContent = "Draft — saving locally";
+        chipConsent.classList.add("on");
+      } else if (consentMode) {
+        chipConsent.textContent = "Draft — not saved";
+        chipConsent.classList.remove("on");
+      } else {
+        chipConsent.textContent = "Draft — auto-save";
+        chipConsent.classList.add("on");
+      }
+    } else {
+      chipConsent.hidden = true;
+    }
+
+    const resume = form.showResumeBanner.get();
+    chipResume.hidden = !schema.persist;
+    chipResume.textContent = resume ? "Resume banner — visible" : "Resume banner — hidden";
+    chipResume.classList.toggle("on", resume);
+
+    const success = form.showSuccessScreen.get();
+    chipSuccess.hidden = !schema.success;
+    chipSuccess.textContent = success ? "Success screen — visible" : "Success screen — hidden";
+    chipSuccess.classList.toggle("on", success);
+  });
+}
+
+function setFeatureChrome(
+  hasSteps: boolean,
+  hasUrlSync: boolean,
+  hasPersist: boolean,
+  hasSuccess: boolean,
+  hasPersistKey: boolean,
+): void {
+  const showBar = hasSteps || hasPersist || hasSuccess;
+  featureBarEl.hidden = !showBar;
+  demoActionsEl.hidden = !hasPersistKey;
+  featureLegendEl.hidden = !(hasPersist || hasUrlSync || hasSuccess);
+}
+
+function simulateRefresh(): void {
+  rebuild();
+  setStatus("ok", "↻ Simulated page refresh — draft restored if you saved progress");
+}
+
+function clearSavedDraft(): void {
+  if (currentForm) currentForm.discardDraft();
+  rebuild();
+  setStatus("ok", "Saved draft cleared");
+}
+
 /** Load a named example into the editor and re-render. */
 function loadExample(name: string): void {
   const schema = EXAMPLES[name];
@@ -793,7 +912,8 @@ function loadExample(name: string): void {
   schemaEl.value = JSON.stringify(schema, null, 2);
   const layoutEl = $<HTMLSelectElement>("wizard-layout");
   if (WIZARD_EXAMPLES.has(name)) {
-    const layout = name.endsWith("-tabs") ? "tabs" : name.endsWith("-numbers") ? "numbers" : "bar";
+    const steps = schema.fields.find((f) => f.type === "steps");
+    const layout = steps?.type === "steps" && steps.layout ? (steps.layout as StepLayout) : "bar";
     layoutEl.value = layout;
   }
   rebuild();
@@ -801,19 +921,34 @@ function loadExample(name: string): void {
 
 /** Show wizard-specific controls and a short hint when the schema contains `steps`. */
 function updateDemoHint(schema: FormSchema): void {
-  const hasSteps = schema.fields.some((f) => f.type === "steps");
+  const stepsField = schema.fields.find((f) => f.type === "steps");
+  const hasSteps = !!stepsField;
   const hint = $<HTMLParagraphElement>("wizard-hint");
   const layoutRow = $<HTMLDivElement>("wizard-layout-row");
-  hint.hidden = !hasSteps;
+  hint.hidden = !hasSteps && !schema.persist;
   layoutRow.hidden = !hasSteps;
+
+  const parts: string[] = [];
   if (hasSteps) {
-    hint.textContent =
-      "Wizard features: fill progress bar, resume-draft banner (refresh to see), URL sync (/apply/step/:id), and a success screen with {{variables}} from the API response.";
+    parts.push("Use Back / Next to move through steps");
+    if (stepsField?.type === "steps" && stepsField.urlSync) {
+      parts.push("watch the URL update");
+    }
   }
+  if (schema.persist?.mode === "consent") {
+    parts.push('type a field → click "Save progress" to enable draft cache');
+    parts.push('use "Simulate refresh" to see the resume banner');
+  } else if (schema.persist) {
+    parts.push("values auto-save — refresh to restore");
+  }
+  if (schema.success) {
+    parts.push("submit to see the success screen with {{variables}}");
+  }
+  hint.textContent = parts.length ? parts.join(" · ") + "." : "";
 }
 
 /** Swap the progress style on the in-editor wizard schema. */
-function setWizardLayout(layout: "bar" | "tabs" | "numbers"): void {
+function setWizardLayout(layout: StepLayout): void {
   let schema: FormSchema;
   try {
     schema = JSON.parse(schemaEl.value) as FormSchema;
@@ -824,10 +959,17 @@ function setWizardLayout(layout: "bar" | "tabs" | "numbers"): void {
   schemaEl.value = JSON.stringify(schemaWithStepsLayout(schema, layout), null, 2);
   const exampleEl = $<HTMLSelectElement>("example");
   const isSocialSupport = schema.id === "social-support";
-  if (layout === "tabs") exampleEl.value = isSocialSupport ? "social-support-tabs" : "wizard-tabs";
-  else if (layout === "numbers")
-    exampleEl.value = isSocialSupport ? "social-support-numbers" : "wizard-numbers";
-  else exampleEl.value = isSocialSupport ? "social-support" : "wizard";
+  const isWizard = schema.id === "signup-wizard";
+  if (isWizard) {
+    if (layout === "fill") exampleEl.value = "wizard";
+    else if (layout === "tabs") exampleEl.value = "wizard-tabs";
+    else if (layout === "numbers") exampleEl.value = "wizard-numbers";
+    else exampleEl.value = "wizard-bar";
+  } else if (isSocialSupport) {
+    if (layout === "tabs") exampleEl.value = "social-support-tabs";
+    else if (layout === "numbers") exampleEl.value = "social-support-numbers";
+    else exampleEl.value = "social-support";
+  }
   rebuild();
 }
 
@@ -838,8 +980,10 @@ $<HTMLSelectElement>("example").addEventListener("change", (e) => {
   loadExample((e.target as HTMLSelectElement).value);
 });
 $<HTMLSelectElement>("wizard-layout").addEventListener("change", (e) => {
-  setWizardLayout((e.target as HTMLSelectElement).value as "bar" | "tabs" | "numbers");
+  setWizardLayout((e.target as HTMLSelectElement).value as StepLayout);
 });
+$<HTMLButtonElement>("btn-refresh").addEventListener("click", simulateRefresh);
+$<HTMLButtonElement>("btn-clear-draft").addEventListener("click", clearSavedDraft);
 
 // Boot.
 schemaEl.value = JSON.stringify(STARTER, null, 2);
