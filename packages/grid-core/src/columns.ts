@@ -1,4 +1,4 @@
-import type { ColumnDef, ColumnType } from "@formwright/grid-schema";
+import type { AggFunc, ColumnDef, ColumnType } from "@formwright/grid-schema";
 
 /** A column with every default resolved — what the renderer consumes. */
 export interface ResolvedColumn {
@@ -15,6 +15,7 @@ export interface ResolvedColumn {
   readonly valueFormatter: string | undefined;
   readonly cellRenderer: string | undefined;
   readonly filter: "text" | "number" | false;
+  readonly aggFunc: AggFunc | undefined;
   readonly class: string | undefined;
 }
 
@@ -55,6 +56,7 @@ export function resolveColumn(def: ColumnDef): ResolvedColumn {
     valueFormatter: def.valueFormatter,
     cellRenderer: def.cellRenderer,
     filter: def.filter === undefined ? defaultFilter(type) : def.filter,
+    aggFunc: def.aggFunc,
     class: def.class,
   };
 }

@@ -6,6 +6,8 @@ import { domRenderer } from "./render.js";
 setDefaultRenderer(domRenderer);
 
 export { mount, domRenderer } from "./render.js";
+export { readStepFromUrl, writeStepToUrl, wireStepUrlSync } from "./step-url.js";
+export type { DomRendererOptions, SuccessScreenContext } from "@formwright/core";
 export {
   registerWidget,
   getWidget,

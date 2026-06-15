@@ -38,6 +38,31 @@ import {
   type FieldNode,
 } from "./nodes.js";
 import type { Providers } from "./providers.js";
+import { interpolateTemplate } from "./interpolate.js";
+import {
+  clearPersistedKey,
+  loadPersisted,
+  savePersisted,
+  clearPersistDeclined,
+  isPersistDeclined,
+  setPersistDeclined,
+} from "./persist.js";
+
+/** Context passed to a custom success-screen renderer (`@formwright/dom`). */
+export interface SuccessScreenContext {
+  readonly form: Form;
+  readonly data: unknown;
+  /** Fill `{{key}}` placeholders from the submit response. */
+  interpolate(text: string): string;
+  /** Hide the success screen and reset the form. */
+  dismiss(): void;
+}
+
+/** DOM renderer extension — ignored by the core outside `@formwright/dom`. */
+export interface DomRendererOptions {
+  /** Replace the built-in success template with your own UI. */
+  readonly renderSuccess?: (ctx: SuccessScreenContext, host: HTMLElement) => Dispose | void;
+}
 
 /** Form values — nested for `group` (object) and `collection` (array) fields. */
 export type FormValues = Record<string, unknown>;
@@ -63,17 +88,19 @@ export interface FormOptions {
   /**
    * Persist entered values under this `localStorage` key and restore them on the
    * next load — so a refresh before submitting keeps the form filled. Cleared on
-   * a successful submit.
+   * a successful submit. Pair with `schema.persist` for copy and consent mode.
    */
   readonly persistKey?: string;
+  /** DOM-only extensions (custom success screen, etc.). */
+  readonly dom?: DomRendererOptions;
 }
 
 /** Renders a {@link Form} into a host node; returns a disposer. Provided by a renderer package. */
 export interface FormRenderer {
-  mount(form: Form, host: Element): Dispose;
+  mount(form: Form, host: Element, options?: DomRendererOptions): Dispose;
 }
 
-type EventName = "submit" | "success" | "error" | "change" | "action";
+type EventName = "submit" | "success" | "error" | "change" | "action" | "step";
 type Listener = (payload: unknown) => void;
 
 let defaultRenderer: FormRenderer | null = null;
@@ -97,13 +124,31 @@ export class Form {
   /** True when no visible field currently has an error. */
   readonly isValid: ReadSignal<boolean>;
 
+  /** True when a built-in or custom success screen should replace the form body. */
+  readonly showSuccessScreen: ReadSignal<boolean>;
+  /** Payload returned from the last successful submit (when showing success). */
+  readonly successData: ReadSignal<unknown | null>;
+  /** True when a persisted draft was restored and the resume banner may show. */
+  readonly showResumeBanner: ReadSignal<boolean>;
+  /** True when consent is required and the opt-in banner should show. */
+  readonly showPersistConsent: ReadSignal<boolean>;
+  /** True after the user agreed to local draft storage (`persist.mode: "consent"`). */
+  readonly persistConsented: ReadSignal<boolean>;
+
   private readonly submitting = signal(false);
+  private readonly succeeded = signal(false);
+  private readonly successPayload = signal<unknown | null>(null);
+  private readonly resumeBanner = signal(false);
+  private readonly persistConsent = signal(false);
+  private readonly persistDeclined = signal(false);
   private readonly initialValues: FormValues;
-  private readonly initialSnapshot: string;
+  private initialSnapshot: string;
   private readonly rootByName: ReadonlyMap<string, FieldNode>;
   private readonly listeners = new Map<EventName, Set<Listener>>();
   private disposeRenderer: Dispose | null = null;
   private disposePersist: Dispose | null = null;
+  private disposeStepWatch: Dispose | null = null;
+  private skipPersistWrites = false;
 
   constructor(
     schema: FormSchema | unknown,
@@ -121,28 +166,61 @@ export class Form {
       ? expandLocalized(this.schema.fields, this.schema.locales)
       : this.schema.fields;
     // Restore persisted values (form caching) over the provided initial values.
-    const seed = loadPersisted(options.persistKey, initialValues);
-    const tree = buildTree(fields, seed);
+    const persisted = loadPersisted(options.persistKey, initialValues);
+    const tree = buildTree(fields, persisted.values);
     this.tree = tree.nodes;
     this.rootByName = tree.byName;
     this.order = fields.map((f) => f.id);
 
+    const steps = findSteps(this.tree);
+    if (steps) {
+      if (persisted.stepId) steps.goToId(persisted.stepId);
+      else if (persisted.step !== undefined) steps.goTo(persisted.step);
+      this.wireStepEvents(steps);
+    }
+
     this.values = computed(() => collectTree(this.tree));
 
-    // Persist on every change (form caching).
-    if (options.persistKey) {
-      const key = options.persistKey;
-      this.disposePersist = effect(() => {
-        const v = this.values.get();
-        try {
-          localStorage.setItem(key, JSON.stringify(v));
-        } catch {
-          /* storage unavailable — ignore */
-        }
-      });
+    const consentMode = this.schema.persist?.mode === "consent";
+    const persistKey = options.persistKey;
+    const consented =
+      !consentMode ||
+      persisted.consented === true ||
+      (persisted.restored && persisted.consented !== false);
+    if (persistKey && consentMode) {
+      this.persistDeclined.set(isPersistDeclined(persistKey));
     }
+    this.persistConsent.set(consented);
+
+    const showBanner =
+      persisted.restored && !!persistKey && this.schema.persist?.showResumeBanner !== false;
+    this.resumeBanner = signal(showBanner);
+
     this.initialSnapshot = JSON.stringify(untrack(() => this.values.peek()));
     this.isDirty = computed(() => JSON.stringify(this.values.get()) !== this.initialSnapshot);
+
+    // Persist values + active step on every change (form caching).
+    if (persistKey) {
+      const key = persistKey;
+      this.disposePersist = effect(() => {
+        if (this.skipPersistWrites) {
+          if (!this.isDirty.get()) return;
+          this.skipPersistWrites = false;
+        }
+        if (consentMode && !this.persistConsent.get()) return;
+        const v = this.values.get();
+        const meta = steps
+          ? {
+              step: steps.currentStep.get(),
+              stepId: steps.activeStep().id,
+              ...(consentMode ? { consented: true as const } : {}),
+            }
+          : consentMode
+            ? { consented: true as const }
+            : {};
+        savePersisted(key, v, meta);
+      });
+    }
     this.isValid = computed(() => {
       let valid = true;
       eachLeaf(this.tree, (leaf) => {
@@ -150,6 +228,21 @@ export class Form {
       });
       return valid;
     });
+    this.showSuccessScreen = computed(
+      () => this.succeeded.get() && !!(this.schema.success || this.options.dom?.renderSuccess),
+    );
+    this.successData = this.successPayload;
+    this.showResumeBanner = this.resumeBanner;
+    this.persistConsented = this.persistConsent;
+    this.showPersistConsent = computed(
+      () =>
+        !!persistKey &&
+        consentMode &&
+        !this.persistConsent.get() &&
+        !this.persistDeclined.get() &&
+        !this.resumeBanner.get() &&
+        this.isDirty.get(),
+    );
   }
 
   // ---- value access -------------------------------------------------------
@@ -209,6 +302,77 @@ export class Form {
     return this.submitting;
   }
 
+  /** Build a success-screen context for custom renderers. */
+  successContext(): SuccessScreenContext {
+    const data = this.successPayload.peek();
+    return {
+      form: this,
+      data,
+      interpolate: (text) => interpolateTemplate(text, data),
+      dismiss: () => this.dismissSuccess(),
+    };
+  }
+
+  /** Hide the success screen and reset field values. */
+  dismissSuccess(): void {
+    this.succeeded.set(false);
+    this.successPayload.set(null);
+    this.reset();
+    const steps = this.findSteps();
+    steps?.goTo(0);
+  }
+
+  /** Dismiss the resume-draft banner without clearing data. */
+  dismissResumeBanner(): void {
+    this.resumeBanner.set(false);
+  }
+
+  /** Opt in to local draft storage (`persist.mode: "consent"`). */
+  grantPersistConsent(): void {
+    const key = this.options.persistKey;
+    if (!key) return;
+    this.persistConsent.set(true);
+    this.persistDeclined.set(false);
+    clearPersistDeclined(key);
+    if (this.skipPersistWrites) this.skipPersistWrites = false;
+    const steps = this.findSteps();
+    const v = untrack(() => this.values.peek());
+    const meta = steps
+      ? {
+          step: steps.currentStep.peek(),
+          stepId: steps.activeStep().id,
+          consented: true as const,
+        }
+      : { consented: true as const };
+    savePersisted(key, v, meta);
+  }
+
+  /** Decline local draft storage for this session (`persist.mode: "consent"`). */
+  declinePersistConsent(): void {
+    const key = this.options.persistKey;
+    if (!key) return;
+    this.persistDeclined.set(true);
+    setPersistDeclined(key);
+  }
+
+  /** Clear the saved draft, reset values, and hide the resume banner. */
+  discardDraft(): void {
+    this.skipPersistWrites = true;
+    this.clearPersisted();
+    this.resumeBanner.set(false);
+    if (this.schema.persist?.mode === "consent") {
+      this.persistConsent.set(false);
+      this.persistDeclined.set(false);
+      const key = this.options.persistKey;
+      if (key) clearPersistDeclined(key);
+    }
+    batch(() => {
+      this.reset();
+      this.findSteps()?.goTo(0);
+      this.initialSnapshot = JSON.stringify(untrack(() => this.values.peek()));
+    });
+  }
+
   // ---- lifecycle ----------------------------------------------------------
 
   /** Validate every (visible) leaf field; returns true when the whole form is valid. */
@@ -256,9 +420,15 @@ export class Form {
 
     try {
       const data = await this.send(payload);
-      this.clearPersisted(); // submitted successfully — drop the cached draft
+      this.skipPersistWrites = true;
+      this.clearPersisted();
+      this.resumeBanner.set(false);
       this.runSuccessHandler(data);
       this.emit("success", data);
+      if (this.schema.success || this.options.dom?.renderSuccess) {
+        this.succeeded.set(true);
+        this.successPayload.set(data);
+      }
       return { ok: true, data };
     } catch (error) {
       this.runErrorHandler(error);
@@ -291,7 +461,7 @@ export class Form {
       );
     }
     this.disposeRenderer?.();
-    this.disposeRenderer = renderer.mount(this, host);
+    this.disposeRenderer = renderer.mount(this, host, this.options.dom);
     return this.disposeRenderer;
   }
 
@@ -300,18 +470,25 @@ export class Form {
     this.disposeRenderer = null;
     this.disposePersist?.();
     this.disposePersist = null;
+    this.disposeStepWatch?.();
+    this.disposeStepWatch = null;
     this.listeners.clear();
   }
 
   /** Remove the cached draft from `localStorage` (called on a successful submit). */
   private clearPersisted(): void {
-    const key = this.options.persistKey;
-    if (!key || typeof localStorage === "undefined") return;
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      /* ignore */
-    }
+    clearPersistedKey(this.options.persistKey);
+  }
+
+  private wireStepEvents(steps: StepsNode): void {
+    let prev = steps.currentStep.peek();
+    this.disposeStepWatch = effect(() => {
+      const index = steps.currentStep.get();
+      if (index === prev) return;
+      const step = steps.steps[index];
+      this.emit("step", { index, id: step?.id });
+      prev = index;
+    });
   }
 
   // ---- events -------------------------------------------------------------
@@ -385,18 +562,6 @@ export class FormValidationError extends Error {
 /** Aggregate the tree into a nested values object (subscribes to all values). */
 function collectTree(tree: readonly FieldNode[]): FormValues {
   return collectValues(tree) as FormValues;
-}
-
-/** Merge persisted (localStorage) values over the provided initial values. */
-function loadPersisted(key: string | undefined, initial: FormValues): FormValues {
-  if (!key || typeof localStorage === "undefined") return initial;
-  try {
-    const saved = localStorage.getItem(key);
-    if (saved) return { ...initial, ...(JSON.parse(saved) as FormValues) };
-  } catch {
-    /* corrupt/unavailable — fall back to initial */
-  }
-  return initial;
 }
 
 /**

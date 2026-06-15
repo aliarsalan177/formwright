@@ -7,8 +7,28 @@ import {
   type ReadSignal,
   type WriteSignal,
 } from "@formwright/reactive";
-import type { GridSchema, Row, SortDirection } from "@formwright/grid-schema";
+import type { AggFunc, GridSchema, Row, SortDirection } from "@formwright/grid-schema";
 import { resolveColumn, type ResolvedColumn } from "./columns.js";
+
+/** A group header row in the rendered list (when grouping is active). */
+export interface GroupRow {
+  readonly kind: "group";
+  readonly key: string;
+  readonly field: string;
+  readonly value: unknown;
+  readonly depth: number;
+  readonly count: number;
+  readonly aggregates: Readonly<Record<string, number>>;
+}
+
+/** A leaf (data) row in the rendered list. */
+export interface LeafRow {
+  readonly kind: "leaf";
+  readonly id: string;
+  readonly depth: number;
+}
+
+export type DisplayRow = GroupRow | LeafRow;
 
 export type SelectionMode = "none" | "single" | "multi";
 
@@ -73,6 +93,13 @@ const compare = (a: unknown, b: unknown, type: string): number => {
   return String(a).localeCompare(String(b));
 };
 
+function aggregate(func: Exclude<AggFunc, "count">, values: number[]): number {
+  if (func === "sum") return values.reduce((a, b) => a + b, 0);
+  if (func === "avg") return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+  if (func === "min") return values.length ? Math.min(...values) : 0;
+  return values.length ? Math.max(...values) : 0; // max
+}
+
 const DEFAULT_PAGE_SIZE = 25;
 
 /**
@@ -117,6 +144,11 @@ export class Grid {
   private readonly selected = signal<ReadonlySet<string>>(new Set());
   private readonly expanded = signal<ReadonlySet<string>>(new Set());
 
+  private readonly grouping: WriteSignal<string[]>;
+  private readonly groupCollapsed = signal<ReadonlySet<string>>(new Set());
+  /** True when the grid groups rows (schema `groupBy` set). */
+  readonly grouped: boolean;
+
   // Reactive column state (resize / reorder / pin / visibility).
   private readonly colByField: Map<string, ResolvedColumn>;
   private readonly widthOverrides = signal<Record<string, number>>({});
@@ -133,6 +165,8 @@ export class Grid {
   readonly viewRowIds: ReadSignal<string[]>;
   /** The ids to actually display — the current page (paginated) or the full view. */
   readonly displayRowIds: ReadSignal<string[]>;
+  /** The flattened render list: group headers + leaf rows (grouping-aware). */
+  readonly displayRows: ReadSignal<DisplayRow[]>;
   /** The window of display-row indices to render for the current scroll position. */
   readonly visibleRange: ReadSignal<VisibleRange>;
 
@@ -143,6 +177,8 @@ export class Grid {
   ) {
     this.columns = schema.columns.map(resolveColumn);
     this.colByField = new Map(this.columns.map((c) => [c.field, c]));
+    this.grouping = signal(schema.groupBy ? [...schema.groupBy] : []);
+    this.grouped = (schema.groupBy?.length ?? 0) > 0;
     this.orderSig = signal(this.columns.map((c) => c.field));
     this.orderedColumns = computed(() => {
       const order = this.orderSig.get();
@@ -217,6 +253,48 @@ export class Grid {
       const page = this.clampPage(this.page.get(), Math.max(1, Math.ceil(all.length / size)));
       const start = (page - 1) * size;
       return all.slice(start, start + size);
+    });
+
+    this.displayRows = computed(() => {
+      const groupFields = this.grouping.get();
+      if (groupFields.length === 0) {
+        return this.displayRowIds.get().map((id) => ({ kind: "leaf", id, depth: 0 }) as DisplayRow);
+      }
+      const collapsed = this.groupCollapsed.get();
+      const out: DisplayRow[] = [];
+      const walk = (ids: string[], depth: number, parentKey: string): void => {
+        if (depth >= groupFields.length) {
+          for (const id of ids) out.push({ kind: "leaf", id, depth });
+          return;
+        }
+        const field = groupFields[depth]!;
+        const groups = new Map<string, { value: unknown; ids: string[] }>();
+        for (const id of ids) {
+          const value = this.store.get(id)!.peek()[field];
+          const k = String(value);
+          let g = groups.get(k);
+          if (!g) {
+            g = { value, ids: [] };
+            groups.set(k, g);
+          }
+          g.ids.push(id);
+        }
+        for (const [k, g] of groups) {
+          const key = `${parentKey}/${field}=${k}`;
+          out.push({
+            kind: "group",
+            key,
+            field,
+            value: g.value,
+            depth,
+            count: g.ids.length,
+            aggregates: this.computeAggregates(g.ids),
+          });
+          if (!collapsed.has(key)) walk(g.ids, depth + 1, key);
+        }
+      };
+      walk(this.viewRowIds.get(), 0, "");
+      return out;
     });
 
     this.visibleRange = computed(() => {
@@ -518,6 +596,62 @@ export class Grid {
 
   expandedIds(): string[] {
     return [...this.expanded.get()];
+  }
+
+  // ---- grouping + aggregation --------------------------------------------
+
+  private computeAggregates(ids: readonly string[]): Record<string, number> {
+    const agg: Record<string, number> = {};
+    for (const col of this.columns) {
+      if (!col.aggFunc) continue;
+      if (col.aggFunc === "count") {
+        agg[col.field] = ids.length;
+        continue;
+      }
+      const nums: number[] = [];
+      for (const id of ids) {
+        const v = Number(this.store.get(id)?.peek()[col.field]);
+        if (!Number.isNaN(v)) nums.push(v);
+      }
+      agg[col.field] = aggregate(col.aggFunc, nums);
+    }
+    return agg;
+  }
+
+  /** Active group-by fields, outermost first. */
+  groupBy(): string[] {
+    return this.grouping.get();
+  }
+
+  /** Replace the group-by fields (enables grouping when non-empty). */
+  setGroupBy(fields: readonly string[]): void {
+    this.grouping.set([...fields]);
+  }
+
+  isGroupExpanded(key: string): boolean {
+    return !this.groupCollapsed.get().has(key);
+  }
+
+  toggleGroup(key: string): void {
+    const next = new Set(this.groupCollapsed.peek());
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    this.groupCollapsed.set(next);
+  }
+
+  collapseAllGroups(): void {
+    const keys = new Set<string>();
+    for (const r of this.displayRows.peek()) if (r.kind === "group") keys.add(r.key);
+    this.groupCollapsed.set(keys);
+  }
+
+  expandAllGroups(): void {
+    this.groupCollapsed.set(new Set());
+  }
+
+  /** Grand-total aggregates across the whole filtered view. */
+  grandTotals(): Record<string, number> {
+    return this.computeAggregates(this.viewRowIds.get());
   }
 
   // ---- columns: resize / reorder / pin / visibility ----------------------

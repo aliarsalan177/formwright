@@ -8,6 +8,9 @@ export type {
   PageRequest,
   PageResponse,
   GridDatasource,
+  DisplayRow,
+  GroupRow,
+  LeafRow,
 } from "./grid.js";
 export { resolveColumn } from "./columns.js";
 export type { ResolvedColumn } from "./columns.js";
@@ -32,5 +35,6 @@ export type {
   GridSchema,
   SortDirection,
   FilterKind,
+  AggFunc,
 } from "@formwright/grid-schema";
 export { validateSchema } from "@formwright/grid-schema";

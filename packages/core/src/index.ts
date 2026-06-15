@@ -59,7 +59,19 @@ export {
   type Transform,
   type SuccessHandler,
   type ErrorHandler,
+  type SuccessScreenContext,
+  type DomRendererOptions,
 } from "./form.js";
+export { interpolateTemplate } from "./interpolate.js";
+export {
+  loadPersisted,
+  savePersisted,
+  clearPersistedKey,
+  isPersistDeclined,
+  setPersistDeclined,
+  clearPersistDeclined,
+  hasDraftContent,
+} from "./persist.js";
 
 // Re-export schema types for convenience
 export type {
