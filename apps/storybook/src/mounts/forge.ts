@@ -34,8 +34,8 @@ function renderPreview(host: HTMLElement): void {
   previewForm.mount(host);
 }
 
-function renderCanvas(list: HTMLElement): void {
-  list.replaceChildren();
+function renderCanvas(canvas: HTMLElement, preview: HTMLElement): void {
+  canvas.replaceChildren();
   for (const f of fields) {
     const row = document.createElement("div");
     row.className = "forge-canvas-item";
@@ -48,12 +48,12 @@ function renderCanvas(list: HTMLElement): void {
       sync(preview, canvas);
     });
     row.append(del);
-    list.append(row);
+    canvas.append(row);
   }
 }
 
 function sync(preview: HTMLElement, canvas: HTMLElement): void {
-  renderCanvas(canvas);
+  renderCanvas(canvas, preview);
   renderPreview(preview);
 }
 

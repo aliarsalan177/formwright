@@ -1,6 +1,6 @@
 name: Deploy demo
 
-# Builds the Formwright playground and publishes it to GitHub Pages.
+# Builds the Formwright playground + Storybook and publishes to GitHub Pages.
 # Enable once: repo Settings → Pages → Build and deployment → Source: "GitHub Actions".
 
 on:
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build playground
+    name: Build playground & Storybook
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,9 +33,15 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Build the library packages, then the demo (turbo orders deps first).
+      # Build library packages, then demos (turbo orders deps first).
       - run: pnpm --filter "./packages/*" build
       - run: pnpm --filter @formwright/playground build
+      - run: pnpm --filter @formwright/storybook build:pages
+
+      - name: Merge Storybook into site artifact
+        run: |
+          mkdir -p apps/playground/dist/storybook
+          cp -r apps/storybook/dist/* apps/playground/dist/storybook/
 
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/html";
 import type { StoryHost } from "../../helpers/mount";
+import { playgroundPageUrl } from "../../helpers/playground-url";
 
 function playgroundIframe(page: string, title: string): StoryHost {
   const wrap = document.createElement("div") as StoryHost;
@@ -9,10 +10,10 @@ function playgroundIframe(page: string, title: string): StoryHost {
   note.style.margin = "0";
   note.style.fontSize = "13px";
   note.style.color = "var(--muted,#64748b)";
-  note.textContent = `${title} — for the full page, run: pnpm --filter @formwright/playground dev (port 5173)`;
+  note.textContent = `${title} — embedded from the live playground pages (also at ${playgroundPageUrl(page)}).`;
   const iframe = document.createElement("iframe");
   iframe.title = title;
-  iframe.src = `/playground/${page}`;
+  iframe.src = playgroundPageUrl(page);
   wrap.append(note, iframe);
   return wrap;
 }

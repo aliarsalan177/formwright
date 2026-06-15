@@ -17,6 +17,7 @@
         <span class="home-tag">Monorepo</span>
       </div>
       <nav class="home-nav">
+        <a href="./storybook/">Storybook</a>
         <a href="https://github.com/aliarsalan177/formwright" target="_blank" rel="noreferrer"
           >GitHub ↗</a
         >
@@ -36,6 +37,7 @@
         <div class="home-cta">
           <a class="home-btn home-btn-primary" href="./playground.html">Try the form playground</a>
           <a class="home-btn" href="./grid.html">Try Gridwright</a>
+          <a class="home-btn" href="./storybook/">Browse Storybook</a>
         </div>
       </section>
 
@@ -91,15 +93,15 @@
             </p>
             <span class="home-card-link">Open grid demo →</span>
           </a>
-          <div class="home-card home-card-muted">
+          <a class="home-card" href="./storybook/">
             <span class="home-card-tag">Catalog</span>
             <h3>Storybook</h3>
             <p>
-              Component stories for forms, wizards, grids, and mini embeds of the apps above. Run
-              locally with <code>pnpm storybook</code> (port 6006).
+              Interactive component catalog — forms, wizards, grids, Forge/theme/settings mini
+              embeds, and full-page playground iframes.
             </p>
-            <span class="home-card-link home-card-note">Local dev only</span>
-          </div>
+            <span class="home-card-link">Open Storybook →</span>
+          </a>
         </div>
       </section>
 
@@ -267,7 +269,7 @@ if (result.ok) console.log(result.data);</code></pre>
         <pre class="home-code"><code>git clone https://github.com/aliarsalan177/formwright.git
 cd formwright && pnpm install
 pnpm --filter @formwright/playground dev   # http://localhost:5173
-pnpm storybook                             # http://localhost:6006</code></pre>
+pnpm storybook                             # http://localhost:6006 (live: ./storybook/)</code></pre>
       </section>
     </main>
 
