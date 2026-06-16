@@ -25,9 +25,20 @@ export {
   type Providers,
   type I18nProvider,
   type QueryProvider,
+  type QueryProviderOptions,
   type QueryResult,
   type ThemeProvider,
 } from "./providers.js";
+export {
+  createFieldOptionsController,
+  mapToFieldOptions,
+  parseOptionsQuery,
+  type FieldOptionsController,
+  type OptionsFetcher,
+  type OptionsQuerySpec,
+  type OptionsTransform,
+} from "./field-options.js";
+export { createQueryProvider } from "./query-provider.js";
 
 // Model
 export { FieldState, defaultValueFor } from "./model.js";

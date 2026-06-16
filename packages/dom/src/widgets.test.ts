@@ -278,6 +278,46 @@ describe("authoring elements", () => {
     expect(host.querySelector(".fw-action.fw-action-block")).toBeTruthy();
   });
 
+  it("supports custom wrapper tags for fields and actions", () => {
+    const host = document.createElement("div");
+    const form = new Form({
+      id: "f",
+      version: "1.0",
+      fields: [
+        {
+          id: "email",
+          type: "email",
+          label: "Email",
+          wrapper: {
+            tag: "my-field-shell",
+            class: "shell",
+            attrs: { "data-kind": "field", "data-enabled": true },
+          },
+        },
+      ],
+      actions: [
+        {
+          name: "save",
+          role: "submit",
+          label: "Save",
+          wrapper: { tag: "my-action-shell", attrs: { "data-kind": "action" } },
+        },
+      ],
+    });
+    mount(form, host);
+    const fieldShell = host.querySelector("my-field-shell") as HTMLElement;
+    expect(fieldShell).toBeTruthy();
+    expect(fieldShell.classList.contains("shell")).toBe(true);
+    expect(fieldShell.getAttribute("data-kind")).toBe("field");
+    expect(fieldShell.getAttribute("data-enabled")).toBe("");
+    expect(fieldShell.querySelector("[data-field='email'].fw-field")).toBeTruthy();
+
+    const actionShell = host.querySelector("my-action-shell") as HTMLElement;
+    expect(actionShell).toBeTruthy();
+    expect(actionShell.getAttribute("data-kind")).toBe("action");
+    expect(actionShell.querySelector("button.fw-action")).toBeTruthy();
+  });
+
   it("shows a dismissible error alert when submit fails validation", async () => {
     const host = document.createElement("div");
     const form = new Form({

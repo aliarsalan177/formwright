@@ -9,6 +9,7 @@ export type {
   ValidationSchema,
   FieldOption,
   FieldClasses,
+  RenderWrapper,
   FieldSchema,
   ProviderDecl,
   SubmitSchema,
@@ -17,6 +18,8 @@ export type {
   LoadingSchema,
   SkeletonFieldOptions,
   SkeletonVariant,
+  OptionsMapper,
+  OptionsQueryRef,
 } from "./types.js";
 
 export {

@@ -38,6 +38,7 @@ import {
   type FieldNode,
 } from "./nodes.js";
 import type { Providers } from "./providers.js";
+import type { OptionsFetcher, OptionsTransform } from "./field-options.js";
 import { interpolateTemplate } from "./interpolate.js";
 import {
   clearPersistedKey,
@@ -88,6 +89,13 @@ export interface FormOptions {
   readonly handlers?: Record<string, SuccessHandler | ErrorHandler>;
   /** Override the network send (defaults to `fetch` against `submit.endpoint`). */
   readonly send?: (payload: unknown, form: Form) => Promise<unknown>;
+  /**
+   * Named fetchers for `$query` field options when no `providers.query` is set.
+   * Used by lazy/eager async select/radio/checkbox options.
+   */
+  readonly optionsFetch?: Record<string, OptionsFetcher>;
+  /** Transform raw API payloads before `map` (referenced by `$query.transform`). */
+  readonly optionsTransforms?: Record<string, OptionsTransform>;
   /**
    * Persist entered values under this `localStorage` key and restore them on the
    * next load — so a refresh before submitting keeps the form filled. Cleared on

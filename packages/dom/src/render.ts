@@ -30,22 +30,51 @@ import { wireStepUrlSync } from "./step-url.js";
 
 /** Render any node (leaf, group, collection, or steps) into a fresh wrapper element. */
 function renderNode(form: Form, node: FieldNode, scope: Scope): HTMLElement {
-  if (node.kind === "group") return renderGroup(form, node, scope);
-  if (node.kind === "collection") return renderCollection(form, node, scope);
-  if (node.kind === "steps") return renderSteps(form, node, scope);
+  if (node.kind === "group") return wrapNode(renderGroup(form, node, scope), node.schema.wrapper);
+  if (node.kind === "collection")
+    return wrapNode(renderCollection(form, node, scope), node.schema.wrapper);
+  if (node.kind === "steps") return wrapNode(renderSteps(form, node, scope), node.schema.wrapper);
   if (node.kind === "field") {
-    if (isPresentational(node.schema.type)) return renderPresentational(form, node, scope);
-    return renderLeaf(form, node, scope);
+    if (isPresentational(node.schema.type)) {
+      return wrapNode(renderPresentational(form, node, scope), node.schema.wrapper);
+    }
+    return wrapNode(renderLeaf(form, node, scope), node.schema.wrapper);
   }
   // `step` nodes render inside their parent `steps` container only.
   const panel = h("div", { class: "fw-step-panel", "data-field": node.id });
   renderFields(form, node.children, scope, panel);
-  return panel;
+  return wrapNode(panel, node.schema.wrapper);
 }
 
 /** Add space-separated class tokens (e.g. Tailwind utilities) to an element. */
 function addClass(el: HTMLElement, classes: string | undefined): void {
   if (classes) for (const c of classes.split(/\s+/)) if (c) el.classList.add(c);
+}
+
+function wrapperAttrValue(value: string | number | boolean): string | null {
+  if (value === false) return null;
+  if (value === true) return "";
+  return String(value);
+}
+
+function wrapNode(
+  child: HTMLElement,
+  wrapper:
+    | { tag: string; class?: string; attrs?: Record<string, string | number | boolean> }
+    | undefined,
+): HTMLElement {
+  if (!wrapper?.tag) return child;
+  const host = document.createElement(wrapper.tag);
+  if (wrapper.class) addClass(host, wrapper.class);
+  if (wrapper.attrs) {
+    for (const [name, raw] of Object.entries(wrapper.attrs)) {
+      const value = wrapperAttrValue(raw);
+      if (value === null) continue;
+      host.setAttribute(name, value);
+    }
+  }
+  host.appendChild(child);
+  return host;
 }
 
 /** Apply a field's grid column span (for side-by-side layouts). */
@@ -667,7 +696,7 @@ function renderActions(form: Form, scope: Scope): HTMLElement {
     } else if (role !== "submit") {
       on(scope, btn, "click", () => form.action(def.name));
     }
-    bar.appendChild(btn);
+    bar.appendChild(wrapNode(btn, def.wrapper));
   }
   return bar;
 }

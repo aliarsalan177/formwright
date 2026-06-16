@@ -13,9 +13,10 @@
  * transforms and `mount` come from {@link registerWidget}.
  */
 import type { FieldOption, FieldValue, Form, FormRenderer } from "@formwright/core";
-import { resolve, resolveQuery, type FieldState } from "@formwright/core";
+import { resolve, type FieldState } from "@formwright/core";
 import type { WidgetRef } from "@formwright/schema";
 import { bindDisabled, on, Scope } from "./internal.js";
+import { bindFieldOptions, optionLabel } from "./options-source.js";
 
 export interface WidgetContext {
   readonly form: Form;
@@ -213,18 +214,6 @@ function defaultAutocomplete(type: string): string {
   }
 }
 
-function resolveOptions(ctx: WidgetContext): readonly FieldOption[] {
-  const { field, form } = ctx;
-  const literal = resolve(field.schema.options, form.options.providers);
-  if (Array.isArray(literal)) return literal as readonly FieldOption[];
-  const query = resolveQuery(field.schema.options, form.options.providers);
-  if (query) {
-    const result = query.get();
-    if (Array.isArray(result.data)) return result.data as readonly FieldOption[];
-  }
-  return [];
-}
-
 registerWidget("text", (ctx) => textWidget(ctx, "text"));
 registerWidget("email", (ctx) => textWidget(ctx, "email"));
 registerWidget("password", (ctx) => textWidget(ctx, "password"));
@@ -370,7 +359,49 @@ function checkLikeWidget(ctx: WidgetContext, className: string): HTMLElement {
   return input;
 }
 
-registerWidget("checkbox", (ctx) => checkLikeWidget(ctx, "fw-checkbox"));
+registerWidget("checkbox", (ctx) => {
+  const { form, field, scope } = ctx;
+  const hasOptions =
+    Array.isArray(resolve(field.schema.options, form.options.providers)) ||
+    (field.schema.options &&
+      typeof field.schema.options === "object" &&
+      "$query" in field.schema.options);
+  if (!hasOptions) return checkLikeWidget(ctx, "fw-checkbox");
+
+  const group = document.createElement("div");
+  group.className = "fw-checkbox-group";
+  group.setAttribute("role", "group");
+  bindFieldOptions(ctx, group, (options) => {
+    group.replaceChildren();
+    const selected = new Set(
+      Array.isArray(field.value.peek())
+        ? (field.value.peek() as unknown[]).map(String)
+        : field.value.peek() == null
+          ? []
+          : [String(field.value.peek())],
+    );
+    for (const opt of options) {
+      const label = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.name = field.id;
+      input.value = String(opt.value);
+      input.checked = selected.has(String(opt.value));
+      input.addEventListener("change", () => {
+        const next = new Set(
+          Array.isArray(field.value.peek()) ? (field.value.peek() as unknown[]).map(String) : [],
+        );
+        if (input.checked) next.add(String(opt.value));
+        else next.delete(String(opt.value));
+        form.setFieldValue(field, [...next] as unknown as FieldValue);
+      });
+      label.append(input, document.createTextNode(` ${optionLabel(opt, form)}`));
+      bindDisabled(scope, input, () => !field.enabled.get());
+      group.appendChild(label);
+    }
+  });
+  return group;
+});
 // A toggle is a checkbox styled as an iOS-style switch (see playground CSS).
 registerWidget("toggle", (ctx) => checkLikeWidget(ctx, "fw-switch"));
 
@@ -380,16 +411,10 @@ registerWidget("select", (ctx) => {
   select.id = commonId(field);
   select.name = field.id;
   const placeholderText = resolve(field.schema.placeholder, form.options.providers);
-  // Re-render options reactively (covers async $query options).
-  scope.bind(() => {
-    const options = resolveOptions(ctx);
+
+  bindFieldOptions(ctx, select, (options) => {
     const current = field.value.peek();
     select.replaceChildren();
-    // A native <select> always displays its first option, which would
-    // misrepresent an empty/unset value as if it were chosen — and break any
-    // condition reading this field (e.g. `country == "US"` showing as US before
-    // the user picks anything). Prepend an empty placeholder so the control
-    // honestly shows "nothing selected" until a real choice is made.
     const placeholder = document.createElement("option");
     placeholder.value = "";
     placeholder.textContent = typeof placeholderText === "string" ? placeholderText : "Select…";
@@ -397,15 +422,12 @@ registerWidget("select", (ctx) => {
     for (const opt of options) {
       const o = document.createElement("option");
       o.value = String(opt.value);
-      o.textContent =
-        typeof opt.label === "string"
-          ? opt.label
-          : String(resolve(opt.label, form.options.providers) ?? opt.value);
+      o.textContent = optionLabel(opt, form);
       select.appendChild(o);
     }
     select.value = current == null ? "" : String(current);
   });
-  // Keep the control in sync when the value changes elsewhere.
+
   scope.bind(() => {
     const v = field.value.get();
     select.value = v == null ? "" : String(v);
@@ -521,8 +543,7 @@ registerWidget("radio", (ctx) => {
   const { form, field, scope } = ctx;
   const group = document.createElement("div");
   group.setAttribute("role", "radiogroup");
-  scope.bind(() => {
-    const options = resolveOptions(ctx);
+  bindFieldOptions(ctx, group, (options) => {
     group.replaceChildren();
     for (const opt of options) {
       const label = document.createElement("label");
@@ -532,11 +553,8 @@ registerWidget("radio", (ctx) => {
       input.value = String(opt.value);
       input.checked = field.value.peek() === opt.value;
       input.addEventListener("change", () => form.setFieldValue(field, opt.value));
-      const text =
-        typeof opt.label === "string"
-          ? opt.label
-          : String(resolve(opt.label, form.options.providers) ?? opt.value);
-      label.append(input, document.createTextNode(` ${text}`));
+      label.append(input, document.createTextNode(` ${optionLabel(opt, form)}`));
+      bindDisabled(scope, input, () => !field.enabled.get());
       group.appendChild(label);
     }
   });

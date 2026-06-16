@@ -40,6 +40,8 @@ library, conditional-logic library, and per-framework bindings.
   guarantees the output renders.
 - **Bring your own UI** — map any field to a React, Vue, Svelte, or any-framework component, a
   custom element, or a native tag, all from the schema. The form still produces one clean payload.
+- **Wrap rendered nodes your way** — wrap fields and action buttons in any native tag or custom
+  element (`section`, `li`, `my-card`, …) from schema data.
 - **Nested objects and repeatable collections** — `group` and `collection` fields yield
   `{ items: {…} }` and `[{…}, {…}]`, with add/remove rows and `min`/`max`.
 - **Multi-step wizards** — `steps` + `step` fields split a long form into guided steps with
@@ -83,6 +85,9 @@ One schema, one engine — no add-on libraries required:
 - **Internationalisation** — `localized` fields → `{ en, ar, … }` payload with a single input +
   in-input language switcher, `defaultLocale`, and **RTL/LTR**; provider sigils for i18n, async
   data (`$query`), and theming.
+- **Async options (eager or lazy)** — `select`, `radio`, and `checkbox` options can come from
+  `$query` with preload options, mapper keys, named transforms, lazy fetch-on-open, and TanStack
+  query config passthrough.
 - **Accessibility** — globally-unique field ids, correct `label[for]`, and per-field or
   type-default **`autocomplete`**.
 - **Form caching** — set `persistKey` and `persist` on the schema to keep values **and the active
@@ -218,6 +223,202 @@ const form = new Form(schema, {}, { persistKey: "my-app-application" });
 - **`mode: "consent"`** — shows an opt-in banner after the user edits; nothing is written until they accept.
 - **`mode: "auto"`** (default) — saves on every change (previous behaviour).
 - On restore → **resume banner**; on submit or `discardDraft()` → storage cleared.
+
+### Async options (`$query`) with lazy load + preload
+
+Use provider-backed options for `select`, `radio`, and `checkbox`.
+
+```jsonc
+{
+  "id": "country",
+  "type": "select",
+  "label": "Country",
+  "options": {
+    "$query": ["countries", { "region": "na" }], // or just "countries"
+    "lazy": true, // fetch when the user opens/focuses the field
+    "preload": [{ "label": "United States", "value": "US" }], // show current value immediately
+    "map": { "label": "name", "value": "code" }, // API row -> option shape
+    "transform": "unwrapRows", // named transform in FormOptions
+    "tanstack": { "staleTime": 60000, "retry": 1 }, // passthrough to query provider
+  },
+}
+```
+
+```ts
+import { Form, createQueryProvider } from "@formwright/core";
+
+const form = new Form(
+  schema,
+  { country: "US" },
+  {
+    // 1) Plug your own provider (e.g. TanStack Query adapter)
+    providers: {
+      query: createQueryProvider({
+        countries: async () => {
+          const res = await fetch("/api/countries");
+          return res.json();
+        },
+      }),
+    },
+    // 2) Optional named transforms referenced by `options.transform`
+    optionsTransforms: {
+      unwrapRows: (data) => (data as { items: unknown[] }).items,
+    },
+  },
+);
+```
+
+**Implementation example — lazy options + selected preload (select/radio/checkbox):**
+
+```ts
+import { Form, createQueryProvider } from "@formwright/core";
+import "@formwright/dom";
+
+const schema = {
+  id: "shipping",
+  version: "1.0",
+  fields: [
+    {
+      id: "country",
+      type: "select",
+      label: "Country",
+      options: {
+        $query: "countries",
+        lazy: true,
+        // initial value is "US", so we show this label before fetch
+        preload: [{ label: "United States", value: "US" }],
+        map: { label: "name", value: "code" },
+        transform: "unwrapRows",
+        tanstack: { staleTime: 5 * 60_000, retry: 1 },
+      },
+    },
+    {
+      id: "shippingMethod",
+      type: "radio",
+      label: "Method",
+      options: {
+        $query: ["shippingMethods", { country: "{{country}}" }],
+        lazy: true,
+        map: { label: "title", value: "id" },
+      },
+    },
+    {
+      id: "addons",
+      type: "checkbox",
+      label: "Add-ons",
+      options: {
+        $query: "addons",
+        lazy: true,
+        map: { label: "title", value: "id" },
+      },
+    },
+  ],
+};
+
+const form = new Form(
+  schema,
+  { country: "US", addons: ["gift-wrap"] },
+  {
+    providers: {
+      query: createQueryProvider({
+        countries: async () => fetch("/api/countries").then((r) => r.json()),
+        shippingMethods: async (params) =>
+          fetch(`/api/shipping?country=${params?.country ?? ""}`).then((r) => r.json()),
+        addons: async () => fetch("/api/addons").then((r) => r.json()),
+      }),
+    },
+    optionsTransforms: {
+      unwrapRows: (data) => (data as { items: unknown[] }).items,
+    },
+  },
+);
+
+form.mount(document.getElementById("root")!);
+```
+
+- `lazy: true` defers the request until user interaction.
+- `preload` keeps selected labels visible before the API returns.
+- If your API already returns `{ label, value }[]`, omit `map`.
+- For checkbox with options, payload is a selected-values array.
+
+### Wrap fields/actions in custom tags
+
+You can wrap field nodes and action buttons with custom host tags (including web components):
+
+```jsonc
+{
+  "fields": [
+    {
+      "id": "email",
+      "type": "email",
+      "wrapper": {
+        "tag": "my-field-shell",
+        "class": "field-card",
+        "attrs": { "data-slot": "main", "data-active": true },
+      },
+    },
+  ],
+  "actions": [
+    {
+      "name": "save",
+      "role": "submit",
+      "wrapper": { "tag": "my-action-shell", "attrs": { "data-kind": "primary" } },
+    },
+  ],
+}
+```
+
+**Implementation example — custom wrappers for fields/actions:**
+
+```ts
+import { Form } from "@formwright/core";
+import "@formwright/dom";
+
+const schema = {
+  id: "profile",
+  version: "1.0",
+  fields: [
+    {
+      id: "email",
+      type: "email",
+      label: "Email",
+      wrapper: {
+        tag: "my-field-shell",
+        class: "field-shell",
+        attrs: { "data-section": "contact", "data-active": true },
+      },
+    },
+    {
+      id: "newsletter",
+      type: "toggle",
+      label: "Newsletter",
+      labelPosition: "start",
+      wrapper: {
+        tag: "section",
+        class: "setting-row",
+        attrs: { "aria-label": "Newsletter setting" },
+      },
+    },
+  ],
+  actions: [
+    {
+      name: "save",
+      role: "submit",
+      label: "Save",
+      wrapper: { tag: "my-action-shell", attrs: { "data-kind": "primary" } },
+    },
+    {
+      name: "delete",
+      role: "button",
+      label: "Delete",
+      variant: "danger",
+      wrapper: { tag: "my-action-shell", attrs: { "data-kind": "danger" } },
+    },
+  ],
+};
+
+new Form(schema).mount(document.getElementById("root")!);
+```
 
 ### React
 
