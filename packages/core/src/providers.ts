@@ -18,9 +18,21 @@ export interface QueryResult<T> {
   readonly error: unknown;
 }
 
+/** Per-query options passed to {@link QueryProvider.query}. */
+export interface QueryProviderOptions {
+  /** When provided, the query runs only while this signal is `true` (lazy load). */
+  readonly enabled?: ReadSignal<boolean>;
+  /** Passthrough TanStack Query options (`staleTime`, `gcTime`, `retry`, …). */
+  readonly tanstack?: Record<string, unknown>;
+}
+
 export interface QueryProvider {
   /** Return a reactive query result for a key and optional params. */
-  query<T = unknown>(key: string, params?: Record<string, unknown>): ReadSignal<QueryResult<T>>;
+  query<T = unknown>(
+    key: string,
+    params?: Record<string, unknown>,
+    options?: QueryProviderOptions,
+  ): ReadSignal<QueryResult<T>>;
 }
 
 export interface ThemeProvider {

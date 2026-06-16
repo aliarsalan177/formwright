@@ -12,8 +12,33 @@ export type FieldValue = string | number | boolean | null | undefined | FieldVal
 /** A reference to a value provided by a registered provider, expressed as a sigil object. */
 export type ProviderRef =
   | { readonly $t: string; readonly args?: Record<string, FieldValue> } // i18n
-  | { readonly $query: string | readonly [string, Record<string, unknown>?] } // data source
+  | OptionsQueryRef
   | { readonly $theme: string }; // theme token
+
+/** Maps API rows to {@link FieldOption} label/value keys. */
+export interface OptionsMapper {
+  readonly label: string;
+  readonly value: string;
+}
+
+/**
+ * Async field options via a registered query provider (`tanstack-query`, custom).
+ * Set `lazy: true` to fetch when the user opens the control; use `preload` for
+ * the current selection before the first fetch completes.
+ */
+export interface OptionsQueryRef {
+  readonly $query: string | readonly [string, Record<string, unknown>?];
+  /** Defer fetch until the user opens the control (default `false`). */
+  readonly lazy?: boolean;
+  /** Map each API row to `{ label, value }`. */
+  readonly map?: OptionsMapper;
+  /** Name of a transform in `FormOptions.optionsTransforms` (runs before `map`). */
+  readonly transform?: string;
+  /** Options shown immediately (e.g. the selected value from initial data). */
+  readonly preload?: readonly FieldOption[];
+  /** Passthrough TanStack Query options (`staleTime`, `gcTime`, `retry`, …). */
+  readonly tanstack?: Record<string, unknown>;
+}
 
 /** A value in the schema that may be a literal or resolved through a provider at runtime. */
 export type Resolvable<T> = T | ProviderRef;
@@ -131,6 +156,16 @@ export interface FieldClasses {
   readonly error?: string;
 }
 
+/** Wrap rendered nodes in a custom HTML/custom-element tag. */
+export interface RenderWrapper {
+  /** Host tag (e.g. `"div"`, `"section"`, `"my-card"`). */
+  readonly tag: string;
+  /** Extra class(es) on the wrapper host. */
+  readonly class?: string;
+  /** Static attributes applied to the wrapper host. */
+  readonly attrs?: Record<string, string | number | boolean>;
+}
+
 /**
  * A slot rendered at the start/end of an input — either decorative text/icon
  * (a string like "$" or "🔍") or a nested field (e.g. a currency `select`) whose
@@ -175,6 +210,8 @@ export interface FieldSchema {
   readonly colSpan?: number;
   /** Extra class(es) on the field wrapper (e.g. Tailwind utilities). */
   readonly class?: string;
+  /** Wrap this field node in a custom host tag (native or custom element). */
+  readonly wrapper?: RenderWrapper;
   /** Skeleton placeholder overrides for loading states. */
   readonly skeleton?: SkeletonFieldOptions;
   /** Per-part class overrides (wrapper, label, control, help, description, error). */
@@ -255,6 +292,8 @@ export interface FormAction {
   readonly fullWidth?: boolean;
   /** Name of a handler in `options.handlers`, called with the form on click. */
   readonly handler?: string;
+  /** Wrap this action button in a custom host tag (native or custom element). */
+  readonly wrapper?: RenderWrapper;
 }
 
 /** How the form submits: transform the payload, send it, handle success/error. */
