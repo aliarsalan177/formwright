@@ -318,6 +318,51 @@ describe("authoring elements", () => {
     expect(actionShell.querySelector("button.fw-action")).toBeTruthy();
   });
 
+  it("supports nested wrappers (inner first) and props on custom elements", () => {
+    const host = document.createElement("div");
+    const form = new Form({
+      id: "f",
+      version: "1.0",
+      title: {
+        text: "Profile",
+        tag: "h1",
+        class: "page-title",
+        wrapper: [
+          { tag: "my-title-inner", props: { active: true } },
+          { tag: "header", class: "form-header", attrs: { "data-slot": "title" } },
+        ],
+      },
+      fields: [{ id: "name", type: "text", label: "Name" }],
+      actions: [
+        {
+          name: "save",
+          role: "submit",
+          label: "Save",
+          wrapper: [
+            { tag: "my-btn-inner", props: { active: true } },
+            { tag: "my-btn-outer", attrs: { "data-layer": "outer" } },
+          ],
+        },
+      ],
+    });
+    mount(form, host);
+
+    const header = host.querySelector("header.form-header") as HTMLElement;
+    expect(header).toBeTruthy();
+    expect(header.getAttribute("data-slot")).toBe("title");
+    const titleInner = header.querySelector("my-title-inner") as HTMLElement & { active?: boolean };
+    expect(titleInner).toBeTruthy();
+    expect(titleInner.active).toBe(true);
+    const heading = titleInner.querySelector("h1.fw-title.page-title");
+    expect(heading?.textContent).toBe("Profile");
+
+    const outer = host.querySelector("my-btn-outer") as HTMLElement;
+    expect(outer?.getAttribute("data-layer")).toBe("outer");
+    const inner = outer?.querySelector("my-btn-inner") as HTMLElement & { active?: boolean };
+    expect(inner?.active).toBe(true);
+    expect(inner?.querySelector("button.fw-action")).toBeTruthy();
+  });
+
   it("shows a dismissible error alert when submit fails validation", async () => {
     const host = document.createElement("div");
     const form = new Form({

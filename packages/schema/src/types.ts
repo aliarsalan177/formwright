@@ -162,8 +162,25 @@ export interface RenderWrapper {
   readonly tag: string;
   /** Extra class(es) on the wrapper host. */
   readonly class?: string;
-  /** Static attributes applied to the wrapper host. */
+  /** Static attributes applied to the wrapper host (`data-*`, `aria-*`, boolean → empty attr). */
   readonly attrs?: Record<string, string | number | boolean>;
+  /**
+   * Properties set on the host element — useful for custom elements
+   * (e.g. `active`, `variant`, `open`).
+   */
+  readonly props?: Record<string, unknown>;
+}
+
+/** One wrapper or nested wrappers (first = innermost, closest to the child). */
+export type RenderWrappers = RenderWrapper | readonly RenderWrapper[];
+
+/** Form title configuration — text, heading tag, and optional wrappers. */
+export interface FormTitleSchema {
+  readonly text: Resolvable<string>;
+  /** Heading tag (default `"h2"`). */
+  readonly tag?: string;
+  readonly class?: string;
+  readonly wrapper?: RenderWrappers;
 }
 
 /**
@@ -211,7 +228,7 @@ export interface FieldSchema {
   /** Extra class(es) on the field wrapper (e.g. Tailwind utilities). */
   readonly class?: string;
   /** Wrap this field node in a custom host tag (native or custom element). */
-  readonly wrapper?: RenderWrapper;
+  readonly wrapper?: RenderWrappers;
   /** Skeleton placeholder overrides for loading states. */
   readonly skeleton?: SkeletonFieldOptions;
   /** Per-part class overrides (wrapper, label, control, help, description, error). */
@@ -292,8 +309,8 @@ export interface FormAction {
   readonly fullWidth?: boolean;
   /** Name of a handler in `options.handlers`, called with the form on click. */
   readonly handler?: string;
-  /** Wrap this action button in a custom host tag (native or custom element). */
-  readonly wrapper?: RenderWrapper;
+  /** Wrap this action button — single host or nested hosts (first = innermost). */
+  readonly wrapper?: RenderWrappers;
 }
 
 /** How the form submits: transform the payload, send it, handle success/error. */
@@ -378,7 +395,7 @@ export interface PersistSchema {
 export interface FormSchema {
   readonly id: string;
   readonly version: string;
-  readonly title?: Resolvable<string>;
+  readonly title?: Resolvable<string> | FormTitleSchema;
   readonly providers?: Record<string, ProviderDecl>;
   readonly fields: readonly FieldSchema[];
   readonly submit?: SubmitSchema;

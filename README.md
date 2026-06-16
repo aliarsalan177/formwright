@@ -341,12 +341,24 @@ form.mount(document.getElementById("root")!);
 - If your API already returns `{ label, value }[]`, omit `map`.
 - For checkbox with options, payload is a selected-values array.
 
-### Wrap fields/actions in custom tags
+### Wrap fields/actions/title in custom tags
 
-You can wrap field nodes and action buttons with custom host tags (including web components):
+You can wrap field nodes, action buttons, and the form title with custom host tags (including web components).
+Pass a single wrapper or an array — **the first entry wraps the element directly** (innermost), each later entry wraps outward.
+
+Use `attrs` for HTML attributes (`data-*`, `aria-*`, booleans → empty attr) and `props` for element properties (e.g. `active` on a custom element).
 
 ```jsonc
 {
+  "title": {
+    "text": "Profile",
+    "tag": "h1",
+    "class": "text-2xl",
+    "wrapper": [
+      { "tag": "my-title-shell", "props": { "active": true } },
+      { "tag": "header", "class": "form-header" },
+    ],
+  },
   "fields": [
     {
       "id": "email",
@@ -355,6 +367,7 @@ You can wrap field nodes and action buttons with custom host tags (including web
         "tag": "my-field-shell",
         "class": "field-card",
         "attrs": { "data-slot": "main", "data-active": true },
+        "props": { "variant": "outlined" },
       },
     },
   ],
@@ -362,13 +375,16 @@ You can wrap field nodes and action buttons with custom host tags (including web
     {
       "name": "save",
       "role": "submit",
-      "wrapper": { "tag": "my-action-shell", "attrs": { "data-kind": "primary" } },
+      "wrapper": [
+        { "tag": "my-action-inner", "props": { "active": true } },
+        { "tag": "my-action-outer", "attrs": { "data-kind": "primary" } },
+      ],
     },
   ],
 }
 ```
 
-**Implementation example — custom wrappers for fields/actions:**
+**Implementation example — custom wrappers for fields/actions/title:**
 
 ```ts
 import { Form } from "@formwright/core";
@@ -377,6 +393,11 @@ import "@formwright/dom";
 const schema = {
   id: "profile",
   version: "1.0",
+  title: {
+    text: "Profile",
+    tag: "h1",
+    wrapper: { tag: "header", class: "form-header" },
+  },
   fields: [
     {
       id: "email",
@@ -386,6 +407,7 @@ const schema = {
         tag: "my-field-shell",
         class: "field-shell",
         attrs: { "data-section": "contact", "data-active": true },
+        props: { active: true },
       },
     },
     {
@@ -405,7 +427,10 @@ const schema = {
       name: "save",
       role: "submit",
       label: "Save",
-      wrapper: { tag: "my-action-shell", attrs: { "data-kind": "primary" } },
+      wrapper: [
+        { tag: "my-action-inner", props: { active: true } },
+        { tag: "my-action-shell", attrs: { "data-kind": "primary" } },
+      ],
     },
     {
       name: "delete",
