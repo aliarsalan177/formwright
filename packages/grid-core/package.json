@@ -1,6 +1,6 @@
 {
   "name": "@formwright/grid-core",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Signal-reactive grid engine — row model, column model, sorting/filtering, and viewport state.",
   "license": "MIT",
   "repository": {
