@@ -111,6 +111,8 @@ export interface WidgetBindMap {
   readonly placeholder?: string;
   /** Hide the default `.fw-error` line when the widget shows errors itself. */
   readonly hideError?: boolean;
+  /** Options list property on a custom select/combobox (array of choices). */
+  readonly options?: string;
 }
 
 /**
@@ -142,6 +144,42 @@ export type WidgetRef =
       readonly read?: string;
       /** Named `write` in `FormOptions.widgetTransforms`. */
       readonly write?: string;
+      /**
+       * Dot-path on the change event to read the raw payload
+       * (e.g. `"detail.value.payload"` for `e.detail.value.payload`).
+       */
+      readonly readPath?: string;
+      /**
+       * Extract this key from object / object[] payloads after `read`
+       * (e.g. `"id"` from `{ id, label }`).
+       */
+      readonly valueKey?: string;
+      /** How to normalize the payload into the stored field value. */
+      readonly valueMode?: "single" | "multi";
+      /**
+       * How to shape the stored value when writing back to the component:
+       * `"scalar"` (default), `"object"` (`{ [valueKey]: value }`), or `"object[]"`.
+       */
+      readonly valueShape?: "scalar" | "object" | "object[]";
+      /** Map form `{ label, value }` options to component choice objects. */
+      readonly optionsMap?: OptionsMapper;
+      /** Named `mapOptions` in `FormOptions.widgetTransforms`. */
+      readonly optionsTransform?: string;
+      /**
+       * Accordion layout (`group` / `collection` with `layout: "accordion"`):
+       * header/trigger tag (default `"summary"`).
+       */
+      readonly headerTag?: string;
+      /** Accordion layout: body wrapper tag (default `"div"`). */
+      readonly bodyTag?: string;
+      /** Accordion layout: set title on a host property instead of a header child. */
+      readonly titleProp?: string;
+      /** Accordion layout: expanded/open property (native `<details>` uses `open` attr). */
+      readonly openProp?: string;
+      /** Accordion layout: static attributes on the header/trigger element. */
+      readonly headerAttrs?: Record<string, string>;
+      /** Accordion layout: static attributes on the body wrapper. */
+      readonly bodyAttrs?: Record<string, string>;
     };
 
 /** Validation descriptor — declarative, mapped to a Standard Schema validator at runtime. */

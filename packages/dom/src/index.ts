@@ -13,6 +13,7 @@ export {
   type ActionWidget,
   type ActionWidgetContext,
 } from "./action-element.js";
+export { registerAccordionWidget, type AccordionWidgetSpec } from "./accordion.js";
 export { readStepFromUrl, writeStepToUrl, wireStepUrlSync } from "./step-url.js";
 export type { DomRendererOptions, SuccessScreenContext } from "@formwright/core";
 export {

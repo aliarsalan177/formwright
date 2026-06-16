@@ -774,6 +774,82 @@ new Form(
 and web components. Set `hideError: true` (or map `error` / `invalid`) when your component
 shows validation itself.
 
+### Custom events & nested payloads
+
+For components that emit non-standard shapes, use **`readPath`** (declarative) or a named **`read`** transform (full control):
+
+```jsonc
+{
+  "id": "country",
+  "type": "select",
+  "widget": {
+    "tag": "client-select",
+    "event": "value-changed",
+    "readPath": "detail.value.payload",
+    "valueKey": "code",
+    "valueMode": "single",
+    "bind": { "value": "selected", "options": "choices" },
+    "optionsMap": { "label": "name", "value": "code" },
+  },
+}
+```
+
+| Piece        | Role                                                          |
+| ------------ | ------------------------------------------------------------- |
+| `event`      | DOM event name (`value-changed`, not `change`)                |
+| `readPath`   | Dot-path on the event (`detail.value.payload`)                |
+| `valueKey`   | Pull `code` from `{ code, name }` objects                     |
+| `valueMode`  | `"single"` or `"multi"` (checkbox groups)                     |
+| `valueShape` | Write back as `"scalar"`, `"object"`, or `"object[]"`         |
+| `optionsMap` | Map form options → component choice objects on `bind.options` |
+
+**Multiselect** — same idea with `valueMode: "multi"` and `valueShape: "object[]"`:
+
+```jsonc
+{
+  "id": "tags",
+  "type": "checkbox",
+  "widget": {
+    "tag": "client-multi",
+    "event": "value-changed",
+    "readPath": "detail.value.payload",
+    "valueKey": "id",
+    "valueMode": "multi",
+    "valueShape": "object[]",
+    "bind": { "value": "selectedItems", "options": "choices" },
+    "optionsMap": { "label": "title", "value": "id" },
+  },
+}
+```
+
+For one-off logic, point `widget.read` / `widget.toValue` at `widgetTransforms` instead of `readPath` / `valueKey`.
+
+### Accordion layout (`widget` on `group` / `collection`)
+
+When `layout` is `"accordion"`, override the native `<details>` / `<summary>` shell:
+
+```jsonc
+{
+  "id": "billing",
+  "type": "group",
+  "label": "Billing address",
+  "layout": "accordion",
+  "widget": {
+    "tag": "my-accordion",
+    "headerTag": "my-accordion-header",
+    "bodyTag": "my-accordion-panel",
+    "titleProp": "heading",
+    "openProp": "expanded",
+    "attrs": { "variant": "bordered" },
+  },
+  "fields": [{ "id": "city", "type": "text", "label": "City" }],
+}
+```
+
+Collection rows with `layout: "accordion"` use the same `widget` on the collection field.
+Register a reusable shell with `registerAccordionWidget("my-accordion", { tag: "my-accordion", … })`
+and reference it via `"widget": "my-accordion"` or `"widget": { "component": "my-accordion" }`.
+
 ### StencilJS / Lit / any web component
 
 A component that compiles to a custom element (Stencil, Lit, Angular Elements…) needs **no

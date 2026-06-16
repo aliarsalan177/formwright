@@ -12,6 +12,7 @@
  */
 import {
   parseSchema,
+  type FieldOption,
   type FieldSchema,
   type FieldValue,
   type FormSchema,
@@ -89,6 +90,7 @@ export interface WidgetTransform {
   readonly fromValue?: (value: FieldValue) => unknown;
   readonly read?: (el: HTMLElement, event: Event) => unknown;
   readonly write?: (el: HTMLElement, value: FieldValue) => void;
+  readonly mapOptions?: (options: readonly FieldOption[]) => unknown;
 }
 
 export interface FormOptions {
