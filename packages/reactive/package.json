@@ -1,6 +1,6 @@
 {
   "name": "@formwright/reactive",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Tiny zero-dependency fine-grained signal engine shared by Formwright and Gridwright.",
   "license": "MIT",
   "repository": {
