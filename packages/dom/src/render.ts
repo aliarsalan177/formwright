@@ -27,6 +27,8 @@ import {
 } from "./resume-success.js";
 import { renderSkeleton } from "./skeleton.js";
 import { wireStepUrlSync } from "./step-url.js";
+import { wrapNode } from "./wrappers.js";
+import type { FormTitleSchema } from "@formwright/schema";
 
 /** Render any node (leaf, group, collection, or steps) into a fresh wrapper element. */
 function renderNode(form: Form, node: FieldNode, scope: Scope): HTMLElement {
@@ -51,30 +53,23 @@ function addClass(el: HTMLElement, classes: string | undefined): void {
   if (classes) for (const c of classes.split(/\s+/)) if (c) el.classList.add(c);
 }
 
-function wrapperAttrValue(value: string | number | boolean): string | null {
-  if (value === false) return null;
-  if (value === true) return "";
-  return String(value);
+function isFormTitleSchema(title: Form["schema"]["title"]): title is FormTitleSchema {
+  return typeof title === "object" && title !== null && "text" in title;
 }
 
-function wrapNode(
-  child: HTMLElement,
-  wrapper:
-    | { tag: string; class?: string; attrs?: Record<string, string | number | boolean> }
-    | undefined,
-): HTMLElement {
-  if (!wrapper?.tag) return child;
-  const host = document.createElement(wrapper.tag);
-  if (wrapper.class) addClass(host, wrapper.class);
-  if (wrapper.attrs) {
-    for (const [name, raw] of Object.entries(wrapper.attrs)) {
-      const value = wrapperAttrValue(raw);
-      if (value === null) continue;
-      host.setAttribute(name, value);
-    }
-  }
-  host.appendChild(child);
-  return host;
+function renderFormTitle(form: Form, formEl: HTMLElement): void {
+  const raw = form.schema.title;
+  if (raw === undefined) return;
+  const providers = form.options.providers;
+  const spec = isFormTitleSchema(raw);
+  const text = resolve(spec ? raw.text : raw, providers);
+  if (typeof text !== "string") return;
+  const tag = spec && raw.tag ? raw.tag : "h2";
+  const heading = document.createElement(tag);
+  heading.classList.add("fw-title");
+  if (spec && raw.class) addClass(heading, raw.class);
+  heading.textContent = text;
+  formEl.appendChild(wrapNode(heading, spec ? raw.wrapper : undefined));
 }
 
 /** Apply a field's grid column span (for side-by-side layouts). */
@@ -712,12 +707,7 @@ export function mount(
   const body = h("div", { class: "fw-form-body" });
   const skeletonOverlay = h("div", { class: "fw-skeleton-overlay", hidden: "" });
 
-  const title = resolve(form.schema.title, form.options.providers);
-  if (typeof title === "string") {
-    const heading = h("h2", { class: "fw-title" });
-    heading.textContent = title;
-    formEl.appendChild(heading);
-  }
+  renderFormTitle(form, formEl);
 
   if (form.options.persistKey) {
     formEl.appendChild(renderResumeBanner(form, scope));

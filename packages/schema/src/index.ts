@@ -10,6 +10,8 @@ export type {
   FieldOption,
   FieldClasses,
   RenderWrapper,
+  RenderWrappers,
+  FormTitleSchema,
   FieldSchema,
   ProviderDecl,
   SubmitSchema,
