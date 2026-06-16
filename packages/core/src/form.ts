@@ -83,6 +83,14 @@ export type Transform = (values: FormValues, form: Form) => unknown;
 export type SuccessHandler = (result: unknown, form: Form) => void;
 export type ErrorHandler = (error: unknown, form: Form) => void;
 
+/** Normalize between form field values and a custom widget's shape. */
+export interface WidgetTransform {
+  readonly toValue?: (raw: unknown) => FieldValue;
+  readonly fromValue?: (value: FieldValue) => unknown;
+  readonly read?: (el: HTMLElement, event: Event) => unknown;
+  readonly write?: (el: HTMLElement, value: FieldValue) => void;
+}
+
 export interface FormOptions {
   readonly providers?: Providers;
   readonly transforms?: Record<string, Transform>;
@@ -96,6 +104,11 @@ export interface FormOptions {
   readonly optionsFetch?: Record<string, OptionsFetcher>;
   /** Transform raw API payloads before `map` (referenced by `$query.transform`). */
   readonly optionsTransforms?: Record<string, OptionsTransform>;
+  /**
+   * Named value/event adapters for custom widgets (referenced by `widget.toValue`,
+   * `widget.fromValue`, `widget.read`, `widget.write`).
+   */
+  readonly widgetTransforms?: Record<string, WidgetTransform>;
   /**
    * Persist entered values under this `localStorage` key and restore them on the
    * next load — so a refresh before submitting keeps the form filled. Cleared on

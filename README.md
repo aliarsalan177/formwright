@@ -375,6 +375,7 @@ Use `attrs` for HTML attributes (`data-*`, `aria-*`, booleans → empty attr) an
     {
       "name": "save",
       "role": "submit",
+      "widget": { "tag": "my-button" },
       "wrapper": [
         { "tag": "my-action-inner", "props": { "active": true } },
         { "tag": "my-action-outer", "attrs": { "data-kind": "primary" } },
@@ -427,6 +428,7 @@ const schema = {
       name: "save",
       role: "submit",
       label: "Save",
+      widget: { tag: "my-button" },
       wrapper: [
         { tag: "my-action-inner", props: { active: true } },
         { tag: "my-action-shell", attrs: { "data-kind": "primary" } },
@@ -722,10 +724,55 @@ registerWidget("rating", {
 // schema: { id: "score", type: "number", widget: "rating" }
 ```
 
-The `WidgetBinding` (`b.value()`, `b.setValue()`, `b.onValue()`, `b.onEnabled()`) is the whole
-contract — Vue, Svelte, Solid, Angular plug in the same ~8-line way. Add `toValue`/`fromValue`
-to translate between your component's shape and the stored value, or a native `file` widget for
+The `WidgetBinding` (`b.value()`, `b.setValue()`, `b.onValue()`, `b.onEnabled()`, `b.onError()`,
+`b.onInvalid()`, `b.onRequired()`) is the whole contract — Vue, Svelte, Solid, Angular plug in the
+same ~8-line way. Add `toValue`/`fromValue` (inline or via `FormOptions.widgetTransforms`) to
+translate between your component's shape and the stored value, or a native `file` widget for
 uploads.
+
+### Align custom components (`widget.bind`)
+
+When your UI library uses different property names, map form state in the schema:
+
+```jsonc
+{
+  "id": "email",
+  "type": "email",
+  "widget": {
+    "tag": "my-text-field",
+    "event": "value-change",
+    "bind": {
+      "value": "modelValue",
+      "invalid": "hasError",
+      "error": "errorMessage",
+      "disabled": "isDisabled",
+      "hideError": true,
+    },
+    "toValue": "normalizeIn",
+    "fromValue": "normalizeOut",
+  },
+}
+```
+
+```ts
+new Form(
+  schema,
+  {},
+  {
+    widgetTransforms: {
+      normalizeIn: { toValue: (raw) => String(raw).trim().toLowerCase() },
+      normalizeOut: { fromValue: (v) => v },
+      readDetail: {
+        read: (_el, ev) => (ev as CustomEvent).detail.payload,
+      },
+    },
+  },
+);
+```
+
+`bind` writes **properties** on the host element (not attributes) — ideal for custom elements
+and web components. Set `hideError: true` (or map `error` / `invalid`) when your component
+shows validation itself.
 
 ### StencilJS / Lit / any web component
 

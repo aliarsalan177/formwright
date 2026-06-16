@@ -17,9 +17,10 @@ import type {
   StepsNode,
 } from "@formwright/core";
 import { buildSkeletonPlanFromForm, isPresentational, resolve, signal } from "@formwright/core";
-import { bindSubmitButton, bindDisabledWhileSubmitting } from "./actions.js";
+import { bindDisabledWhileSubmitting, bindSubmitControl } from "./actions.js";
+import { createActionElement } from "./action-element.js";
 import { bindHidden, bindText, h, on, Scope } from "./internal.js";
-import { renderControl } from "./widgets.js";
+import { renderControl, fieldWidgetHandlesError } from "./widgets.js";
 import {
   renderPersistConsentBanner,
   renderResumeBanner,
@@ -250,11 +251,13 @@ function renderLeafContent(
   const errorEl = h("p", { class: "fw-error", role: "alert" });
   addClass(errorEl, cx?.error);
   bindText(scope, errorEl, () => field.error.get() ?? "");
+  const widgetShowsError = fieldWidgetHandlesError(field.schema);
   scope.bind(() => {
-    errorEl.hidden = field.error.get() === null;
-    wrapper.classList.toggle("fw-invalid", field.error.get() !== null);
+    const hasError = field.error.get() !== null;
+    errorEl.hidden = widgetShowsError || !hasError;
+    wrapper.classList.toggle("fw-invalid", hasError);
   });
-  wrapper.appendChild(errorEl);
+  if (!widgetShowsError) wrapper.appendChild(errorEl);
 }
 
 /** Render the inner fields of a group/row into a host, returning their wrappers. */
@@ -401,7 +404,7 @@ function renderSteps(form: Form, steps: StepsNode, scope: Scope): HTMLElement {
 
   bindDisabledWhileSubmitting(scope, backBtn, form);
   bindDisabledWhileSubmitting(scope, nextBtn, form);
-  bindSubmitButton(scope, submitBtn, form, {
+  bindSubmitControl(scope, submitBtn, form, {
     default: typeof submitLabel === "string" ? submitLabel : "Submit",
     ...(typeof submitLabel === "string" ? { loading: `${submitLabel}…` } : {}),
   });
@@ -659,7 +662,6 @@ function errorMessage(err: unknown): string {
 function renderActions(form: Form, scope: Scope): HTMLElement {
   const align = form.schema.actionsAlign ?? "start";
   const bar = h("div", { class: `fw-actions fw-actions-${align}` });
-  const providers = form.options.providers;
   const actions = form.schema.actions;
 
   // An explicit empty `actions: []` opts out of buttons entirely (e.g. a
@@ -668,30 +670,14 @@ function renderActions(form: Form, scope: Scope): HTMLElement {
 
   if (!actions) {
     const submit = h("button", { type: "submit", class: "fw-submit" });
-    bindSubmitButton(scope, submit, form, { default: "Submit" });
+    bindSubmitControl(scope, submit, form, { default: "Submit" });
     bar.appendChild(submit);
     return bar;
   }
 
   for (const def of actions) {
-    const role = def.role ?? "button";
-    const btn = h("button", { type: role === "submit" ? "submit" : "button", class: "fw-action" });
-    if (def.variant) btn.classList.add(`fw-action-${def.variant}`);
-    if (def.fullWidth) btn.classList.add("fw-action-block");
-    const label = resolve(def.label, providers);
-    const labelText = typeof label === "string" ? label : def.name;
-    btn.textContent = labelText;
-    if (role === "submit") {
-      bindSubmitButton(scope, btn, form, { default: labelText });
-    } else {
-      bindDisabledWhileSubmitting(scope, btn, form);
-    }
-    if (role === "reset") {
-      on(scope, btn, "click", () => form.reset());
-    } else if (role !== "submit") {
-      on(scope, btn, "click", () => form.action(def.name));
-    }
-    bar.appendChild(wrapNode(btn, def.wrapper));
+    const el = createActionElement(form, scope, def);
+    bar.appendChild(wrapNode(el, def.wrapper));
   }
   return bar;
 }

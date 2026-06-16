@@ -5,6 +5,7 @@ export type {
   Condition,
   FieldType,
   WidgetRef,
+  WidgetBindMap,
   FieldSlot,
   ValidationSchema,
   FieldOption,

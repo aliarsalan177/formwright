@@ -3,9 +3,13 @@ import { Form } from "@formwright/core";
 import type { FormSchema } from "@formwright/core";
 import { mount, registerWidget } from "./index.js";
 
-function setup(schema: FormSchema, initial: Record<string, unknown> = {}) {
+function setup(
+  schema: FormSchema,
+  initial: Record<string, unknown> = {},
+  options: import("@formwright/core").FormOptions = {},
+) {
   const host = document.createElement("div");
-  const form = new Form(schema, initial as never);
+  const form = new Form(schema, initial as never, options);
   mount(form, host);
   return { host, form };
 }
@@ -34,6 +38,71 @@ describe("widget adapters", () => {
     // Value set elsewhere is written back onto the element's value property.
     form.setValue("country", "CA");
     expect(el.value).toBe("CA");
+  });
+
+  it("maps field state to custom props via widget.bind and hides native error", async () => {
+    const host = document.createElement("div");
+    const form = new Form({
+      id: "f",
+      version: "1.0",
+      fields: [
+        {
+          id: "email",
+          type: "email",
+          validation: { kind: "string", required: true },
+          widget: {
+            tag: "my-input",
+            event: "value-change",
+            bind: { invalid: "hasError", error: "errorMessage", hideError: true },
+          },
+        },
+      ],
+    });
+    mount(form, host);
+    const el = host.querySelector("my-input") as HTMLElement & {
+      hasError?: boolean;
+      errorMessage?: string;
+    };
+    expect(host.querySelector(".fw-error")).toBeNull();
+    expect(el.hasError).toBe(false);
+    await form.submit().catch(() => undefined);
+    expect(el.hasError).toBe(true);
+    expect(el.errorMessage).toMatch(/required/i);
+  });
+
+  it("uses named widgetTransforms to normalize values", () => {
+    const { host, form } = setup(
+      {
+        id: "f",
+        version: "1.0",
+        fields: [
+          {
+            id: "amount",
+            type: "number",
+            widget: {
+              tag: "my-amount",
+              event: "change",
+              valueProp: "amount",
+              toValue: "rawToForm",
+              fromValue: "formToRaw",
+            },
+          },
+        ],
+      },
+      { amount: 250 },
+      {
+        widgetTransforms: {
+          rawToForm: { toValue: (raw) => Number(raw) / 100 },
+          formToRaw: { fromValue: (v) => Number(v) / 100 },
+        },
+      },
+    );
+    const el = host.querySelector("my-amount") as HTMLElement & { amount?: number };
+    expect(el.amount).toBe(2.5);
+    el.dispatchEvent(new CustomEvent("change", { detail: { value: 500 } }));
+    expect(form.getValue("amount")).toBe(5);
+    form.setValue("amount", 12);
+    expect(el.amount).toBe(0.12);
   });
 
   it("supports a mount-based framework component via the binding", () => {
@@ -316,6 +385,37 @@ describe("authoring elements", () => {
     expect(actionShell).toBeTruthy();
     expect(actionShell.getAttribute("data-kind")).toBe("action");
     expect(actionShell.querySelector("button.fw-action")).toBeTruthy();
+  });
+
+  it("supports custom action widget override", () => {
+    const host = document.createElement("div");
+    const form = new Form({
+      id: "f",
+      version: "1.0",
+      fields: [{ id: "name", type: "text", label: "Name" }],
+      actions: [
+        {
+          name: "save",
+          role: "submit",
+          label: "Save",
+          widget: { tag: "my-button" },
+          variant: "primary",
+        },
+        {
+          name: "cancel",
+          role: "button",
+          label: "Cancel",
+          widget: { tag: "a" },
+        },
+      ],
+    });
+    mount(form, host);
+    const save = host.querySelector("my-button.fw-action.fw-action-primary") as HTMLElement;
+    expect(save).toBeTruthy();
+    expect(save.textContent).toBe("Save");
+    const cancel = host.querySelector("a.fw-action") as HTMLElement;
+    expect(cancel).toBeTruthy();
+    expect(cancel.textContent).toBe("Cancel");
   });
 
   it("supports nested wrappers (inner first) and props on custom elements", () => {

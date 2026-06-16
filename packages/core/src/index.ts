@@ -70,6 +70,7 @@ export {
   type Transform,
   type SuccessHandler,
   type ErrorHandler,
+  type WidgetTransform,
   type SuccessScreenContext,
   type DomRendererOptions,
   type LoadingReason,
