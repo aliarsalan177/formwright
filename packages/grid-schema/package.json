@@ -1,6 +1,6 @@
 {
   "name": "@formwright/grid-schema",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Column/grid schema types and a dependency-free validator for Gridwright.",
   "license": "MIT",
   "repository": {

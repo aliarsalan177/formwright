@@ -1,5 +1,16 @@
 # @formwright/storybook
 
+## 0.5.0
+
+### Patch Changes
+
+- Updated dependencies [51cad8a]
+  - @formwright/schema@0.5.0
+  - @formwright/core@0.5.0
+  - @formwright/dom@0.5.0
+  - @formwright/grid-core@0.5.0
+  - @formwright/grid-dom@0.5.0
+
 ## 0.4.0
 
 ### Patch Changes
