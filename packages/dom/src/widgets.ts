@@ -14,7 +14,7 @@
  */
 import type { FieldOption, FieldValue, Form, FormRenderer } from "@formwright/core";
 import { resolve, type FieldState } from "@formwright/core";
-import type { WidgetRef } from "@formwright/schema";
+import type { FieldSchema, WidgetBindMap, WidgetRef } from "@formwright/schema";
 import { bindDisabled, on, Scope } from "./internal.js";
 import { bindFieldOptions, optionLabel } from "./options-source.js";
 
@@ -40,6 +40,12 @@ export interface WidgetBinding {
   onValue(cb: (value: FieldValue) => void): void;
   /** Subscribe to enabled changes. */
   onEnabled(cb: (enabled: boolean) => void): void;
+  /** Subscribe to validation error message changes. */
+  onError(cb: (message: string | null) => void): void;
+  /** Subscribe to invalid (has error) changes. */
+  onInvalid(cb: (invalid: boolean) => void): void;
+  /** Subscribe to required flag changes. */
+  onRequired(cb: (required: boolean) => void): void;
 }
 
 /** Declarative adapter for a native tag, custom element, or framework component. */
@@ -60,6 +66,8 @@ export interface WidgetSpec {
   toValue?: (raw: unknown) => FieldValue;
   /** Transform our FieldValue into the component's expected value. */
   fromValue?: (value: FieldValue) => unknown;
+  /** Map form state → component property names (see {@link WidgetBindMap}). */
+  bind?: WidgetBindMap;
   /** Mount any framework component into `host`; return a cleanup. Overrides `tag`. */
   mount?: (host: HTMLElement, binding: WidgetBinding) => (() => void) | void;
 }
@@ -80,13 +88,21 @@ function commonId(field: FieldState): string {
   return field.domId; // globally unique (collection rows reuse `field.id`)
 }
 
+/** True when the field widget owns error display (skip the default `.fw-error`). */
+export function fieldWidgetHandlesError(schema: FieldSchema): boolean {
+  const ref = schema.widget;
+  if (!ref || typeof ref === "string") return false;
+  const bind = ref.bind;
+  return !!(bind?.hideError || bind?.error || bind?.invalid);
+}
+
 /** Resolve and build a field's control, honoring a per-field `widget` override. */
 export function renderControl(ctx: WidgetContext): HTMLElement {
   const ref = ctx.field.schema.widget;
 
   // Per-field declarative tag (custom element) with no registration needed.
   if (ref && typeof ref === "object" && ref.tag && !ref.component) {
-    return buildSpec(specFromRef(ref), ctx);
+    return buildSpec(mergeTransforms(specFromRef(ref), ctx.form, ref), ctx);
   }
 
   const name = (typeof ref === "string" ? ref : ref?.component) ?? ctx.field.schema.type ?? "text";
@@ -95,7 +111,8 @@ export function renderControl(ctx: WidgetContext): HTMLElement {
   if (typeof widget === "function") return widget(ctx);
   // Merge serializable per-field overrides onto the registered spec.
   const overrides = ref && typeof ref === "object" ? specFromRef(ref) : undefined;
-  return buildSpec(overrides ? { ...widget, ...overrides } : widget, ctx);
+  const base = overrides ? { ...widget, ...overrides } : widget;
+  return buildSpec(mergeTransforms(base, ctx.form, ref), ctx);
 }
 
 /** Build a {@link WidgetSpec} from the schema's serializable {@link WidgetRef}. */
@@ -105,7 +122,72 @@ function specFromRef(ref: Exclude<WidgetRef, string>): WidgetSpec {
   if (ref.valueProp !== undefined) spec.valueProp = ref.valueProp;
   if (ref.event !== undefined) spec.event = ref.event;
   if (ref.attrs !== undefined) spec.attrs = ref.attrs;
+  if (ref.bind !== undefined) spec.bind = ref.bind;
   return spec;
+}
+
+function mergeTransforms(spec: WidgetSpec, form: Form, ref?: WidgetRef): WidgetSpec {
+  if (!ref || typeof ref === "string") return spec;
+  const transforms = form.options.widgetTransforms ?? {};
+  const out: WidgetSpec = { ...spec };
+  const toValue = ref.toValue ? transforms[ref.toValue]?.toValue : undefined;
+  const fromValue = ref.fromValue ? transforms[ref.fromValue]?.fromValue : undefined;
+  const read = ref.read ? transforms[ref.read]?.read : undefined;
+  const write = ref.write ? transforms[ref.write]?.write : undefined;
+  if (!out.toValue && toValue) out.toValue = toValue;
+  if (!out.fromValue && fromValue) out.fromValue = fromValue;
+  if (!out.read && read) out.read = read;
+  if (!out.write && write) out.write = write;
+  return out;
+}
+
+function valuePropName(spec: WidgetSpec): string {
+  return spec.bind?.value ?? spec.valueProp ?? "value";
+}
+
+function setElementProp(el: HTMLElement, name: string, value: unknown): void {
+  (el as HTMLElement & Record<string, unknown>)[name] = value;
+}
+
+function wireBindMap(spec: WidgetSpec, el: HTMLElement, ctx: WidgetContext): void {
+  const { form, field, scope } = ctx;
+  const bind = spec.bind;
+
+  if (!bind) {
+    scope.bind(() => {
+      if ("disabled" in el) (el as HTMLInputElement).disabled = !field.enabled.get();
+    });
+    return;
+  }
+
+  if (bind.disabled) {
+    scope.bind(() => setElementProp(el, bind.disabled!, !field.enabled.get()));
+  } else {
+    scope.bind(() => {
+      if ("disabled" in el) (el as HTMLInputElement).disabled = !field.enabled.get();
+    });
+  }
+
+  if (bind.invalid) {
+    scope.bind(() => setElementProp(el, bind.invalid!, field.error.get() !== null));
+  }
+
+  if (bind.error) {
+    scope.bind(() => setElementProp(el, bind.error!, field.error.get() ?? ""));
+  }
+
+  if (bind.required) {
+    scope.bind(() =>
+      setElementProp(el, bind.required!, field.schema.validation?.required === true),
+    );
+  }
+
+  if (bind.placeholder) {
+    scope.bind(() => {
+      const placeholder = resolve(field.schema.placeholder, form.options.providers);
+      setElementProp(el, bind.placeholder!, typeof placeholder === "string" ? placeholder : "");
+    });
+  }
 }
 
 /** Build a control element from a declarative spec (tag-based or mount-based). */
@@ -120,13 +202,13 @@ function buildTagSpec(spec: WidgetSpec, ctx: WidgetContext): HTMLElement {
   el.setAttribute("name", field.id);
   if (spec.attrs) for (const [k, v] of Object.entries(spec.attrs)) el.setAttribute(k, v);
 
-  const valueProp = spec.valueProp ?? "value";
+  const valueProp = valuePropName(spec);
   const fromValue = spec.fromValue ?? ((v: FieldValue) => v);
   const toValue = spec.toValue ?? ((r: unknown) => r as FieldValue);
   const write =
     spec.write ??
     ((e, v) => {
-      (e as unknown as Record<string, unknown>)[valueProp] = fromValue(v) ?? "";
+      setElementProp(e, valueProp, fromValue(v) ?? "");
     });
   const read =
     spec.read ??
@@ -135,16 +217,14 @@ function buildTagSpec(spec: WidgetSpec, ctx: WidgetContext): HTMLElement {
       if (detail && typeof detail === "object" && "value" in detail) {
         return (detail as { value: unknown }).value;
       }
-      return (e as unknown as Record<string, unknown>)[valueProp];
+      return (e as HTMLElement & Record<string, unknown>)[valueProp];
     });
 
   scope.bind(() => write(el, field.value.get()));
   on(scope, el, (spec.event ?? "input") as keyof HTMLElementEventMap, (ev) =>
     form.setFieldValue(field, toValue(read(el, ev))),
   );
-  scope.bind(() => {
-    (el as Record<string, unknown>).disabled = !field.enabled.get();
-  });
+  wireBindMap(spec, el, ctx);
   return el;
 }
 
@@ -161,6 +241,9 @@ function buildMountSpec(spec: WidgetSpec, ctx: WidgetContext): HTMLElement {
     setValue: (v) => form.setFieldValue(field, v),
     onValue: (cb) => scope.bind(() => cb(field.value.get())),
     onEnabled: (cb) => scope.bind(() => cb(field.enabled.get())),
+    onError: (cb) => scope.bind(() => cb(field.error.get())),
+    onInvalid: (cb) => scope.bind(() => cb(field.error.get() !== null)),
+    onRequired: (cb) => scope.bind(() => cb(field.schema.validation?.required === true)),
   };
   const cleanup = spec.mount!(host, binding);
   if (typeof cleanup === "function") scope.add(cleanup);

@@ -92,6 +92,28 @@ export type FieldType =
   | (string & {});
 
 /**
+ * Map form field state to a custom component's property names.
+ * Use with `widget.bind` so Formwright drives your UI library's API
+ * (`hasError`, `errorMessage`, `isDisabled`, …) instead of native input attrs.
+ */
+export interface WidgetBindMap {
+  /** Value property (default `"value"` — same as `valueProp`). */
+  readonly value?: string;
+  /** Boolean invalid state, e.g. `"hasError"`. */
+  readonly invalid?: string;
+  /** Error message string, e.g. `"errorMessage"`. */
+  readonly error?: string;
+  /** Disabled state, e.g. `"isDisabled"`. */
+  readonly disabled?: string;
+  /** Required flag, e.g. `"isRequired"`. */
+  readonly required?: string;
+  /** Placeholder text, e.g. `"placeholder"`. */
+  readonly placeholder?: string;
+  /** Hide the default `.fw-error` line when the widget shows errors itself. */
+  readonly hideError?: boolean;
+}
+
+/**
  * Map a field to your own UI — a custom element, native tag, or a widget you
  * registered by name. The serializable bits (tag/component/valueProp/event/attrs)
  * live here; code-level transforms and framework `mount` functions are attached
@@ -110,6 +132,16 @@ export type WidgetRef =
       readonly event?: string;
       /** Static attributes to set on the element. */
       readonly attrs?: Record<string, string>;
+      /** Map form state → component props (value, error, disabled, …). */
+      readonly bind?: WidgetBindMap;
+      /** Named `toValue` in `FormOptions.widgetTransforms`. */
+      readonly toValue?: string;
+      /** Named `fromValue` in `FormOptions.widgetTransforms`. */
+      readonly fromValue?: string;
+      /** Named `read` in `FormOptions.widgetTransforms`. */
+      readonly read?: string;
+      /** Named `write` in `FormOptions.widgetTransforms`. */
+      readonly write?: string;
     };
 
 /** Validation descriptor — declarative, mapped to a Standard Schema validator at runtime. */
@@ -309,6 +341,8 @@ export interface FormAction {
   readonly fullWidth?: boolean;
   /** Name of a handler in `options.handlers`, called with the form on click. */
   readonly handler?: string;
+  /** Override the action control — custom element tag or registered action widget (`registerActionWidget`). */
+  readonly widget?: WidgetRef;
   /** Wrap this action button — single host or nested hosts (first = innermost). */
   readonly wrapper?: RenderWrappers;
 }
