@@ -105,6 +105,95 @@ describe("widget adapters", () => {
     expect(el.amount).toBe(0.12);
   });
 
+  it("reads custom event paths and normalizes object payloads", () => {
+    const { host, form } = setup({
+      id: "f",
+      version: "1.0",
+      fields: [
+        {
+          id: "country",
+          type: "select",
+          options: [
+            { label: "US", value: "us" },
+            { label: "CA", value: "ca" },
+          ],
+          widget: {
+            tag: "client-select",
+            event: "value-changed",
+            readPath: "detail.value.payload",
+            valueKey: "code",
+            valueMode: "single",
+            bind: { value: "selected", options: "choices" },
+            optionsMap: { label: "name", value: "code" },
+          },
+        },
+      ],
+    });
+    const el = host.querySelector("client-select") as HTMLElement & {
+      selected?: unknown;
+      choices?: { name: string; code: string }[];
+    };
+    expect(el.choices).toEqual([
+      { name: "US", code: "us" },
+      { name: "CA", code: "ca" },
+    ]);
+    el.dispatchEvent(
+      new CustomEvent("value-changed", {
+        detail: { value: { payload: { code: "ca", name: "CA" } } },
+      }),
+    );
+    expect(form.getValue("country")).toBe("ca");
+    expect(el.selected).toBe("ca");
+  });
+
+  it("normalizes multiselect object payloads via valueMode multi", () => {
+    const { host, form } = setup(
+      {
+        id: "f",
+        version: "1.0",
+        fields: [
+          {
+            id: "tags",
+            type: "checkbox",
+            options: [
+              { label: "A", value: "a" },
+              { label: "B", value: "b" },
+            ],
+            widget: {
+              tag: "client-multi",
+              event: "value-changed",
+              readPath: "detail.value.payload",
+              valueKey: "id",
+              valueMode: "multi",
+              valueShape: "object[]",
+              bind: { value: "selectedItems", options: "choices" },
+              optionsMap: { label: "title", value: "id" },
+            },
+          },
+        ],
+      },
+      { tags: ["a"] },
+    );
+    const el = host.querySelector("client-multi") as HTMLElement & {
+      selectedItems?: { id: string }[];
+    };
+    expect(el.selectedItems).toEqual([{ id: "a" }]);
+    el.dispatchEvent(
+      new CustomEvent("value-changed", {
+        detail: {
+          value: {
+            payload: [
+              { id: "a", title: "A" },
+              { id: "b", title: "B" },
+            ],
+          },
+        },
+      }),
+    );
+    expect(form.getValue("tags")).toEqual(["a", "b"]);
+    expect(el.selectedItems).toEqual([{ id: "a" }, { id: "b" }]);
+  });
+
   it("supports a mount-based framework component via the binding", () => {
     let received: unknown;
     registerWidget("stars", {
@@ -461,6 +550,57 @@ describe("authoring elements", () => {
     const inner = outer?.querySelector("my-btn-inner") as HTMLElement & { active?: boolean };
     expect(inner?.active).toBe(true);
     expect(inner?.querySelector("button.fw-action")).toBeTruthy();
+  });
+
+  it("supports accordion tag override via widget on group and collection", () => {
+    const host = document.createElement("div");
+    const form = new Form({
+      id: "f",
+      version: "1.0",
+      fields: [
+        {
+          id: "billing",
+          type: "group",
+          label: "Billing",
+          layout: "accordion",
+          widget: {
+            tag: "my-accordion",
+            headerTag: "my-accordion-header",
+            bodyTag: "my-accordion-panel",
+            titleProp: "heading",
+          },
+          fields: [{ id: "city", type: "text", label: "City" }],
+        },
+        {
+          id: "contacts",
+          type: "collection",
+          label: "Contacts",
+          layout: "accordion",
+          minItems: 1,
+          itemLabel: "Contact",
+          widget: {
+            tag: "fw-collapse",
+            headerTag: "fw-collapse-trigger",
+            bodyTag: "fw-collapse-content",
+          },
+          fields: [{ id: "name", type: "text", label: "Name" }],
+        },
+      ],
+    });
+    mount(form, host);
+
+    const groupAccordion = host.querySelector("my-accordion.fw-group") as HTMLElement & {
+      heading?: string;
+    };
+    expect(groupAccordion).toBeTruthy();
+    expect(groupAccordion.heading).toBe("Billing");
+    expect(groupAccordion.querySelector("my-accordion-header")).toBeNull();
+    expect(groupAccordion.querySelector("my-accordion-panel [data-field='city']")).toBeTruthy();
+
+    const rowAccordion = host.querySelector("fw-collapse.fw-row") as HTMLElement;
+    expect(rowAccordion).toBeTruthy();
+    expect(rowAccordion.querySelector("fw-collapse-trigger")?.textContent).toBe("Contact 1");
+    expect(rowAccordion.querySelector("fw-collapse-content.fw-row-body")).toBeTruthy();
   });
 
   it("shows a dismissible error alert when submit fails validation", async () => {

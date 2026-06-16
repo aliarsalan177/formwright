@@ -18,6 +18,7 @@ import type {
 } from "@formwright/core";
 import { buildSkeletonPlanFromForm, isPresentational, resolve, signal } from "@formwright/core";
 import { bindDisabledWhileSubmitting, bindSubmitControl } from "./actions.js";
+import { renderAccordion } from "./accordion.js";
 import { createActionElement } from "./action-element.js";
 import { bindHidden, bindText, h, on, Scope } from "./internal.js";
 import { renderControl, fieldWidgetHandlesError } from "./widgets.js";
@@ -334,19 +335,20 @@ function renderGroup(form: Form, group: GroupNode, scope: Scope): HTMLElement {
   const title = resolve(group.schema.label, providers);
 
   if (group.schema.layout === "accordion") {
-    const details = h("details", {
-      class: "fw-group fw-accordion",
-      "data-field": group.id,
-      open: "",
-    });
+    const titleText = typeof title === "string" ? title : group.id;
+    const details = renderAccordion(
+      group.schema,
+      scope,
+      {
+        title: titleText,
+        hostClass: "fw-group",
+        bodyClass: "fw-group-body",
+        dataField: group.id,
+        onHidden: () => !group.visible.get(),
+      },
+      (body) => renderFields(form, group.children, scope, body),
+    );
     applyColSpan(details, group);
-    const summary = h("summary", { class: "fw-accordion-head" });
-    summary.textContent = typeof title === "string" ? title : group.id;
-    details.appendChild(summary);
-    const body = h("div", { class: "fw-group-body" });
-    renderFields(form, group.children, scope, body);
-    details.appendChild(body);
-    bindHidden(scope, details, () => !group.visible.get());
     return details;
   }
 
@@ -599,15 +601,15 @@ function renderRow(
   on(scope, removeBtn, "click", () => collection.removeAt(index));
 
   if (layout === "accordion") {
-    const details = h("details", { class: "fw-row fw-accordion", open: "" });
-    const summary = h("summary", { class: "fw-accordion-head" });
-    summary.textContent = heading;
-    details.appendChild(summary);
-    const body = h("div", { class: "fw-row-body" });
-    renderFields(form, item.group.children, scope, body);
-    body.appendChild(removeBtn);
-    details.appendChild(body);
-    return details;
+    return renderAccordion(
+      collection.schema,
+      scope,
+      { title: heading, hostClass: "fw-row", bodyClass: "fw-row-body" },
+      (body) => {
+        renderFields(form, item.group.children, scope, body);
+        body.appendChild(removeBtn);
+      },
+    );
   }
 
   const row = h("div", { class: "fw-row" });

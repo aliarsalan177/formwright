@@ -17,6 +17,14 @@ import { resolve, type FieldState } from "@formwright/core";
 import type { FieldSchema, WidgetBindMap, WidgetRef } from "@formwright/schema";
 import { bindDisabled, on, Scope } from "./internal.js";
 import { bindFieldOptions, optionLabel } from "./options-source.js";
+import {
+  createEventReader,
+  mapFieldOptions,
+  normalizeWidgetValue,
+  shapeWidgetValue,
+  type WidgetValueMode,
+  type WidgetValueShape,
+} from "./widget-normalize.js";
 
 export interface WidgetContext {
   readonly form: Form;
@@ -66,8 +74,18 @@ export interface WidgetSpec {
   toValue?: (raw: unknown) => FieldValue;
   /** Transform our FieldValue into the component's expected value. */
   fromValue?: (value: FieldValue) => unknown;
+  /** Map form options into the component's choices shape. */
+  mapOptions?: (options: readonly FieldOption[]) => unknown;
   /** Map form state → component property names (see {@link WidgetBindMap}). */
   bind?: WidgetBindMap;
+  /** Dot-path on change events (`detail.value.payload`). */
+  readPath?: string;
+  /** Extract key from object / object[] payloads. */
+  valueKey?: string;
+  valueMode?: WidgetValueMode;
+  valueShape?: WidgetValueShape;
+  /** Map `{ label, value }` options to component choice shape. */
+  optionsMap?: { label: string; value: string };
   /** Mount any framework component into `host`; return a cleanup. Overrides `tag`. */
   mount?: (host: HTMLElement, binding: WidgetBinding) => (() => void) | void;
 }
@@ -123,6 +141,11 @@ function specFromRef(ref: Exclude<WidgetRef, string>): WidgetSpec {
   if (ref.event !== undefined) spec.event = ref.event;
   if (ref.attrs !== undefined) spec.attrs = ref.attrs;
   if (ref.bind !== undefined) spec.bind = ref.bind;
+  if (ref.readPath !== undefined) spec.readPath = ref.readPath;
+  if (ref.valueKey !== undefined) spec.valueKey = ref.valueKey;
+  if (ref.valueMode !== undefined) spec.valueMode = ref.valueMode;
+  if (ref.valueShape !== undefined) spec.valueShape = ref.valueShape;
+  if (ref.optionsMap !== undefined) spec.optionsMap = ref.optionsMap;
   return spec;
 }
 
@@ -134,11 +157,55 @@ function mergeTransforms(spec: WidgetSpec, form: Form, ref?: WidgetRef): WidgetS
   const fromValue = ref.fromValue ? transforms[ref.fromValue]?.fromValue : undefined;
   const read = ref.read ? transforms[ref.read]?.read : undefined;
   const write = ref.write ? transforms[ref.write]?.write : undefined;
+  const mapOptions = ref.optionsTransform
+    ? transforms[ref.optionsTransform]?.mapOptions
+    : undefined;
   if (!out.toValue && toValue) out.toValue = toValue;
   if (!out.fromValue && fromValue) out.fromValue = fromValue;
   if (!out.read && read) out.read = read;
   if (!out.write && write) out.write = write;
+  if (!out.mapOptions && mapOptions) out.mapOptions = mapOptions;
   return out;
+}
+
+function resolveToValue(spec: WidgetSpec): (raw: unknown) => FieldValue {
+  if (spec.toValue) return spec.toValue;
+  const { valueKey, valueMode } = spec;
+  if (valueKey) return (raw) => normalizeWidgetValue(raw, valueKey, valueMode ?? "single");
+  return (raw) => raw as FieldValue;
+}
+
+function resolveFromValue(spec: WidgetSpec): (value: FieldValue) => unknown {
+  if (spec.fromValue) return spec.fromValue;
+  const { valueKey, valueShape } = spec;
+  if (valueKey && valueShape && valueShape !== "scalar") {
+    return (value) => shapeWidgetValue(value, valueKey, valueShape);
+  }
+  return (v) => v;
+}
+
+function wireWidgetOptions(spec: WidgetSpec, el: HTMLElement, ctx: WidgetContext): void {
+  const optionsProp = spec.bind?.options;
+  if (!optionsProp) return;
+  const { form, field } = ctx;
+  const hasOptions =
+    field.schema.options !== undefined ||
+    field.schema.type === "select" ||
+    field.schema.type === "radio" ||
+    field.schema.type === "checkbox";
+  if (!hasOptions) return;
+
+  bindFieldOptions(ctx, el, (options) => {
+    let mapped: unknown = options;
+    if (spec.mapOptions) {
+      mapped = spec.mapOptions(options);
+    } else if (spec.optionsMap) {
+      mapped = mapFieldOptions(options, spec.optionsMap.label, spec.optionsMap.value, (opt) =>
+        optionLabel(opt, form),
+      );
+    }
+    setElementProp(el, optionsProp, mapped);
+  });
 }
 
 function valuePropName(spec: WidgetSpec): string {
@@ -203,28 +270,21 @@ function buildTagSpec(spec: WidgetSpec, ctx: WidgetContext): HTMLElement {
   if (spec.attrs) for (const [k, v] of Object.entries(spec.attrs)) el.setAttribute(k, v);
 
   const valueProp = valuePropName(spec);
-  const fromValue = spec.fromValue ?? ((v: FieldValue) => v);
-  const toValue = spec.toValue ?? ((r: unknown) => r as FieldValue);
+  const fromValue = resolveFromValue(spec);
+  const toValue = resolveToValue(spec);
   const write =
     spec.write ??
     ((e, v) => {
       setElementProp(e, valueProp, fromValue(v) ?? "");
     });
-  const read =
-    spec.read ??
-    ((e, ev) => {
-      const detail = (ev as CustomEvent).detail;
-      if (detail && typeof detail === "object" && "value" in detail) {
-        return (detail as { value: unknown }).value;
-      }
-      return (e as HTMLElement & Record<string, unknown>)[valueProp];
-    });
+  const read = spec.read ?? createEventReader(spec.readPath, valueProp);
 
   scope.bind(() => write(el, field.value.get()));
   on(scope, el, (spec.event ?? "input") as keyof HTMLElementEventMap, (ev) =>
     form.setFieldValue(field, toValue(read(el, ev))),
   );
   wireBindMap(spec, el, ctx);
+  wireWidgetOptions(spec, el, ctx);
   return el;
 }
 
