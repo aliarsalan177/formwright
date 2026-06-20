@@ -7,6 +7,7 @@
  * (that is the job of the per-field {@link ValidationSchema}).
  */
 import type { FieldSchema, FieldType, FormSchema } from "./types.js";
+import { deserializeSchema, type SchemaFormat } from "./format.js";
 
 export interface ValidationIssue {
   /** JSON-pointer-ish path to the offending node, e.g. `fields[2].type`. */
@@ -27,6 +28,7 @@ const BUILTIN_TYPES: ReadonlySet<string> = new Set<FieldType>([
   "select",
   "checkbox",
   "radio",
+  "phone",
   "group",
   "collection",
   "steps",
@@ -152,6 +154,22 @@ export function parseSchema(input: unknown): FormSchema {
     throw new SchemaValidationError(`Invalid Formwright schema:\n${detail}`, result.issues);
   }
   return result.value;
+}
+
+/**
+ * Parse a schema from a plain object, JSON string, or TOON string.
+ * JSON is the canonical format; TOON is auto-detected for LLM output.
+ */
+export function parseSchemaInput(input: unknown, format?: SchemaFormat): FormSchema {
+  if (typeof input === "string" && input.trim().length > 0) {
+    return parseSchema(deserializeSchema(input, format));
+  }
+  return parseSchema(input);
+}
+
+/** Parse and validate a JSON or TOON schema string. */
+export function parseSchemaText(text: string, format?: SchemaFormat): FormSchema {
+  return parseSchema(deserializeSchema(text, format));
 }
 
 export class SchemaValidationError extends Error {

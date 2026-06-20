@@ -16,10 +16,24 @@
  * if it's invalid, the precise issues are fed back for repair — so what you get
  * out always satisfies the runtime (or a thrown {@link SchemaGenerationError}).
  */
-import { validateSchema, type FormSchema, type ValidationIssue } from "@formwright/schema";
+import {
+  validateSchema,
+  serializeSchema,
+  deserializeSchema,
+  detectSchemaFormat,
+  type FormSchema,
+  type SchemaFormat,
+  type ValidationIssue,
+} from "@formwright/schema";
 
 export { claudeProvider, type ClaudeProviderOptions } from "./claude.js";
 export { openaiProvider, type OpenAIProviderOptions, type OpenAILike } from "./openai.js";
+export {
+  serializeSchema,
+  deserializeSchema,
+  detectSchemaFormat,
+  type SchemaFormat,
+} from "@formwright/schema";
 
 /** A pluggable model backend: produce a candidate schema object for a request. */
 export interface SchemaProvider {
@@ -29,6 +43,8 @@ export interface SchemaProvider {
 export interface ProposeInput {
   readonly description: string;
   readonly system: string;
+  /** How repair feedback is serialized (default `"json"`). */
+  readonly promptFormat?: SchemaFormat;
   /** Present on a repair attempt: the previous (invalid) output and why it failed. */
   readonly repair?: RepairContext;
 }
@@ -50,6 +66,16 @@ export interface GenerateOptions {
   readonly system?: string;
   /** Extra guidance appended to the system prompt. */
   readonly guidelines?: string;
+  /**
+   * How to serialize repair feedback in prompts (default `"json"`).
+   * Use `"toon"` to reduce tokens when feeding invalid attempts back to the model.
+   */
+  readonly promptFormat?: SchemaFormat;
+  /**
+   * Expected model output format (default `"json"`).
+   * Set `"auto"` to accept JSON or TOON strings from the provider.
+   */
+  readonly outputFormat?: SchemaFormat | "auto";
 }
 
 export interface GenerateResult {
@@ -74,16 +100,29 @@ export function defineProvider(propose: (input: ProposeInput) => Promise<unknown
 
 /** Build the user-facing instruction, including repair feedback when retrying. */
 export function buildPrompt(input: ProposeInput): string {
+  const format = input.promptFormat ?? "json";
   if (!input.repair) {
     return `Design a Formwright form for: ${input.description}`;
   }
+  const previous = serializeSchema(input.repair.previous, format);
+  const fence = format === "toon" ? "toon" : "json";
   return (
     `Design a Formwright form for: ${input.description}\n\n` +
-    `Your previous attempt was INVALID:\n${JSON.stringify(input.repair.previous, null, 2)}\n\n` +
+    `Your previous attempt was INVALID:\n\`\`\`${fence}\n${previous}\n\`\`\`\n\n` +
     `Validation issues to fix:\n` +
     input.repair.issues.map((i) => `- ${i.path}: ${i.message}`).join("\n") +
     `\n\nReturn a corrected schema that resolves every issue.`
   );
+}
+
+/** Normalize provider output — unwrap `{ schema }`, parse JSON/TOON strings. */
+function normalizeCandidate(candidate: unknown, outputFormat: SchemaFormat | "auto"): unknown {
+  let raw = unwrap(candidate);
+  if (typeof raw !== "string") return raw;
+  const trimmed = raw.trim();
+  if (!trimmed) return raw;
+  const format = outputFormat === "auto" ? detectSchemaFormat(trimmed) : outputFormat;
+  return deserializeSchema(trimmed, format);
 }
 
 /** Some providers wrap the schema under a `schema` key; accept either shape. */
@@ -109,18 +148,24 @@ export async function generateSchema(
     (options.system ?? SYSTEM_PROMPT) +
     (options.guidelines ? `\n\nAdditional guidelines:\n${options.guidelines}` : "");
 
+  const promptFormat = options.promptFormat ?? "json";
+  const outputFormat = options.outputFormat ?? "json";
+
   let repair: RepairContext | undefined;
   let lastIssues: readonly ValidationIssue[] = [];
 
   for (let attempt = 1; attempt <= maxRepair + 1; attempt++) {
-    const input: ProposeInput = repair ? { description, system, repair } : { description, system };
+    const input: ProposeInput = repair
+      ? { description, system, promptFormat, repair }
+      : { description, system, promptFormat };
     const candidate = await provider.propose(input);
-    const result = validateSchema(unwrap(candidate));
+    const parsed = normalizeCandidate(candidate, outputFormat);
+    const result = validateSchema(parsed);
     if (result.ok) return { schema: result.value, attempts: attempt };
 
     lastIssues = result.issues;
     if (attempt > maxRepair) break;
-    repair = { previous: unwrap(candidate), issues: result.issues };
+    repair = { previous: parsed, issues: result.issues };
   }
 
   throw new SchemaGenerationError(
@@ -138,7 +183,8 @@ async function defaultProvider(options: GenerateOptions): Promise<SchemaProvider
   return claudeProvider(opts);
 }
 
-export const SYSTEM_PROMPT = `You design forms as Formwright schemas — plain JSON, no code.
+export const SYSTEM_PROMPT = `You design forms as Formwright schemas — plain JSON or TOON (Token-Oriented Object Notation), no code.
+Both encode the same data model; prefer JSON unless the caller asks for TOON.
 
 A FormSchema has:
 - "id" (string), "version" (string, e.g. "1.0"), optional "title", and "fields" (non-empty array).
@@ -146,7 +192,7 @@ A FormSchema has:
 
 Each field has "id" (unique within its scope) and "type", plus optional "label", "placeholder", "help", "description", "defaultValue".
 Field types:
-- "text" | "email" | "password" | "number" | "textarea"
+- "text" | "email" | "password" | "number" | "textarea" | "phone" (international; country selector + validation; payload { country, national }; optional "phone": { "defaultCountry"?, "preferredCountries"? })
 - "checkbox" | "toggle" (boolean; toggle renders as a switch)
 - "select" | "radio" — need "options": [{ "label": string, "value": string|number }]
 - "group" — a nested object; needs "fields": [ ...child fields ]. Produces an object in the payload.
@@ -161,7 +207,7 @@ For multi-step / wizard forms, wrap steps in a "steps" container:
 ]}
 Optional on "steps": "showProgress" (default true), "validateOnNext" (default true), "nextLabel", "prevLabel", "submitLabel".
 
-Validation (optional): "validation": { "kind": "string"|"number", "required"?, "min"?, "max"?, "minLength"?, "maxLength"?, "pattern"?, "format"?: "email"|"url"|"uuid", "message"? }.
+Validation (optional): "validation": { "kind": "string"|"number", "required"?, "min"?, "max"?, "minLength"?, "maxLength"?, "pattern"?, "format"?: "email"|"url"|"uuid"|"phone", "message"? }. For "phone" fields, format "phone" is implied.
 
 Conditional logic — data, not code — via "visibleWhen" / "enabledWhen" / "requiredWhen", a JSONLogic-style expression:
 { "==": [a, b] }, "!=", ">", ">=", "<", "<=", { "in": [needle, haystack] }, { "and": [...] }, { "or": [...] }, { "not": x }, and { "var": "fieldId" } to read another field's value.

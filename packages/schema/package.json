@@ -32,6 +32,9 @@
     "test": "vitest run",
     "clean": "rm -rf dist .turbo"
   },
+  "dependencies": {
+    "@toon-format/toon": "^2.3.0"
+  },
   "publishConfig": {
     "access": "public"
   }

@@ -453,7 +453,7 @@ function renderPreview(): void {
     return;
   }
   try {
-    previewForm = new Form(buildSchema());
+    previewForm = new Form(buildSchema(), {}, { dom: { customStyles: true } });
     previewForm.mount(previewEl);
   } catch (err) {
     const pre = document.createElement("pre");

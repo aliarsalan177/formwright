@@ -1,5 +1,7 @@
 export type {
   FieldValue,
+  PhoneValue,
+  PhoneFieldOptions,
   ProviderRef,
   Resolvable,
   Condition,
@@ -13,6 +15,7 @@ export type {
   RenderWrapper,
   RenderWrappers,
   FormTitleSchema,
+  FormSummarySchema,
   FieldSchema,
   ProviderDecl,
   SubmitSchema,
@@ -28,9 +31,18 @@ export type {
 export {
   validateSchema,
   parseSchema,
+  parseSchemaInput,
+  parseSchemaText,
   isFormSchema,
   fieldIds,
   SchemaValidationError,
   type ValidationIssue,
   type ValidationResult,
 } from "./validate.js";
+
+export {
+  serializeSchema,
+  deserializeSchema,
+  detectSchemaFormat,
+  type SchemaFormat,
+} from "./format.js";

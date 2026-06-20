@@ -179,7 +179,7 @@ function openSection(id: SectionId): void {
   panelEl.replaceChildren();
 
   // A Formwright form IS the settings panel. Each change updates the theme live.
-  const form = new Form(section.schema, settings[id]);
+  const form = new Form(section.schema, settings[id], { dom: { customStyles: true } });
   form.on("change", () => {
     settings[id] = form.values.peek() as Values;
     renderPreview();

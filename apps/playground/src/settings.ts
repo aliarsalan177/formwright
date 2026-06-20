@@ -346,6 +346,7 @@ function open(section: Section, stack: Section[]): void {
     // `actions: []` suppresses the renderer's default Submit button — settings
     // apply instantly or via our own "Save all" control below, never both.
     const form = new Form({ ...section.schema, actions: [] }, values[section.id], {
+      dom: { customStyles: true },
       // "Save all" — PUT the complete section payload.
       send: async (payload) => {
         pushSave(`PUT  /api/settings/${sectionPath}  ←  ${JSON.stringify(payload)}`);

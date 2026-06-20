@@ -52,6 +52,30 @@ describe("generateSchema (provider-agnostic core)", () => {
     });
     expect(schema.id).toBe("signup");
   });
+
+  it("accepts TOON string output when outputFormat is auto", async () => {
+    const { serializeSchema } = await import("@formwright/schema");
+    const toon = serializeSchema(validSchema, "toon");
+    const { schema } = await generateSchema("x", {
+      provider: defineProvider(async () => toon),
+      outputFormat: "auto",
+    });
+    expect(schema.id).toBe("signup");
+  });
+
+  it("serializes repair feedback as TOON when promptFormat is toon", async () => {
+    const outputs: unknown[] = [{ id: "x", version: "1.0", fields: [] }, validSchema];
+    let i = 0;
+    const propose = vi.fn(async (input: ProposeInput) => {
+      if (input.repair) expect(input.promptFormat).toBe("toon");
+      return outputs[i++];
+    });
+    await generateSchema("signup", {
+      provider: defineProvider(propose),
+      promptFormat: "toon",
+    });
+    expect(propose).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("openaiProvider", () => {

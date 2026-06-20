@@ -37,7 +37,9 @@
   },
   "dependencies": {
     "@formwright/core": "workspace:*",
-    "@formwright/schema": "workspace:*"
+    "@formwright/schema": "workspace:*",
+    "country-flag-icons": "^1.6.17",
+    "libphonenumber-js": "^1.13.7"
   },
   "devDependencies": {
     "jsdom": "^25.0.1"

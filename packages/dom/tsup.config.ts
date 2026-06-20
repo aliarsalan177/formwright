@@ -7,4 +7,10 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   treeshake: true,
+  esbuildOptions(options) {
+    options.loader = {
+      ...options.loader,
+      ".css": "text",
+    };
+  },
 });

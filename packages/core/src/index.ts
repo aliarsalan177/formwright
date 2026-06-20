@@ -16,6 +16,11 @@ export { evaluateCondition, referencedFields, type ValueGetter } from "./conditi
 
 // Validation
 export { compileValidator, type FieldValidator } from "./validation.js";
+export {
+  registerFormatValidator,
+  runFormatValidator,
+  type FormatValidator,
+} from "./format-validators.js";
 
 // Providers
 export {

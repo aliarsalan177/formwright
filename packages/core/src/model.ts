@@ -16,6 +16,8 @@ export function defaultValueFor(type: string): FieldValue {
       return false;
     case "number":
       return undefined;
+    case "phone":
+      return { country: "US", national: "" };
     default:
       return "";
   }
@@ -56,7 +58,7 @@ export class FieldState {
     this.value = signal<FieldValue>(initial);
     this.error = signal<string | null>(null);
     this.touched = signal(false);
-    this.validator = schema.validation ? compileValidator(schema.validation) : null;
+    this.validator = resolveFieldValidator(schema);
     this.revision = this.rev;
 
     // Conditions read `this.schema` (not the captured arg) and track `rev`, so a
@@ -81,7 +83,7 @@ export class FieldState {
   /** Merge a partial schema in at runtime (change type, label, options, validation, …). */
   patchSchema(partial: Partial<FieldSchema>): void {
     this.schema = { ...this.schema, ...partial } as FieldSchema;
-    this.validator = this.schema.validation ? compileValidator(this.schema.validation) : null;
+    this.validator = resolveFieldValidator(this.schema);
     this.rev.update((n) => n + 1);
   }
 
@@ -112,6 +114,26 @@ export class FieldState {
   }
 }
 
+function isPhoneValue(value: unknown): value is { country: string; national: string } {
+  return typeof value === "object" && value !== null && "country" in value && "national" in value;
+}
+
 function isEmpty(value: FieldValue): boolean {
-  return value === undefined || value === null || value === "";
+  if (value === undefined || value === null || value === "") return true;
+  if (isPhoneValue(value)) return String(value.national).replace(/\D/g, "").length === 0;
+  return false;
+}
+
+function resolveFieldValidator(schema: FieldSchema): FieldValidator | null {
+  if (schema.validation) {
+    const v =
+      schema.type === "phone" && schema.validation.format === undefined
+        ? { ...schema.validation, format: "phone" as const }
+        : schema.validation;
+    return compileValidator(v);
+  }
+  if (schema.type === "phone") {
+    return compileValidator({ kind: "string", format: "phone" });
+  }
+  return null;
 }
