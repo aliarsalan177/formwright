@@ -181,7 +181,7 @@ function exampleLive(host: HTMLElement): Mounted {
   };
   const ROWS = 50_000;
   const grid = new Grid(schema, makeTrades(ROWS));
-  const dispose = mount(grid, host);
+  const dispose = mount(grid, host, { customStyles: true });
 
   // Live ticker with a start/stop button + rate readout in the actions slot.
   const actions = $("grid-actions");
@@ -272,7 +272,7 @@ function exampleServer(host: HTMLElement): Mounted {
 
   const schema: GridSchema = { id: "server", columns: [...TRADE_COLUMNS] };
   const grid = new Grid(schema, [], { datasource, pagination: { pageSize: 20 } });
-  const dispose = mount(grid, host);
+  const dispose = mount(grid, host, { customStyles: true });
   setFoot(
     "Server mode — the grid fetches one page at a time from a (simulated) API that owns sort, filter, and the total count. Sort, search, and page all round-trip.",
   );
@@ -332,6 +332,7 @@ function exampleMaster(host: HTMLElement): Mounted {
 
   // Detail = another paginated grid from a different "API".
   const dispose = mount(grid, host, {
+    customStyles: true,
     detail: (row, panel, id) => {
       const orders = makeOrders(id);
       const sub = new Grid(
@@ -378,7 +379,7 @@ function exampleMaster(host: HTMLElement): Mounted {
       const subHost = document.createElement("div");
       subHost.className = "gw-detail-grid";
       panel.append(subHost);
-      const subDispose = mount(sub, subHost);
+      const subDispose = mount(sub, subHost, { customStyles: true });
       return () => {
         subDispose();
         sub.destroy();
@@ -417,7 +418,7 @@ function exampleOwn(host: HTMLElement): Mounted {
   const myData: Row[] = makeTrades(57);
   const schema: GridSchema = { id: "own", columns: [...TRADE_COLUMNS] };
   const grid = new Grid(schema, myData, { pagination: { pageSize: 8 } });
-  const dispose = mount(grid, host);
+  const dispose = mount(grid, host, { customStyles: true });
 
   // Imperative external controls (in addition to the built-in pager).
   const actions = $("grid-actions");
@@ -469,7 +470,7 @@ function exampleGroup(host: HTMLElement): Mounted {
     ],
   };
   const grid = new Grid(schema, makeTrades(400));
-  const dispose = mount(grid, host);
+  const dispose = mount(grid, host, { customStyles: true });
 
   const actions = $("grid-actions");
   const expand = document.createElement("button");

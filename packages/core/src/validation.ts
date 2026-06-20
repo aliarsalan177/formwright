@@ -7,7 +7,8 @@
  * runs whichever is present. Kept dependency-free here so `@formwright/core`
  * ships with no required runtime deps.
  */
-import type { FieldValue, ValidationSchema } from "@formwright/schema";
+import type { FieldValue, PhoneValue, ValidationSchema } from "@formwright/schema";
+import { runFormatValidator } from "./format-validators.js";
 
 export type FieldValidator = (value: FieldValue) => string | null;
 
@@ -15,8 +16,17 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const URL = /^https?:\/\/[^\s]+$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function isPhoneValue(value: unknown): value is PhoneValue {
+  return typeof value === "object" && value !== null && "country" in value && "national" in value;
+}
+
 function isEmpty(value: FieldValue): boolean {
-  return value === undefined || value === null || value === "";
+  if (value === undefined || value === null || value === "") return true;
+  if (isPhoneValue(value)) {
+    const digits = String(value.national).replace(/\D/g, "");
+    return digits.length === 0;
+  }
+  return false;
 }
 
 type Rule = NonNullable<ValidationSchema["messages"]>;
@@ -48,6 +58,12 @@ export function compileValidator(schema: ValidationSchema): FieldValidator {
         return msg("format", "Enter a valid email");
       if (schema.format === "url" && !URL.test(str)) return msg("format", "Enter a valid URL");
       if (schema.format === "uuid" && !UUID.test(str)) return msg("format", "Enter a valid UUID");
+    }
+
+    if (schema.format === "phone") {
+      if (!isPhoneValue(value)) return msg("format", "Enter a valid phone number");
+      const err = runFormatValidator("phone", value);
+      if (err) return msg("format", err);
     }
 
     if (schema.kind === "number") {

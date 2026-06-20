@@ -29,7 +29,7 @@ export interface SkeletonNode {
   readonly children?: readonly SkeletonNode[];
 }
 
-const TEXT_LIKE = new Set(["text", "email", "password", "url", "tel", "search", "number"]);
+const TEXT_LIKE = new Set(["text", "email", "password", "url", "tel", "search", "number", "phone"]);
 
 function presentationalVariant(type: FieldType): SkeletonVariant {
   if (type === "heading") return "heading";

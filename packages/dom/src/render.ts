@@ -31,6 +31,9 @@ import { renderSkeleton } from "./skeleton.js";
 import { wireStepUrlSync } from "./step-url.js";
 import { wrapNode } from "./wrappers.js";
 import type { FormTitleSchema } from "@formwright/schema";
+import { applyMountStyles } from "./styles.js";
+import { FORM_DEFAULT_CSS } from "./default-form-styles.js";
+import { renderSummaryPanel, summaryLayoutClass } from "./summary.js";
 
 /** Render any node (leaf, group, collection, or steps) into a fresh wrapper element. */
 function renderNode(form: Form, node: FieldNode, scope: Scope): HTMLElement {
@@ -758,11 +761,30 @@ export function mount(
     });
   });
 
-  host.appendChild(formEl);
+  applyMountStyles(host, {
+    rootClass: "fw-root",
+    defaultCss: FORM_DEFAULT_CSS,
+    styleId: "formwright-form-default-styles",
+    ...(options?.styles !== undefined ? { styles: options.styles } : {}),
+    ...(options?.customStyles !== undefined ? { customStyles: options.customStyles } : {}),
+    ...(options?.className !== undefined ? { className: options.className } : {}),
+  });
+
+  const summaryPanel = renderSummaryPanel(form, scope);
+  if (summaryPanel) {
+    const layout = h("div", { class: summaryLayoutClass(form.schema) || "fw-layout" });
+    const main = h("div", { class: "fw-layout-main" });
+    main.appendChild(formEl);
+    layout.append(main, summaryPanel);
+    host.appendChild(layout);
+  } else {
+    host.appendChild(formEl);
+  }
 
   return () => {
     scope.dispose();
     formEl.remove();
+    if (summaryPanel) host.querySelector(".fw-layout")?.remove();
   };
 }
 

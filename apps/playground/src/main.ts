@@ -314,9 +314,10 @@ const WIZARD: FormSchema = {
             },
             {
               id: "phone",
-              type: "text",
+              type: "phone",
               label: "Phone",
-              placeholder: "+1 555 0100",
+              phone: { preferredCountries: ["US", "CA", "GB"] },
+              validation: { required: true },
             },
           ],
         },
@@ -484,16 +485,11 @@ const SOCIAL_SUPPORT: FormSchema = {
             },
             {
               id: "phone",
-              type: "text",
+              type: "phone",
               label: "Phone",
               colSpan: 6,
-              autocomplete: "tel",
-              validation: {
-                kind: "string",
-                required: true,
-                pattern: "^[+]?[\\d\\s-]{7,15}$",
-                messages: { pattern: "Enter a valid phone number" },
-              },
+              phone: { preferredCountries: ["US", "CA", "GB", "AU"] },
+              validation: { required: true },
             },
             {
               id: "email",
@@ -735,6 +731,7 @@ function rebuild(): void {
           setStatus("ok", "Success screen dismissed");
         },
       },
+      dom: { customStyles: true },
     },
   );
   currentForm = form;

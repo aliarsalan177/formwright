@@ -3,11 +3,19 @@
  *
  * A schema is plain data: hand-written, version-controlled, or emitted by an LLM.
  * Everything the runtime and the codegen compiler need is expressed here as data,
- * never as code, so a schema can round-trip through JSON.
+ * never as code, so a schema can round-trip through JSON (canonical) or TOON (LLM-efficient).
  */
 
+/** Value stored by a `phone` field — `{ country, national }` in the payload. */
+export interface PhoneValue {
+  /** ISO 3166-1 alpha-2 country code (e.g. `"US"`). */
+  readonly country: string;
+  /** National number as entered (may include spaces/dashes). */
+  readonly national: string;
+}
+
 /** Primitive value a form field can hold. */
-export type FieldValue = string | number | boolean | null | undefined | FieldValue[];
+export type FieldValue = string | number | boolean | null | undefined | FieldValue[] | PhoneValue;
 
 /** A reference to a value provided by a registered provider, expressed as a sigil object. */
 export type ProviderRef =
@@ -82,6 +90,7 @@ export type FieldType =
   | "color" // color picker (swatch + hex input)
   | "range" // a slider (e.g. brightness) with live value bubble
   | "file" // native file input (override with a custom widget for uploads)
+  | "phone" // international phone with country selector + per-country validation
   | "group" // a nested object: produces `{ ...child values }`
   | "collection" // a repeatable list of groups: produces `[{ ... }, { ... }]`
   | "steps" // a multi-step wizard: child `step` fields shown one at a time
@@ -191,7 +200,7 @@ export interface ValidationSchema {
   readonly minLength?: number;
   readonly maxLength?: number;
   readonly pattern?: string;
-  readonly format?: "email" | "url" | "uuid";
+  readonly format?: "email" | "url" | "uuid" | "phone";
   /** Catch-all override for every rule's message. */
   readonly message?: Resolvable<string>;
   /** Per-rule message overrides (take precedence over `message` and the defaults). */
@@ -205,6 +214,14 @@ export interface ValidationSchema {
     readonly format?: string;
     readonly type?: string;
   };
+}
+
+/** Options for `type: "phone"` fields. */
+export interface PhoneFieldOptions {
+  /** Default country when empty (default `"US"`, or browser locale when available). */
+  readonly defaultCountry?: string;
+  /** ISO codes pinned to the top of the country list (e.g. `["US", "GB", "CA"]`). */
+  readonly preferredCountries?: readonly string[];
 }
 
 /** A selectable option for `select` / `radio` fields. */
@@ -253,6 +270,16 @@ export interface FormTitleSchema {
   readonly wrapper?: RenderWrappers;
 }
 
+/** Live summary panel — shows filled field values as the user types (default on). */
+export interface FormSummarySchema {
+  /** Show the summary panel (default `true`). */
+  readonly enabled?: boolean;
+  readonly title?: Resolvable<string>;
+  /** `"side"` (default) or `"bottom"`. */
+  readonly position?: "side" | "bottom";
+  readonly emptyMessage?: Resolvable<string>;
+}
+
 /**
  * A slot rendered at the start/end of an input — either decorative text/icon
  * (a string like "$" or "🔍") or a nested field (e.g. a currency `select`) whose
@@ -291,6 +318,12 @@ export interface FieldSchema {
   readonly slots?: { readonly start?: FieldSlot; readonly end?: FieldSlot };
   /** Exclude this field's value from the submitted payload (UI-only control). */
   readonly omit?: boolean;
+  /** Exclude from the live summary panel (default: included when summary is on). */
+  readonly omitFromSummary?: boolean;
+  /** Shorthand: `false` hides this field from the live summary. */
+  readonly summary?: boolean;
+  /** Phone field: default country and preferred countries in the selector. */
+  readonly phone?: PhoneFieldOptions;
   /** Render this field with your own component/element instead of the built-in for `type`. */
   readonly widget?: WidgetRef;
   /** Columns the field spans in the form's 12-column grid (e.g. 6 = half width, two side by side). */
@@ -485,4 +518,9 @@ export interface FormSchema {
   readonly actions?: readonly FormAction[];
   /** How action buttons are aligned: `"start"` (default), `"end"`, or `"between"`. */
   readonly actionsAlign?: "start" | "end" | "between";
+  /**
+   * Live summary of filled fields (default on). Pass `false` to disable, or a
+   * config object for title/position. Fields can opt out with `omitFromSummary`.
+   */
+  readonly summary?: boolean | FormSummarySchema;
 }

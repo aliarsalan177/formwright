@@ -11,7 +11,7 @@
  * instance can drive the DOM, a web component, or a framework adapter.
  */
 import {
-  parseSchema,
+  parseSchemaInput,
   type FieldOption,
   type FieldSchema,
   type FieldValue,
@@ -64,6 +64,17 @@ export interface SuccessScreenContext {
 export interface DomRendererOptions {
   /** Replace the built-in success template with your own UI. */
   readonly renderSuccess?: (ctx: SuccessScreenContext, host: HTMLElement) => Dispose | void;
+  /**
+   * Styles for the mount host.
+   * - `undefined` / `"default"` — inject built-in Formwright theme CSS.
+   * - `false` — no stylesheet (bring your own).
+   * - URL string — inject `<link href="…">` instead of defaults.
+   */
+  readonly styles?: false | "default" | string;
+  /** When `true`, skip built-in default CSS (use with your own file or inline/schema classes). */
+  readonly customStyles?: boolean;
+  /** Extra class(es) on the mount root (`.fw-root`). */
+  readonly className?: string;
 }
 
 /** Why the form is in a loading state (skeleton overlay, disabled nav). */
@@ -185,9 +196,8 @@ export class Form {
     initialValues: FormValues = {},
     options: FormOptions = {},
   ) {
-    // Always validate: parseSchema passes valid schemas through unchanged and
-    // throws a precise SchemaValidationError otherwise (key for LLM-emitted input).
-    this.schema = parseSchema(schema);
+    // Always validate: parseSchemaInput accepts objects, JSON strings, or TOON strings.
+    this.schema = parseSchemaInput(schema);
     this.options = options;
     this.initialValues = initialValues;
 
