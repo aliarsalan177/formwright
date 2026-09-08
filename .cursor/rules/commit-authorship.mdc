@@ -1,0 +1,11 @@
+---
+description: Preserve the user's sole authorship on every commit
+alwaysApply: true
+---
+
+# Commit authorship
+
+- Never add `Co-authored-by` or any other authorship trailer naming Cursor, an AI agent, or the assistant.
+- Before pushing a commit created or amended by the agent, inspect its full message with `git log -1 --format=full`.
+- If an automated hook adds an unwanted trailer, remove it before pushing.
+- Keep the repository-configured user as the sole author and committer unless the user explicitly requests otherwise.

@@ -3,11 +3,12 @@ import type { Grid, ResolvedColumn } from "@formwright/grid-core";
 import { beginEdit, bindCellWidthPin, makeCell, px, renderCellInto } from "./cells.js";
 import { buildHeader } from "./header.js";
 import { bindRowClick, type RowClickHandler } from "./row-click.js";
+import { Scope } from "@formwright/ui-core";
 
 interface Slot {
   readonly el: HTMLElement;
   readonly rowId: WriteSignal<string | null>;
-  readonly disposers: Dispose[];
+  readonly scope: Scope;
 }
 
 /**
@@ -20,7 +21,7 @@ export function mountVirtual(
   host: Element,
   options: { readonly onRowClick?: RowClickHandler } = {},
 ): Dispose {
-  const disposers: Dispose[] = [];
+  const scope = new Scope();
 
   const root = document.createElement("div");
   root.className = "gw-grid";
@@ -29,14 +30,14 @@ export function mountVirtual(
   const viewport = document.createElement("div");
   viewport.className = "gw-viewport";
 
-  const { header, filterRow, hasFilters } = buildHeader(grid, disposers, {
+  const { header, filterRow, hasFilters } = buildHeader(grid, scope, {
     selection: false,
     expand: false,
   });
 
   const canvas = document.createElement("div");
   canvas.className = "gw-canvas";
-  disposers.push(
+  scope.add(
     effect(() => {
       canvas.style.width = px(grid.totalColumnsWidth());
     }),
@@ -51,7 +52,7 @@ export function mountVirtual(
   empty.className = "gw-empty";
   empty.textContent = "No rows";
   root.append(empty);
-  disposers.push(
+  scope.add(
     effect(() => {
       empty.style.display = grid.displayRowIds.get().length === 0 ? "flex" : "none";
       root.setAttribute("aria-rowcount", String(grid.rowCount()));
@@ -64,7 +65,7 @@ export function mountVirtual(
   let colSig = "";
 
   function disposeSlots(): void {
-    for (const slot of slots) for (const d of slot.disposers) d();
+    for (const slot of slots) slot.scope.dispose();
     slots = [];
     canvas.replaceChildren();
   }
@@ -75,22 +76,22 @@ export function mountVirtual(
     el.setAttribute("role", "row");
     el.style.height = px(grid.rowHeight);
     const rowId = signal<string | null>(null);
-    const slot: Slot = { el, rowId, disposers: [] };
-    slot.disposers.push(
+    const slot: Slot = { el, rowId, scope: new Scope() };
+    slot.scope.add(
       effect(() => {
         el.style.width = px(grid.totalColumnsWidth());
       }),
     );
     for (const col of grid.orderedColumns.peek()) {
       const cell = makeCell(col);
-      slot.disposers.push(bindCellWidthPin(grid, col, cell, 0));
+      slot.scope.add(bindCellWidthPin(grid, col, cell, 0));
       if (col.editable) {
         cell.addEventListener("dblclick", () => {
           const id = rowId.peek();
           if (id != null) beginEdit(grid, col, cell, id);
         });
       }
-      slot.disposers.push(
+      slot.scope.add(
         effect(() => {
           rowId.get();
           const id = rowId.peek();
@@ -105,7 +106,7 @@ export function mountVirtual(
     return slot;
   }
 
-  disposers.push(
+  scope.add(
     effect(() => {
       const cols = grid.orderedColumns.get();
       const sig = cols.map((c) => c.field).join("|");
@@ -144,11 +145,11 @@ export function mountVirtual(
     ro.observe(viewport);
   }
   grid.setViewportHeight(viewport.clientHeight);
-  disposers.push(bindRowClick(root, grid, options.onRowClick));
+  scope.add(bindRowClick(root, grid, options.onRowClick));
 
   return () => {
     disposeSlots();
-    for (const d of disposers) d();
+    scope.dispose();
     viewport.removeEventListener("scroll", onScroll);
     ro?.disconnect();
     root.remove();

@@ -1,6 +1,7 @@
-import { effect, type Dispose } from "@formwright/reactive";
+import { effect } from "@formwright/reactive";
 import type { Grid, ResolvedColumn } from "@formwright/grid-core";
 import { applyPin, px, addClassTokens } from "./cells.js";
+import { Scope } from "@formwright/ui-core";
 
 export const SEL_W = 44;
 export const EXP_W = 40;
@@ -29,7 +30,7 @@ function leadingCell(className: string, width: number): HTMLElement {
  * row. Header cells rebuild reactively when columns change (reorder / hide / pin),
  * support drag-to-reorder, drag-to-resize, and pinned-sticky positioning.
  */
-export function buildHeader(grid: Grid, disposers: Dispose[], leading: LeadingFlags): HeaderParts {
+export function buildHeader(grid: Grid, scope: Scope, leading: LeadingFlags): HeaderParts {
   const leadingWidth = (leading.selection ? SEL_W : 0) + (leading.expand ? EXP_W : 0);
 
   const header = document.createElement("div");
@@ -43,7 +44,7 @@ export function buildHeader(grid: Grid, disposers: Dispose[], leading: LeadingFl
   const hasFilters = grid.columns.some((c) => c.filter);
 
   // Reactive total width.
-  disposers.push(
+  scope.add(
     effect(() => {
       const w = px(leadingWidth + grid.totalColumnsWidth());
       header.style.width = w;
@@ -52,7 +53,7 @@ export function buildHeader(grid: Grid, disposers: Dispose[], leading: LeadingFl
   );
 
   // Rebuild header + filter children when the column set/order changes.
-  let childDisposers: Dispose[] = [];
+  let childScope = new Scope();
   function leadCells(into: HTMLElement, cls: string): void {
     if (leading.expand) into.appendChild(leadingCell(`${cls} gw-lead`, EXP_W));
     if (leading.selection) {
@@ -62,7 +63,7 @@ export function buildHeader(grid: Grid, disposers: Dispose[], leading: LeadingFl
         cb.type = "checkbox";
         cb.className = "gw-check";
         cb.addEventListener("change", () => grid.selectAllOnPage(cb.checked));
-        childDisposers.push(
+        childScope.add(
           effect(() => {
             const ids = grid.displayRowIds.get();
             cb.checked = ids.length > 0 && ids.every((id) => grid.isSelected(id));
@@ -76,11 +77,11 @@ export function buildHeader(grid: Grid, disposers: Dispose[], leading: LeadingFl
     }
   }
 
-  disposers.push(
+  scope.add(
     effect(() => {
       const cols = grid.orderedColumns.get();
-      for (const d of childDisposers) d();
-      childDisposers = [];
+      childScope.dispose();
+      childScope = new Scope();
       header.replaceChildren();
       filterRow.replaceChildren();
 
@@ -98,12 +99,12 @@ export function buildHeader(grid: Grid, disposers: Dispose[], leading: LeadingFl
     hcell.setAttribute("role", "columnheader");
     addClassTokens(hcell, col.class);
     hcell.style.textAlign = col.align;
-    childDisposers.push(
+    childScope.add(
       effect(() => {
         hcell.style.width = px(grid.columnWidth(col.field));
       }),
     );
-    childDisposers.push(
+    childScope.add(
       effect(() => {
         grid.columnPin(col.field);
         grid.totalColumnsWidth(); // re-pin when widths/pins change
@@ -122,7 +123,7 @@ export function buildHeader(grid: Grid, disposers: Dispose[], leading: LeadingFl
       hcell.classList.add("gw-sortable");
       hcell.addEventListener("click", (ev) => grid.toggleSort(col.field, ev.shiftKey));
     }
-    childDisposers.push(
+    childScope.add(
       effect(() => {
         const model = grid.sortModel();
         const i = model.findIndex((s) => s.field === col.field);
@@ -175,12 +176,12 @@ export function buildHeader(grid: Grid, disposers: Dispose[], leading: LeadingFl
   function buildFilterCell(col: ResolvedColumn): void {
     const fcell = document.createElement("div");
     fcell.className = "gw-fcell";
-    childDisposers.push(
+    childScope.add(
       effect(() => {
         fcell.style.width = px(grid.columnWidth(col.field));
       }),
     );
-    childDisposers.push(
+    childScope.add(
       effect(() => {
         grid.columnPin(col.field);
         grid.totalColumnsWidth();
@@ -199,8 +200,8 @@ export function buildHeader(grid: Grid, disposers: Dispose[], leading: LeadingFl
     filterRow.appendChild(fcell);
   }
 
-  disposers.push(() => {
-    for (const d of childDisposers) d();
+  scope.add(() => {
+    childScope.dispose();
   });
 
   return { header, filterRow, hasFilters, leadingWidth };

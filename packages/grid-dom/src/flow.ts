@@ -4,6 +4,7 @@ import { beginEdit, bindCellWidthPin, makeCell, px, renderCellInto } from "./cel
 import { getFormatter } from "./registry.js";
 import { buildHeader, EXP_W, SEL_W } from "./header.js";
 import { bindRowClick, type RowClickHandler } from "./row-click.js";
+import { Scope } from "@formwright/ui-core";
 
 function formatAgg(col: ResolvedColumn, value: number): string {
   if (col.valueFormatter) {
@@ -33,8 +34,13 @@ export interface FlowOptions {
  * master/detail is enabled.
  */
 export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}): Dispose {
-  const disposers: Dispose[] = [];
-  const rowDisposers: Dispose[] = [];
+  const scope = new Scope();
+  // `let`, because the rows are torn down and rebuilt on every page,
+  // sort and filter. A Scope models one lifetime — disposing it is
+  // final, and anything registered afterwards is undone immediately —
+  // so each generation of rows gets its own rather than refilling a
+  // spent one.
+  let rowScope = new Scope();
   const detailDisposers = new Map<string, Dispose>();
   const hasSelection = grid.selectionMode !== "none";
 
@@ -45,7 +51,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
   const viewport = document.createElement("div");
   viewport.className = "gw-viewport";
 
-  const { header, filterRow, hasFilters, leadingWidth } = buildHeader(grid, disposers, {
+  const { header, filterRow, hasFilters, leadingWidth } = buildHeader(grid, scope, {
     selection: hasSelection,
     expand: grid.masterDetail,
   });
@@ -53,7 +59,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
 
   const body = document.createElement("div");
   body.className = "gw-body";
-  disposers.push(
+  scope.add(
     effect(() => {
       body.style.width = px(totalWidth());
     }),
@@ -69,7 +75,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
   overlay.className = "gw-loading";
   overlay.textContent = "Loading…";
   root.append(overlay);
-  disposers.push(
+  scope.add(
     effect(() => {
       overlay.style.display = grid.loading() ? "flex" : "none";
     }),
@@ -80,7 +86,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
   empty.className = "gw-empty";
   empty.textContent = "No rows";
   root.append(empty);
-  disposers.push(
+  scope.add(
     effect(() => {
       const n = grid.displayRowIds.get().length;
       empty.style.display = n === 0 && !grid.loading() ? "flex" : "none";
@@ -90,16 +96,16 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
 
   // Grand-total footer (when any column aggregates).
   if (grid.columns.some((c) => c.aggFunc))
-    root.append(buildGrandTotal(grid, disposers, leadingWidth, totalWidth));
+    root.append(buildGrandTotal(grid, scope, leadingWidth, totalWidth));
 
   // Pagination footer.
-  if (grid.paginated) root.append(buildPager(grid, disposers));
+  if (grid.paginated) root.append(buildPager(grid, scope));
 
   host.append(root);
 
   function disposeRows(): void {
-    for (const d of rowDisposers) d();
-    rowDisposers.length = 0;
+    rowScope.dispose();
+    rowScope = new Scope();
     for (const d of detailDisposers.values()) d();
     detailDisposers.clear();
     body.replaceChildren();
@@ -113,7 +119,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
     row.setAttribute("data-row-id", id);
     if (index % 2 === 1) row.classList.add("gw-row-odd");
     row.style.minHeight = px(grid.rowHeight);
-    rowDisposers.push(
+    rowScope.add(
       effect(() => {
         row.style.width = px(totalWidth());
       }),
@@ -125,7 +131,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
       toggle.className = "gw-expand";
       toggle.style.width = px(EXP_W);
       toggle.addEventListener("click", () => grid.toggleExpand(id));
-      rowDisposers.push(
+      rowScope.add(
         effect(() => {
           const open = grid.isExpanded(id);
           toggle.textContent = open ? "▾" : "▸";
@@ -143,7 +149,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
       cb.type = grid.selectionMode === "single" ? "radio" : "checkbox";
       cb.className = "gw-check";
       cb.addEventListener("change", () => grid.toggleSelect(id));
-      rowDisposers.push(
+      rowScope.add(
         effect(() => {
           const sel = grid.isSelected(id);
           cb.checked = sel;
@@ -157,12 +163,12 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
 
     grid.orderedColumns.peek().forEach((col, i) => {
       const cell = makeCell(col);
-      rowDisposers.push(bindCellWidthPin(grid, col, cell, leadingWidth));
+      rowScope.add(bindCellWidthPin(grid, col, cell, leadingWidth));
       if (i === 0 && depth > 0) cell.style.paddingLeft = px(12 + depth * 16);
       if (col.editable) {
         cell.addEventListener("dblclick", () => beginEdit(grid, col, cell, id));
       }
-      rowDisposers.push(
+      rowScope.add(
         effect(() => {
           grid.rowSignal(id).get(); // subscribe to this row's data
           renderCellInto(grid, col, cell, id);
@@ -174,7 +180,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
 
     // Detail panel (mounted lazily while expanded).
     if (grid.masterDetail && options.detail) {
-      rowDisposers.push(
+      rowScope.add(
         effect(() => {
           const open = grid.isExpanded(id);
           const existing = detailDisposers.get(id);
@@ -202,7 +208,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
     const row = document.createElement("div");
     row.className = "gw-grouprow";
     row.setAttribute("role", "row");
-    rowDisposers.push(
+    rowScope.add(
       effect(() => {
         row.style.width = px(totalWidth());
       }),
@@ -215,7 +221,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
     }
     grid.orderedColumns.peek().forEach((col, i) => {
       const cell = makeCell(col);
-      rowDisposers.push(bindCellWidthPin(grid, col, cell, leadingWidth));
+      rowScope.add(bindCellWidthPin(grid, col, cell, leadingWidth));
       if (i === 0) {
         cell.classList.add("gw-group-label");
         cell.style.paddingLeft = px(12 + r.depth * 16);
@@ -223,7 +229,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
         toggle.type = "button";
         toggle.className = "gw-expand";
         toggle.addEventListener("click", () => grid.toggleGroup(r.key));
-        rowDisposers.push(
+        rowScope.add(
           effect(() => {
             const open = grid.isGroupExpanded(r.key);
             toggle.textContent = open ? "▾" : "▸";
@@ -243,7 +249,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
   }
 
   // Re-render the row list when the displayed rows / column set changes.
-  disposers.push(
+  scope.add(
     effect(() => {
       const list = grid.displayRows.get();
       grid.orderedColumns.get(); // rebuild rows when columns reorder / hide / pin
@@ -256,25 +262,25 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
     }),
   );
 
-  disposers.push(bindRowClick(root, grid, options.onRowClick));
+  scope.add(bindRowClick(root, grid, options.onRowClick));
 
   return () => {
     disposeRows();
-    for (const d of disposers) d();
+    scope.dispose();
     root.remove();
   };
 }
 
 function buildGrandTotal(
   grid: Grid,
-  disposers: Dispose[],
+  scope: Scope,
   leadingWidth: number,
   totalWidth: () => number,
 ): HTMLElement {
   const row = document.createElement("div");
   row.className = "gw-grandtotal";
   row.setAttribute("role", "row");
-  disposers.push(
+  scope.add(
     effect(() => {
       row.style.width = px(totalWidth());
     }),
@@ -287,12 +293,12 @@ function buildGrandTotal(
   }
   grid.orderedColumns.peek().forEach((col, i) => {
     const cell = makeCell(col);
-    disposers.push(bindCellWidthPin(grid, col, cell, leadingWidth));
+    scope.add(bindCellWidthPin(grid, col, cell, leadingWidth));
     if (i === 0) {
       cell.classList.add("gw-grandtotal-label");
       cell.textContent = "Total";
     } else if (col.aggFunc) {
-      disposers.push(
+      scope.add(
         effect(() => {
           const totals = grid.grandTotals();
           const value = totals[col.field];
@@ -306,7 +312,7 @@ function buildGrandTotal(
   return row;
 }
 
-function buildPager(grid: Grid, disposers: Dispose[]): HTMLElement {
+function buildPager(grid: Grid, scope: Scope): HTMLElement {
   const bar = document.createElement("div");
   bar.className = "gw-pager";
 
@@ -326,7 +332,7 @@ function buildPager(grid: Grid, disposers: Dispose[]): HTMLElement {
   const next = mk("Next ›", () => grid.nextPage());
   const last = mk("»", () => grid.lastPage());
 
-  disposers.push(
+  scope.add(
     effect(() => {
       const p = grid.pagination();
       info.textContent = `Page ${p.page} of ${p.totalPages} · ${p.total.toLocaleString()} rows`;

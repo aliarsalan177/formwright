@@ -47,10 +47,12 @@
   "dependencies": {
     "@formwright/grid-core": "workspace:*",
     "@formwright/grid-schema": "workspace:*",
-    "@formwright/reactive": "workspace:*"
+    "@formwright/reactive": "workspace:*",
+    "@formwright/ui-core": "workspace:*"
   },
   "devDependencies": {
-    "jsdom": "^25.0.1"
+    "jsdom": "^25.0.1",
+    "@formwright/ui-core": "workspace:*"
   },
   "publishConfig": {
     "access": "public"

@@ -167,6 +167,9 @@ importers:
       '@formwright/reactive':
         specifier: workspace:*
         version: link:../reactive
+      '@formwright/ui-core':
+        specifier: workspace:*
+        version: link:../ui-core
     devDependencies:
       jsdom:
         specifier: ^25.0.1
