@@ -317,7 +317,7 @@ const WIZARD: FormSchema = {
               type: "phone",
               label: "Phone",
               phone: { preferredCountries: ["US", "CA", "GB"] },
-              validation: { required: true },
+              validation: { kind: "string", format: "phone", required: true },
             },
           ],
         },
@@ -489,7 +489,7 @@ const SOCIAL_SUPPORT: FormSchema = {
               label: "Phone",
               colSpan: 6,
               phone: { preferredCountries: ["US", "CA", "GB", "AU"] },
-              validation: { required: true },
+              validation: { kind: "string", format: "phone", required: true },
             },
             {
               id: "email",
