@@ -1,5 +1,14 @@
 # @formwright/grid-dom
 
+## 0.5.1
+
+### Patch Changes
+
+- 0c8203a: Gridwright now stamps `data-row-id` on every data row, copies column `class` onto header cells, and accepts `onRowClick` on `mount` (clicks on checkboxes, expanders, buttons, and `[data-gw-interactive]` are ignored).
+  - @formwright/grid-core@0.5.1
+  - @formwright/grid-schema@0.5.1
+  - @formwright/reactive@0.5.1
+
 ## 0.5.0
 
 ### Minor Changes
