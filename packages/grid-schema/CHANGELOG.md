@@ -1,5 +1,7 @@
 # @formwright/grid-schema
 
+## 0.6.0
+
 ## 0.5.0
 
 ### Minor Changes
