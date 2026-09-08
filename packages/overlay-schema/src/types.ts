@@ -78,6 +78,23 @@ export interface OverlayAction {
   disabled?: boolean;
 }
 
+/**
+ * The scrim behind a panel.
+ *
+ * Defaults live in CSS custom properties so a host theme sets them once
+ * for every overlay; this is the per-overlay override, for the cases
+ * where one dialog wants a heavier or lighter treatment than the rest.
+ */
+export interface OverlayBackdrop {
+  /** Any CSS colour. Combined with `opacity` when that is also given. */
+  color?: string;
+  /** 0–1. Applied to `color`, or to the theme default when no colour. */
+  opacity?: number;
+  /** Gaussian blur radius in px for the content behind the panel. 0 is
+   *  no blur. Costly on low-end devices, so it is opt-in. */
+  blur?: number;
+}
+
 export interface OverlaySchema {
   /** Stable identity. Opening the same id twice refreshes the overlay in
    *  place instead of stacking a duplicate. */
@@ -95,6 +112,8 @@ export interface OverlaySchema {
   snapPoints?: readonly number[];
   /** Index into `snapPoints` to open at. */
   defaultSnap?: number;
+  /** Scrim treatment. Omitted, the theme's defaults apply. */
+  backdrop?: OverlayBackdrop;
   /** Renderer hints. Never interpreted by the engine. */
   meta?: Record<string, unknown>;
 }

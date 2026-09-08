@@ -137,6 +137,26 @@ export function validateSchema(schema: unknown): ValidationResult {
     }
   }
 
+  if (s.backdrop !== undefined) {
+    if (typeof s.backdrop !== "object" || s.backdrop === null) {
+      push("backdrop", "`backdrop` must be an object.");
+    } else {
+      const b = s.backdrop;
+      if (b.color !== undefined && (typeof b.color !== "string" || !b.color.trim())) {
+        push("backdrop.color", "`color` must be a non-empty CSS colour.");
+      }
+      if (
+        b.opacity !== undefined &&
+        (!Number.isFinite(b.opacity) || b.opacity < 0 || b.opacity > 1)
+      ) {
+        push("backdrop.opacity", "`opacity` must be a number between 0 and 1.");
+      }
+      if (b.blur !== undefined && (!Number.isFinite(b.blur) || b.blur < 0)) {
+        push("backdrop.blur", "`blur` must be a non-negative number of pixels.");
+      }
+    }
+  }
+
   return { valid: issues.length === 0, issues };
 }
 

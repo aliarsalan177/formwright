@@ -64,6 +64,17 @@ export function focusableWithin(root: HTMLElement): HTMLElement[] {
   );
 }
 
+/**
+ * Only the top-most trap enforces.
+ *
+ * Every trap listens on the document, so with two overlays open they
+ * fight: A pulls focus back into A, which fires `focusin` outside B, so
+ * B pulls it into B, and round it goes until the stack gives out. A
+ * drawer with a modal over it is an ordinary case, so this is not an
+ * edge condition — it hangs the tab.
+ */
+const active: symbol[] = [];
+
 export interface FocusTrap {
   /** Re-read the focusable set after the panel's content changes. */
   refresh(): void;
@@ -71,6 +82,10 @@ export interface FocusTrap {
 }
 
 export function trapFocus(panel: HTMLElement): FocusTrap {
+  const token = Symbol("focus-trap");
+  active.push(token);
+  const isTop = () => active[active.length - 1] === token;
+
   const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
   // Mark every sibling of the panel's container inert. Walking up from
@@ -93,7 +108,7 @@ export function trapFocus(panel: HTMLElement): FocusTrap {
   let focusables = focusableWithin(panel);
 
   const onKeyDown = (event: KeyboardEvent) => {
-    if (event.key !== "Tab") return;
+    if (event.key !== "Tab" || !isTop()) return;
     if (focusables.length === 0) {
       // Nothing to tab to: hold focus on the panel rather than letting
       // the browser move it behind the overlay.
@@ -116,6 +131,7 @@ export function trapFocus(panel: HTMLElement): FocusTrap {
   // Capture phase: a click that moves focus outside (or a stray
   // programmatic focus()) is pulled straight back.
   const onFocusIn = (event: FocusEvent) => {
+    if (!isTop()) return;
     const target = event.target;
     if (target instanceof Node && panel.contains(target)) return;
     event.stopPropagation();
@@ -135,6 +151,8 @@ export function trapFocus(panel: HTMLElement): FocusTrap {
       focusables = focusableWithin(panel);
     },
     release() {
+      const at = active.indexOf(token);
+      if (at !== -1) active.splice(at, 1);
       panel.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("focusin", onFocusIn, true);
       for (const el of inerted) el.inert = false;

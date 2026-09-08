@@ -138,6 +138,24 @@ describe("validateSchema", () => {
     ]);
   });
 
+  it("validates backdrop overrides", () => {
+    expect(
+      validateSchema({
+        id: "a",
+        kind: "drawer",
+        backdrop: { color: "#0009", opacity: 0.6, blur: 8 },
+      }).valid,
+    ).toBe(true);
+    expect(
+      paths({
+        id: "a",
+        kind: "drawer",
+        backdrop: { color: "", opacity: 1.5, blur: -2 },
+      }),
+    ).toEqual(["backdrop.color", "backdrop.opacity", "backdrop.blur"]);
+    expect(paths({ id: "a", kind: "drawer", backdrop: "dark" })).toEqual(["backdrop"]);
+  });
+
   it("accepts a form block without needing the form engine at runtime", () => {
     expect(
       validateSchema({

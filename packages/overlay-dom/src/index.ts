@@ -1,4 +1,5 @@
 import { effect } from "@formwright/reactive";
+import type { OverlaySchema } from "@formwright/overlay-schema";
 import {
   getOverlayStore,
   type OverlayEntry,
@@ -81,6 +82,7 @@ export function mountOverlays(options: MountOptions = {}): () => void {
 
     const backdrop = document.createElement("div");
     backdrop.className = "ow-backdrop";
+    applyBackdrop(backdrop, entry.schema.backdrop);
     if (entry.dismiss !== "non-modal") {
       backdrop.addEventListener("pointerdown", (event) => {
         if (event.target !== backdrop) return;
@@ -205,6 +207,26 @@ export function mountOverlays(options: MountOptions = {}): () => void {
     }
     root.remove();
   };
+}
+
+/**
+ * Per-overlay scrim overrides.
+ *
+ * Written as custom properties rather than as `background` and
+ * `backdrop-filter` directly, so a host stylesheet still decides how
+ * they are used — a theme that wants a gradient scrim, or no blur on
+ * low-end devices, keeps that control instead of being overruled by an
+ * inline style it cannot beat.
+ */
+function applyBackdrop(el: HTMLElement, backdrop: OverlaySchema["backdrop"]): void {
+  if (!backdrop) return;
+  if (backdrop.color) el.style.setProperty("--ow-backdrop-color", backdrop.color);
+  if (backdrop.opacity != null) {
+    el.style.setProperty("--ow-backdrop-opacity", String(backdrop.opacity));
+  }
+  if (backdrop.blur != null) {
+    el.style.setProperty("--ow-backdrop-blur", `${backdrop.blur}px`);
+  }
 }
 
 /** A sheet resting at a snap point is sized to that fraction. */

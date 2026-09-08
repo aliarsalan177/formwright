@@ -21,7 +21,10 @@ let dispose: (() => void) | null = null;
 
 beforeEach(() => {
   document.body.innerHTML = "";
-  document.head.innerHTML = "";
+  // The engine's stylesheet is injected once and keyed by id, so it does
+  // not need clearing — and wiping <head> takes vitest's own injected
+  // scripts with it, which ends in a recursive IPC serialisation crash.
+  document.getElementById("formwright-overlay-styles")?.remove();
   resetScrollLock();
 });
 
@@ -174,6 +177,41 @@ describe("mountOverlays", () => {
   });
 });
 
+describe("backdrop", () => {
+  it("writes per-overlay overrides as custom properties", () => {
+    const store = new OverlayStore();
+    dispose = host(store);
+    store.open({
+      id: "a",
+      kind: "drawer",
+      backdrop: { color: "rgb(2 6 23)", opacity: 0.7, blur: 10 },
+    });
+
+    const backdrop = document.querySelector<HTMLElement>(".ow-backdrop")!;
+    expect(backdrop.style.getPropertyValue("--ow-backdrop-color")).toBe("rgb(2 6 23)");
+    expect(backdrop.style.getPropertyValue("--ow-backdrop-opacity")).toBe("0.7");
+    expect(backdrop.style.getPropertyValue("--ow-backdrop-blur")).toBe("10px");
+  });
+
+  it("leaves the theme in charge when no override is given", () => {
+    const store = new OverlayStore();
+    dispose = host(store);
+    store.open({ id: "a", kind: "modal" });
+
+    const backdrop = document.querySelector<HTMLElement>(".ow-backdrop")!;
+    expect(backdrop.getAttribute("style")).toBeNull();
+  });
+
+  it("accepts a blur of zero as an explicit opt-out", () => {
+    const store = new OverlayStore();
+    dispose = host(store);
+    store.open({ id: "a", kind: "drawer", backdrop: { blur: 0 } });
+
+    const backdrop = document.querySelector<HTMLElement>(".ow-backdrop")!;
+    expect(backdrop.style.getPropertyValue("--ow-backdrop-blur")).toBe("0px");
+  });
+});
+
 describe("scroll lock", () => {
   it("freezes the body while a modal is open and restores it after", () => {
     const store = new OverlayStore();
@@ -221,6 +259,24 @@ describe("focus", () => {
 
     store.close("a");
     expect(document.activeElement).toBe(opener);
+  });
+
+  it("lets only the top trap enforce, so two overlays do not fight", () => {
+    // Both traps listen on the document. Without a top-most rule, A pulls
+    // focus back into A, which fires focusin outside B, which pulls it
+    // into B — recursing until the stack gives out and the tab hangs.
+    const outside = document.createElement("button");
+    document.body.appendChild(outside);
+
+    const store = new OverlayStore();
+    dispose = host(store);
+    store.open({ id: "nav", kind: "drawer", actions: [{ name: "a", label: "A" }] });
+    store.open({ id: "top", kind: "modal", actions: [{ name: "b", label: "B" }] });
+
+    // Focus escaping is pulled back exactly once, into the top overlay.
+    expect(() => outside.focus()).not.toThrow();
+    const panel = panels()[1]!;
+    expect(panel.contains(document.activeElement)).toBe(true);
   });
 
   it("makes the rest of the page inert while trapped", () => {

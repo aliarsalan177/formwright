@@ -83,7 +83,20 @@ export function unlockScroll(): void {
   // Restoring position also restores flow, which sends the document back
   // to the top — so the scroll has to be put back by hand, and without
   // smooth behaviour or the user watches it fly.
-  window.scrollTo({ top: scrollY, left: 0, behavior: "instant" as ScrollBehavior });
+  //
+  // Only when there is something to put back. Besides saving a needless
+  // call, this keeps the package usable in a DOM that does not lay out:
+  // jsdom defines scrollTo and reports "Not implemented" through its
+  // virtual console, which try/catch cannot intercept, and its error
+  // reporting then recurses until the stack gives out — surfacing in CI
+  // as an out-of-memory crash rather than anything naming the cause.
+  if (scrollY > 0) {
+    window.scrollTo({
+      top: scrollY,
+      left: 0,
+      behavior: "instant" as ScrollBehavior,
+    });
+  }
 }
 
 /** Test seam: drop any lock and forget the saved styles. */

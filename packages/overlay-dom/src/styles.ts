@@ -10,7 +10,11 @@
  */
 export const OVERLAY_STYLES = `
 .ow-root {
-  --ow-backdrop: rgb(0 0 0 / 0.45);
+  /* The scrim, in parts, so a host theme or a single overlay can change
+     one of them without restating the rest. */
+  --ow-backdrop-color: #000000;
+  --ow-backdrop-opacity: 0.45;
+  --ow-backdrop-blur: 0px;
   --ow-panel: #ffffff;
   --ow-text: #18181b;
   --ow-muted: #52525b;
@@ -35,11 +39,19 @@ export const OVERLAY_STYLES = `
 .ow-backdrop {
   position: absolute;
   inset: 0;
-  background: var(--ow-backdrop);
+  background: var(--ow-backdrop-color);
   opacity: 0;
-  transition: opacity var(--ow-duration) var(--ow-ease);
+  transition:
+    opacity var(--ow-duration) var(--ow-ease),
+    backdrop-filter var(--ow-duration) var(--ow-ease);
 }
-.ow-layer[data-open="true"] > .ow-backdrop { opacity: 1; }
+.ow-layer[data-open="true"] > .ow-backdrop {
+  opacity: var(--ow-backdrop-opacity);
+  /* Only pay for the blur when one was asked for — compositing a
+     backdrop-filter is expensive on low-end phones. */
+  backdrop-filter: blur(var(--ow-backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--ow-backdrop-blur));
+}
 
 .ow-panel {
   position: absolute;
