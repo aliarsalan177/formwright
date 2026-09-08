@@ -1,0 +1,56 @@
+{
+  "name": "@formwright/overlay-dom",
+  "version": "0.6.0",
+  "description": "Vanilla-DOM renderer for Overlaywright: focus trap, scroll lock, drag-to-dismiss and snap points. No dependencies outside Formwright.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aliarsalan177/formwright.git",
+    "directory": "packages/overlay-dom"
+  },
+  "homepage": "https://github.com/aliarsalan177/formwright#readme",
+  "bugs": "https://github.com/aliarsalan177/formwright/issues",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "keywords": [
+    "overlay",
+    "modal",
+    "dialog",
+    "drawer",
+    "bottom-sheet",
+    "signals",
+    "schema-driven",
+    "overlaywright"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@formwright/overlay-core": "workspace:*",
+    "@formwright/overlay-schema": "workspace:*",
+    "@formwright/reactive": "workspace:*"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1"
+  }
+}

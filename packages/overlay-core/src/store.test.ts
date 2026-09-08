@@ -105,6 +105,31 @@ describe("dismissal", () => {
     store.close("a", "second");
     await expect(handle.result).resolves.toBe("first");
   });
+
+  it("calls onClose exactly once", async () => {
+    const store = new OverlayStore();
+    const values: (string | undefined)[] = [];
+    const handle = store.open<string>(modal("a"), {
+      onClose: (value) => values.push(value),
+    });
+
+    handle.close("first");
+    handle.close("second");
+    store.close("a", "third");
+    store.remove("a");
+
+    await expect(handle.result).resolves.toBe("first");
+    expect(values).toEqual(["first"]);
+  });
+
+  it("does not remove an overlay before it has closed", () => {
+    const store = new OverlayStore();
+    store.open(modal("a"));
+
+    store.remove("a");
+
+    expect(store.get("a")?.open).toBe(true);
+  });
 });
 
 describe("reopening the same id", () => {
@@ -125,6 +150,65 @@ describe("reopening the same id", () => {
 
     await expect(first.result).resolves.toBe("done");
     await expect(second.result).resolves.toBe("done");
+  });
+
+  it("registers each duplicate opener for the shared close", async () => {
+    const store = new OverlayStore();
+    const closed: string[] = [];
+    const shared = (value: string | undefined) => closed.push(`shared:${value}`);
+
+    const first = store.open<string>(modal("edit"), { onClose: shared });
+    const second = store.open<string>(modal("edit"), { onClose: shared });
+    const third = store.open<string>(modal("edit"), {
+      onClose: (value) => closed.push(`third:${value}`),
+    });
+    third.close("done");
+
+    await expect(first.result).resolves.toBe("done");
+    await expect(second.result).resolves.toBe("done");
+    expect(closed).toEqual(["shared:done", "third:done"]);
+  });
+
+  it("starts a fresh lifecycle when a closed id reopens before removal", async () => {
+    const store = new OverlayStore();
+    const closed: string[] = [];
+    const first = store.open<string>(modal("edit"), {
+      onClose: (value) => closed.push(`first:${value}`),
+    });
+    first.close("one");
+
+    const second = store.open<string>(
+      { ...modal("edit"), title: "Reopened" },
+      {
+        onClose: (value) => closed.push(`second:${value}`),
+      },
+    );
+    expect(store.stack.get()).toHaveLength(1);
+    expect(store.get("edit")?.open).toBe(true);
+    expect(store.get("edit")?.schema.title).toBe("Reopened");
+
+    // A delayed exit callback and an old handle belong to the first lifecycle.
+    store.remove("edit");
+    first.close("stale");
+    expect(store.get("edit")?.open).toBe(true);
+
+    second.close("two");
+    await expect(first.result).resolves.toBe("one");
+    await expect(second.result).resolves.toBe("two");
+    expect(closed).toEqual(["first:one", "second:two"]);
+  });
+
+  it("can remove a closed id and open it again", async () => {
+    const store = new OverlayStore();
+    const first = store.open<string>(modal("edit"));
+    first.close("one");
+    store.remove("edit");
+
+    const second = store.open<string>(modal("edit"));
+    second.close("two");
+
+    await expect(first.result).resolves.toBe("one");
+    await expect(second.result).resolves.toBe("two");
   });
 });
 

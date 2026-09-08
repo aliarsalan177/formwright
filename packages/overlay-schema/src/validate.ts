@@ -15,6 +15,8 @@ const SIDES = new Set(["left", "right", "top", "bottom"]);
 const SIZES = new Set(["sm", "md", "lg", "xl", "full"]);
 const DISMISS = new Set(["modal", "alert", "non-modal"]);
 const BLOCKS = new Set(["text", "list", "fields", "divider", "html", "form", "slot"]);
+const ROLES = new Set(["confirm", "cancel", "danger", "neutral"]);
+const TONES = new Set(["default", "muted", "danger", "success"]);
 
 /**
  * Validate an {@link OverlaySchema} — dependency-free, path-addressed.
@@ -76,7 +78,11 @@ export function validateSchema(schema: unknown): ValidationResult {
       const seen = new Set<string>();
       s.actions.forEach((action, i) => {
         const at = `actions[${i}]`;
-        if (typeof action?.name !== "string" || action.name.length === 0) {
+        if (typeof action !== "object" || action === null) {
+          push(at, "Each action must be an object.");
+          return;
+        }
+        if (typeof action.name !== "string" || action.name.length === 0) {
           push(`${at}.name`, "`name` must be a non-empty string.");
           return;
         }
@@ -86,6 +92,15 @@ export function validateSchema(schema: unknown): ValidationResult {
         seen.add(action.name);
         if (typeof action.label !== "string" || action.label.length === 0) {
           push(`${at}.label`, "`label` must be a non-empty string.");
+        }
+        if (action.role !== undefined && !ROLES.has(action.role)) {
+          push(`${at}.role`, `\`role\` must be one of ${[...ROLES].join(", ")}.`);
+        }
+        if (action.closeOnRun !== undefined && typeof action.closeOnRun !== "boolean") {
+          push(`${at}.closeOnRun`, "`closeOnRun` must be a boolean.");
+        }
+        if (action.disabled !== undefined && typeof action.disabled !== "boolean") {
+          push(`${at}.disabled`, "`disabled` must be a boolean.");
         }
       });
     }
@@ -98,8 +113,10 @@ export function validateSchema(schema: unknown): ValidationResult {
       let previous = 0;
       s.snapPoints.forEach((point, i) => {
         const at = `snapPoints[${i}]`;
-        if (typeof point !== "number" || point <= 0 || point > 1) {
-          push(at, "Each snap point must be a fraction in (0, 1].");
+        // Number.isFinite, not `typeof === "number"`: NaN is a number, and
+        // NaN comparisons are all false, so it slipped through every bound.
+        if (!Number.isFinite(point) || point <= 0 || point > 1) {
+          push(at, "Each snap point must be a finite fraction in (0, 1].");
           return;
         }
         // Out of order would make "snap up" move the sheet down.
@@ -108,17 +125,16 @@ export function validateSchema(schema: unknown): ValidationResult {
         }
         previous = point;
       });
-      if (
-        s.defaultSnap !== undefined &&
-        (!Number.isInteger(s.defaultSnap) ||
-          s.defaultSnap < 0 ||
-          s.defaultSnap >= s.snapPoints.length)
-      ) {
-        push("defaultSnap", "`defaultSnap` must index into `snapPoints`.");
-      }
     }
-  } else if (s.defaultSnap !== undefined) {
-    push("defaultSnap", "`defaultSnap` needs `snapPoints`.");
+  }
+
+  // Judged independently of snapPoints, so a schema with both wrong is
+  // told about both rather than only the first.
+  if (s.defaultSnap !== undefined) {
+    const points = Array.isArray(s.snapPoints) ? s.snapPoints : [];
+    if (!Number.isInteger(s.defaultSnap) || s.defaultSnap < 0 || s.defaultSnap >= points.length) {
+      push("defaultSnap", "`defaultSnap` must index into `snapPoints`.");
+    }
   }
 
   return { valid: issues.length === 0, issues };
@@ -142,6 +158,9 @@ function validateBlock(
       if (typeof block.text !== "string") {
         push(`${at}.text`, "`text` must be a string.");
       }
+      if (block.tone !== undefined && !TONES.has(block.tone)) {
+        push(`${at}.tone`, `\`tone\` must be one of ${[...TONES].join(", ")}.`);
+      }
       break;
     case "html":
       if (typeof block.html !== "string") {
@@ -151,16 +170,46 @@ function validateBlock(
     case "list":
       if (!Array.isArray(block.items) || block.items.length === 0) {
         push(`${at}.items`, "`items` must be a non-empty array of strings.");
+      } else {
+        block.items.forEach((item, i) => {
+          if (typeof item !== "string") {
+            push(`${at}.items[${i}]`, "Each list item must be a string.");
+          }
+        });
+      }
+      if (block.ordered !== undefined && typeof block.ordered !== "boolean") {
+        push(`${at}.ordered`, "`ordered` must be a boolean.");
       }
       break;
     case "fields":
       if (!Array.isArray(block.items) || block.items.length === 0) {
         push(`${at}.items`, "`items` must be a non-empty array.");
+      } else {
+        block.items.forEach((item, i) => {
+          const row = `${at}.items[${i}]`;
+          if (typeof item !== "object" || item === null) {
+            push(row, "Each field must be an object with a label and a value.");
+            return;
+          }
+          if (typeof item.label !== "string") {
+            push(`${row}.label`, "`label` must be a string.");
+          }
+          if (typeof item.value !== "string") {
+            push(`${row}.value`, "`value` must be a string.");
+          }
+        });
       }
       break;
     case "form":
-      if (typeof block.form !== "object" || block.form === null) {
+      // An array is an object; a form schema is not one.
+      if (typeof block.form !== "object" || block.form === null || Array.isArray(block.form)) {
         push(`${at}.form`, "`form` must be a Formwright schema object.");
+      }
+      if (
+        block.submitAction !== undefined &&
+        (typeof block.submitAction !== "string" || block.submitAction.length === 0)
+      ) {
+        push(`${at}.submitAction`, "`submitAction` must be a non-empty string.");
       }
       break;
     case "slot":

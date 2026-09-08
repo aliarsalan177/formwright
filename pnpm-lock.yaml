@@ -180,6 +180,22 @@ importers:
         specifier: workspace:*
         version: link:../reactive
 
+  packages/overlay-dom:
+    dependencies:
+      '@formwright/overlay-core':
+        specifier: workspace:*
+        version: link:../overlay-core
+      '@formwright/overlay-schema':
+        specifier: workspace:*
+        version: link:../overlay-schema
+      '@formwright/reactive':
+        specifier: workspace:*
+        version: link:../reactive
+    devDependencies:
+      jsdom:
+        specifier: ^25.0.1
+        version: 25.0.1
+
   packages/overlay-schema:
     dependencies:
       '@formwright/schema':

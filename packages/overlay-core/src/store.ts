@@ -87,12 +87,14 @@ interface Record_ {
   slots: OverlaySlots;
   snap: number;
   open: boolean;
-  /** Kept on the record so reopening the same id hands back the promise
-   *  callers are already awaiting, rather than a fresh one that never
-   *  settles. */
+  lifecycle: Lifecycle;
+}
+
+interface Lifecycle {
   result: Promise<unknown>;
   settle: (value: unknown) => void;
-  onClose: ((value: unknown) => void) | undefined;
+  callbacks: Set<(value: unknown) => void>;
+  settled: boolean;
 }
 
 export class OverlayStore {
@@ -139,41 +141,42 @@ export class OverlayStore {
    */
   open<T = unknown>(schema: OverlaySchema, options: OpenOptions<T> = {}): OverlayHandle<T> {
     const existing = this.#records.peek().find((r) => r.id === schema.id);
-    if (existing) {
+    if (existing?.open) {
+      if (options.onClose) {
+        existing.lifecycle.callbacks.add(options.onClose as (value: unknown) => void);
+      }
       this.#records.update((records) =>
         records.map((r) =>
-          r.id === schema.id ? { ...r, schema, slots: options.slots ?? {}, open: true } : r,
+          r.id === schema.id
+            ? {
+                ...r,
+                schema,
+                slots: options.slots ?? {},
+                snap: clampSnap(r.snap, schema.snapPoints ?? []),
+              }
+            : r,
         ),
       );
-      return {
-        id: existing.id,
-        result: existing.result as Promise<T | undefined>,
-        close: (value?: T) => this.close(existing.id, value),
-      };
+      return this.#handle<T>(existing.id, existing.lifecycle);
     }
 
-    let settle!: (value: unknown) => void;
-    const result = new Promise<unknown>((resolve) => {
-      settle = resolve;
-    });
+    const lifecycle = createLifecycle(options.onClose);
 
     const record: Record_ = {
       id: schema.id,
       schema,
       slots: options.slots ?? {},
-      snap: clampSnap(schema.defaultSnap ?? 0, schema.snapPoints ?? []),
+      snap: initialSnap(schema),
       open: true,
-      result,
-      settle,
-      onClose: options.onClose as ((value: unknown) => void) | undefined,
+      lifecycle,
     };
-    this.#records.update((records) => [...records, record]);
+    this.#records.update((records) =>
+      existing
+        ? records.map((candidate) => (candidate.id === schema.id ? record : candidate))
+        : [...records, record],
+    );
 
-    return {
-      id: record.id,
-      result: result as Promise<T | undefined>,
-      close: (value?: T) => this.close(record.id, value),
-    };
+    return this.#handle<T>(record.id, lifecycle);
   }
 
   /**
@@ -185,17 +188,25 @@ export class OverlayStore {
    */
   close(id: OverlayId, value?: unknown): void {
     const record = this.#records.peek().find((r) => r.id === id);
-    if (!record || !record.open) return;
+    if (!record) return;
+    this.#closeLifecycle(record, record.lifecycle, value);
+  }
+
+  #closeLifecycle(record: Record_, lifecycle: Lifecycle, value?: unknown): void {
+    if (!record.open || record.lifecycle !== lifecycle || lifecycle.settled) return;
     this.#records.update((records) =>
-      records.map((r) => (r.id === id ? { ...r, open: false } : r)),
+      records.map((candidate) =>
+        candidate.id === record.id && candidate.lifecycle === lifecycle
+          ? { ...candidate, open: false }
+          : candidate,
+      ),
     );
-    record.settle(value);
-    record.onClose?.(value);
+    settleLifecycle(lifecycle, value);
   }
 
   /** Drop a closed overlay once its exit transition has finished. */
   remove(id: OverlayId): void {
-    this.#records.update((records) => records.filter((r) => r.id !== id));
+    this.#records.update((records) => records.filter((record) => record.id !== id || record.open));
   }
 
   /**
@@ -236,6 +247,17 @@ export class OverlayStore {
   get(id: OverlayId): OverlayEntry | null {
     return this.stack.get().find((entry) => entry.id === id) ?? null;
   }
+
+  #handle<T>(id: OverlayId, lifecycle: Lifecycle): OverlayHandle<T> {
+    return {
+      id,
+      result: lifecycle.result as Promise<T | undefined>,
+      close: (value?: T) => {
+        const record = this.#records.peek().find((candidate) => candidate.id === id);
+        if (record) this.#closeLifecycle(record, lifecycle, value);
+      },
+    };
+  }
 }
 
 function toEntry(record: Record_, index: number): OverlayEntry {
@@ -256,4 +278,36 @@ function toEntry(record: Record_, index: number): OverlayEntry {
 function clampSnap(snap: number, points: readonly number[]): number {
   if (points.length === 0) return 0;
   return Math.min(points.length - 1, Math.max(0, Math.round(snap)));
+}
+
+function initialSnap(schema: OverlaySchema): number {
+  return clampSnap(schema.defaultSnap ?? 0, schema.snapPoints ?? []);
+}
+
+function createLifecycle<T>(onClose: OpenOptions<T>["onClose"]): Lifecycle {
+  let settle!: (value: unknown) => void;
+  const result = new Promise<unknown>((resolve) => {
+    settle = resolve;
+  });
+  const callbacks = new Set<(value: unknown) => void>();
+  if (onClose) callbacks.add(onClose as (value: unknown) => void);
+  return { result, settle, callbacks, settled: false };
+}
+
+function settleLifecycle(lifecycle: Lifecycle, value: unknown): void {
+  if (lifecycle.settled) return;
+  lifecycle.settled = true;
+  lifecycle.settle(value);
+
+  const callbacks = [...lifecycle.callbacks];
+  lifecycle.callbacks.clear();
+  const errors: unknown[] = [];
+  for (const callback of callbacks) {
+    try {
+      callback(value);
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  if (errors.length > 0) throw errors[0];
 }

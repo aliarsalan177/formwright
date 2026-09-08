@@ -154,23 +154,155 @@ Live demo: [grid.html](https://aliarsalan177.github.io/formwright/grid.html) (50
 npm i @formwright/overlay-core
 ```
 
+> **Engine only, for now.** `overlay-core` owns the state — what is open, in
+> what order, how it dismisses, what it resolves with. It paints nothing.
+> Until `@formwright/overlay-dom` lands you supply the ~40 lines of
+> rendering yourself (see [Rendering the stack](#rendering-the-stack)),
+> or drive it from your existing dialog components.
+
+An overlay is a **value**, so it can be validated, stored, or sent from a
+server — the same bargain as a form schema:
+
 ```ts
 import { overlay } from "@formwright/overlay-core";
 
-overlay.modal({
-  title: "Receipt R-000123",
-  size: "sm",
-  body: [{ type: "fields", items: [{ label: "Total", value: "PKR 3,000" }] }],
-  actions: [{ name: "close", label: "Close", role: "cancel" }],
-});
-
-const ok = await overlay.confirm({
-  title: "Cancel this receipt?",
-  danger: true,
+overlay.open({
+  id: "edit-member",
+  kind: "drawer",
+  side: "right",
+  size: "md",
+  title: "Edit member",
+  body: [{ type: "form", form: memberFormSchema }],
+  actions: [
+    { name: "cancel", label: "Cancel", role: "cancel" },
+    { name: "save", label: "Save", role: "confirm", value: true },
+  ],
 });
 ```
 
-Same stack for `overlay.drawer({ side: "right" })` and `overlay.sheet()` (bottom sheet). Open from anywhere — the store lives on `globalThis`, so a keyboard shortcut and a React button share one overlay host.
+`modal`, `drawer`, `sheet` and `confirm` are sugar that build exactly that
+schema and hand it to the same `open()`. There is no second code path, so
+nothing you can do imperatively is out of reach of a schema shipped over
+the wire.
+
+```ts
+overlay.modal({ title: "Receipt R-000123", size: "sm" });
+overlay.drawer({ side: "left", title: "Filters" });
+overlay.sheet({ snapPoints: [0.3, 0.6, 1], defaultSnap: 1 });
+
+const ok = await overlay.confirm({ title: "Cancel this receipt?", danger: true });
+```
+
+### Open it from anywhere
+
+The store hangs off `globalThis` under a `Symbol.for` key, not a module
+`const`. That is deliberate: a keyboard shortcut bound at startup, a fetch
+error handler, a plain utility module — none of them sit inside a component
+tree, and all of them have reason to raise a dialog. Bundlers also hand the
+same module to two chunks routinely, and two stores would mean opening into
+one that nothing is painting.
+
+```ts
+// anywhere at all — no provider, no hook, no import cycle
+window.addEventListener("offline", () =>
+  overlay.modal({ id: "offline", title: "You are offline" }),
+);
+```
+
+### A stack, not a slot per kind
+
+A modal opened from inside a drawer leaves the drawer mounted underneath,
+dismisses on its own, and hands focus back to what it interrupted. Escape
+closes only the top entry, and the scroll lock is derived across the whole
+stack — so closing that modal does not unlock a page the drawer still owns.
+
+```ts
+overlay.drawer({ id: "nav" });
+overlay.modal({ id: "confirm" });
+
+store.stack.get().map((e) => e.id); // ["nav", "confirm"]
+store.closeTop(); // closes "confirm"; "nav" stays open
+store.locksScroll.get(); // still true — the drawer needs it
+```
+
+### Awaiting an answer
+
+Every action carries a `value`, and the handle's `result` resolves with the
+one that closed the overlay — `undefined` if it was dismissed instead.
+
+```ts
+const { result } = overlay.modal({
+  title: "Assign trainer",
+  body: [{ type: "slot", name: "picker" }],
+  actions: [{ name: "assign", label: "Assign", value: "trainer-7" }],
+});
+
+const trainerId = await result; // "trainer-7", or undefined if dismissed
+```
+
+`dismiss: "alert"` refuses escape and backdrop clicks — for the question
+that has to be answered, where vanishing on a stray click would throw away
+a decision the user thought they were making. `confirm()` uses it.
+
+### Rendering the stack
+
+`overlay-dom` will do this for you. Until then, one effect over the stack
+is the whole integration — this is the contract the renderer implements:
+
+```ts
+import { effect } from "@formwright/reactive";
+import { getOverlayStore } from "@formwright/overlay-core";
+
+const store = getOverlayStore();
+
+effect(() => {
+  for (const entry of store.stack.get()) {
+    if (!entry.open) {
+      remove(entry.id); // your exit transition, then store.remove(entry.id)
+      continue;
+    }
+    paint(entry); // entry.schema.title / .body / .actions, entry.index = z-order
+  }
+});
+
+// Escape and backdrop both mean "close the top one"
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") store.closeTop();
+});
+```
+
+A closed entry stays on the stack until you call `store.remove(id)`, so an
+exit transition plays against real content instead of an empty box.
+
+### Body blocks
+
+| Block     | Renders                                                        |
+| --------- | -------------------------------------------------------------- |
+| `text`    | A paragraph, optionally toned `muted` / `danger` / `success`   |
+| `list`    | Ordered or unordered items                                     |
+| `fields`  | Label/value pairs — receipts, summaries                        |
+| `divider` | A rule                                                         |
+| `html`    | Raw markup. **Not sanitised** — never build it from user input |
+| `form`    | A Formwright schema as the dialog body                         |
+| `slot`    | Host-supplied content, looked up by name                       |
+
+The `form` import is **types-only**, so an overlay installed without the form
+engine still works — `form` blocks simply have nothing to render them.
+
+### Validate before you trust it
+
+A schema that arrives over the wire gets the same treatment as a form one:
+
+```ts
+import { validateSchema } from "@formwright/overlay-schema";
+
+const { valid, issues } = validateSchema(incoming);
+// issues: [{ path: "actions", message: "An `alert` overlay must define at least one action…" }]
+```
+
+It catches the mistakes that would otherwise ship as a dialog that looks
+fine and behaves wrongly: an alert nobody can dismiss, snap points that
+descend so "snap up" moves the sheet down, duplicate action names.
 
 ---
 
@@ -246,18 +378,18 @@ new Form(schema).mount(el);
 
 ## Packages
 
-| Package                      | Role                             | Size (min+gzip)  |
-| ---------------------------- | -------------------------------- | ---------------- |
-| `@formwright/schema`         | Form schema + validator          | ~1.2 KB          |
-| `@formwright/core`           | `Form` class + signals           | ~5.8 KB          |
-| `@formwright/dom`            | Direct-DOM form renderer         | ~4.8 KB          |
-| `@formwright/ai`             | Description → validated schema   | server, optional |
-| `@formwright/grid-schema`    | Grid schema                      | ~1.5 KB          |
-| `@formwright/grid-core`      | `Grid` engine                    | ~5 KB            |
-| `@formwright/grid-dom`       | Virtualized / flow renderer      | ~4 KB            |
-| `@formwright/reactive`       | Shared signal engine             | ~1 KB            |
-| `@formwright/overlay-schema` | Overlay schema                   | small            |
-| `@formwright/overlay-core`   | `overlay.modal` / drawer / sheet | small            |
+| Package                      | Role                                | Size (min+gzip)  |
+| ---------------------------- | ----------------------------------- | ---------------- |
+| `@formwright/schema`         | Form schema + validator             | ~1.2 KB          |
+| `@formwright/core`           | `Form` class + signals              | ~5.8 KB          |
+| `@formwright/dom`            | Direct-DOM form renderer            | ~4.8 KB          |
+| `@formwright/ai`             | Description → validated schema      | server, optional |
+| `@formwright/grid-schema`    | Grid schema                         | ~1.5 KB          |
+| `@formwright/grid-core`      | `Grid` engine                       | ~5 KB            |
+| `@formwright/grid-dom`       | Virtualized / flow renderer         | ~4 KB            |
+| `@formwright/reactive`       | Shared signal engine                | ~1 KB            |
+| `@formwright/overlay-schema` | Overlay schema + validator          | ~1.5 KB          |
+| `@formwright/overlay-core`   | Overlay stack (engine, no renderer) | ~2.8 KB          |
 
 The only runtime dependency of the form and grid packages is `@formwright/reactive` (ours). ESM + CJS + types; works from `esm.sh`.
 
