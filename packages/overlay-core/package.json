@@ -1,6 +1,6 @@
 {
   "name": "@formwright/overlay-core",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Signal-reactive overlay stack for Overlaywright — modals, drawers and sheets, openable from anywhere.",
   "license": "MIT",
   "repository": {
