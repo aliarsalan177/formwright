@@ -1,0 +1,51 @@
+{
+  "name": "@formwright/overlay-schema",
+  "version": "0.5.0",
+  "description": "Overlay/dialog schema types and a dependency-free validator for Overlaywright.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aliarsalan177/formwright.git",
+    "directory": "packages/overlay-schema"
+  },
+  "homepage": "https://github.com/aliarsalan177/formwright#readme",
+  "bugs": "https://github.com/aliarsalan177/formwright/issues",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "keywords": [
+    "overlay",
+    "modal",
+    "dialog",
+    "drawer",
+    "bottom-sheet",
+    "signals",
+    "schema-driven",
+    "overlaywright"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@formwright/schema": "workspace:*"
+  }
+}
