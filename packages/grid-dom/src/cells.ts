@@ -61,6 +61,12 @@ function cellText(col: ResolvedColumn, value: unknown, row: Record<string, unkno
   return value == null ? "" : String(value);
 }
 
+/** Apply a schema `class` string (space-separated tokens) onto an element. */
+export function addClassTokens(el: HTMLElement, className: string | undefined): void {
+  if (!className) return;
+  for (const token of className.split(/\s+/).filter(Boolean)) el.classList.add(token);
+}
+
 /** Build a data cell element (no binding) for a column. */
 export function makeCell(col: ResolvedColumn): HTMLElement {
   const cell = document.createElement("div");
@@ -68,7 +74,7 @@ export function makeCell(col: ResolvedColumn): HTMLElement {
   cell.setAttribute("role", "gridcell");
   cell.style.width = px(col.width);
   cell.style.textAlign = col.align;
-  if (col.class) cell.classList.add(col.class);
+  addClassTokens(cell, col.class);
   if (col.editable) cell.classList.add("gw-cell-editable");
   return cell;
 }

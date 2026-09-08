@@ -3,6 +3,7 @@ import type { Grid, GroupRow, ResolvedColumn } from "@formwright/grid-core";
 import { beginEdit, bindCellWidthPin, makeCell, px, renderCellInto } from "./cells.js";
 import { getFormatter } from "./registry.js";
 import { buildHeader, EXP_W, SEL_W } from "./header.js";
+import { bindRowClick, type RowClickHandler } from "./row-click.js";
 
 function formatAgg(col: ResolvedColumn, value: number): string {
   if (col.valueFormatter) {
@@ -21,6 +22,8 @@ export type DetailRenderer = (
 
 export interface FlowOptions {
   readonly detail?: DetailRenderer;
+  /** Click a data row (not a checkbox, expander, button, or `[data-gw-interactive]`). */
+  readonly onRowClick?: RowClickHandler;
 }
 
 /**
@@ -107,6 +110,7 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
     row.className = "gw-flowrow";
     row.setAttribute("role", "row");
     row.setAttribute("aria-rowindex", String(index + 1));
+    row.setAttribute("data-row-id", id);
     if (index % 2 === 1) row.classList.add("gw-row-odd");
     row.style.minHeight = px(grid.rowHeight);
     rowDisposers.push(
@@ -251,6 +255,8 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
       }
     }),
   );
+
+  disposers.push(bindRowClick(root, grid, options.onRowClick));
 
   return () => {
     disposeRows();
