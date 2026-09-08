@@ -1,5 +1,13 @@
 # @formwright/core
 
+## 0.10.0
+
+### Patch Changes
+
+- Updated dependencies [56b9528]
+  - @formwright/reactive@0.10.0
+  - @formwright/schema@0.10.0
+
 ## 0.9.0
 
 ### Patch Changes
