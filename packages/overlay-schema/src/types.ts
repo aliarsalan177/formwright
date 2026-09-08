@@ -21,7 +21,16 @@ import type { FormSchema } from "@formwright/schema";
  * frozen. A renderer may style them however it likes but must not blur
  * those — a "drawer" that traps focus like a modal is a modal.
  */
-export type OverlayKind = "modal" | "drawer" | "sheet" | "popover";
+export type OverlayKind = "modal" | "drawer" | "sheet" | "popover" | "toast";
+
+/** Where a toast stacks. Ignored by every other kind. */
+export type ToastPosition =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
 
 /** Which edge the surface enters from. Modals ignore it. */
 export type OverlaySide = "left" | "right" | "top" | "bottom";
@@ -114,6 +123,13 @@ export interface OverlaySchema {
   defaultSnap?: number;
   /** Scrim treatment. Omitted, the theme's defaults apply. */
   backdrop?: OverlayBackdrop;
+  /** Corner a `toast` stacks in. Default bottom-right. */
+  position?: ToastPosition;
+  /** Milliseconds before a `toast` dismisses itself. 0 keeps it up until
+   *  something closes it — for a "working…" notice with no known end. */
+  duration?: number;
+  /** Colours a toast: success, danger, and so on. */
+  tone?: BlockTone;
   /** Renderer hints. Never interpreted by the engine. */
   meta?: Record<string, unknown>;
 }

@@ -74,7 +74,63 @@ export function mountOverlays(options: MountOptions = {}): () => void {
     store.close(entry.id);
   };
 
+  /** One stacking region per corner, made on demand. */
+  const regions = new Map<string, HTMLElement>();
+  const regionFor = (position: string): HTMLElement => {
+    let region = regions.get(position);
+    if (!region) {
+      region = document.createElement("div");
+      region.className = "ow-toasts";
+      region.dataset.position = position;
+      region.setAttribute("role", "region");
+      // Announced politely: a toast is information, not an interruption.
+      region.setAttribute("aria-live", "polite");
+      root.appendChild(region);
+      regions.set(position, region);
+    }
+    return region;
+  };
+
+  const mountToast = (entry: OverlayEntry) => {
+    const region = regionFor(entry.schema.position ?? "bottom-right");
+    const rendered = renderPanel(entry, {
+      slots: entry.slots as Record<string, unknown>,
+      ...(options.renderForm ? { renderForm: options.renderForm } : {}),
+      onAction: (action) => {
+        if (action.closeOnRun === false) return;
+        store.close(entry.id, action.value);
+      },
+    });
+    rendered.panel.dataset.open = "false";
+    if (entry.schema.tone) rendered.panel.dataset.tone = entry.schema.tone;
+    region.appendChild(rendered.panel);
+
+    const record: Mounted = {
+      layer: rendered.panel,
+      panel: rendered.panel,
+      trap: null,
+      stopDrag: null,
+      disposeContent: rendered.dispose,
+      locked: false,
+      closing: false,
+    };
+    mounted.set(entry.id, record);
+    requestAnimationFrame(() => {
+      if (!mounted.has(entry.id)) return;
+      rendered.panel.dataset.open = "true";
+    });
+
+    // Self-dismissal. 0 means "until something closes it" — a working
+    // notice with no known end.
+    const duration = entry.schema.duration ?? 4000;
+    if (duration > 0) {
+      const timer = window.setTimeout(() => store.close(entry.id), duration);
+      record.stopDrag = () => window.clearTimeout(timer);
+    }
+  };
+
   const mount = (entry: OverlayEntry) => {
+    if (entry.kind === "toast") return mountToast(entry);
     const layer = document.createElement("div");
     layer.className = "ow-layer";
     layer.dataset.open = "false";
@@ -197,6 +253,8 @@ export function mountOverlays(options: MountOptions = {}): () => void {
   return () => {
     stopEffect();
     document.removeEventListener("keydown", onKeyDown);
+    for (const region of regions.values()) region.remove();
+    regions.clear();
     for (const [id, record] of mounted) {
       record.stopDrag?.();
       record.trap?.release();

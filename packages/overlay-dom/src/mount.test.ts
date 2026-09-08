@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OverlayStore } from "@formwright/overlay-core";
 import { mountOverlays } from "./index.js";
 import { resetScrollLock } from "./scroll-lock.js";
@@ -209,6 +209,68 @@ describe("backdrop", () => {
 
     const backdrop = document.querySelector<HTMLElement>(".ow-backdrop")!;
     expect(backdrop.style.getPropertyValue("--ow-backdrop-blur")).toBe("0px");
+  });
+});
+
+describe("toasts", () => {
+  it("stacks in a corner region without a backdrop or scroll lock", () => {
+    const store = new OverlayStore();
+    dispose = host(store);
+    store.open({
+      id: "t",
+      kind: "toast",
+      position: "top-center",
+      body: [{ type: "text", text: "Saved" }],
+    });
+
+    const region = document.querySelector<HTMLElement>(".ow-toasts")!;
+    expect(region.dataset.position).toBe("top-center");
+    expect(region.getAttribute("aria-live")).toBe("polite");
+    expect(document.querySelector(".ow-backdrop")).toBeNull();
+    expect(document.body.style.position).toBe("");
+    expect(document.querySelector(".ow-panel")?.textContent).toContain("Saved");
+  });
+
+  it("never takes focus away from the page", () => {
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+
+    const store = new OverlayStore();
+    dispose = host(store);
+    store.open({ id: "t", kind: "toast", body: [{ type: "text", text: "Saved" }] });
+
+    // A notice that stole the caret mid-typing would be worse than none.
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("dismisses itself after its duration", () => {
+    vi.useFakeTimers();
+    try {
+      const store = new OverlayStore();
+      dispose = host(store);
+      store.open({ id: "t", kind: "toast", duration: 3000, body: [] });
+      expect(store.get("t")?.open).toBe(true);
+
+      vi.advanceTimersByTime(3000);
+      expect(store.get("t")).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("stays up when the duration is zero", () => {
+    vi.useFakeTimers();
+    try {
+      const store = new OverlayStore();
+      dispose = host(store);
+      store.open({ id: "t", kind: "toast", duration: 0, body: [] });
+
+      vi.advanceTimersByTime(60_000);
+      expect(store.get("t")?.open).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

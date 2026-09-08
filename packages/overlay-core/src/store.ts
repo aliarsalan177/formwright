@@ -33,6 +33,9 @@ const DEFAULT_DISMISS: Record<OverlayKind, DismissMode> = {
   // A popover sits beside the page rather than over it. Trapping focus
   // or locking scroll here would make every dropdown fight the document.
   popover: "non-modal",
+  // A toast is a notice, not a demand: it must never steal the keyboard
+  // or freeze the page, and it dismisses itself.
+  toast: "non-modal",
 };
 
 const DEFAULT_SIDE: Record<OverlayKind, OverlaySide> = {
@@ -40,6 +43,7 @@ const DEFAULT_SIDE: Record<OverlayKind, OverlaySide> = {
   drawer: "right",
   sheet: "bottom",
   popover: "bottom",
+  toast: "bottom",
 };
 
 export type OverlayId = string;

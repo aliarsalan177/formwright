@@ -4,6 +4,7 @@ import type {
   OverlaySchema,
   OverlaySide,
   OverlaySize,
+  ToastPosition,
 } from "@formwright/overlay-schema";
 import { OverlayStore, type OpenOptions, type OverlayHandle } from "./store.js";
 
@@ -57,6 +58,16 @@ export interface DrawerOptions<T> extends ModalOptions<T> {
 export interface SheetOptions<T> extends ModalOptions<T> {
   snapPoints?: readonly number[];
   defaultSnap?: number;
+}
+
+export interface ToastOptions {
+  /** The message. */
+  text: string;
+  tone?: "default" | "muted" | "danger" | "success";
+  /** ms before it dismisses itself; 0 keeps it up. Default 4000. */
+  duration?: number;
+  position?: ToastPosition;
+  id?: string;
 }
 
 export interface ConfirmOptions {
@@ -145,6 +156,29 @@ export const overlay = {
     return getOverlayStore()
       .open<boolean>(schema)
       .result.then((value) => value === true);
+  },
+
+  /**
+   * A passing notice — no backdrop, no focus, dismisses itself.
+   *
+   * Reusing the overlay stack rather than building a parallel system
+   * means a toast raised from a dialog is tracked the same way, and
+   * `closeAll()` on a route change clears both.
+   */
+  toast(options: ToastOptions): OverlayHandle<void> {
+    return this.open<void>({
+      id: options.id ?? autoId("toast"),
+      kind: "toast",
+      dismiss: "non-modal",
+      body: [
+        options.tone
+          ? { type: "text", text: options.text, tone: options.tone }
+          : { type: "text", text: options.text },
+      ],
+      duration: options.duration ?? 4000,
+      ...(options.position ? { position: options.position } : {}),
+      ...(options.tone ? { tone: options.tone } : {}),
+    });
   },
 
   close(id: string, value?: unknown): void {
