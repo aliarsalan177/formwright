@@ -3,6 +3,7 @@ name: Release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -30,36 +31,24 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Skip if there is nothing to release
-        id: pending
-        run: |
-          if find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | grep -q .; then
-            echo "has=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      # Same job on main: consume changesets, bump every public @formwright/*
-      # package (including first publishes like overlay-schema / overlay-core),
-      # commit, publish to npm, then push tags. No Version Packages PR.
+      # Version locally first, but only commit it after npm accepts every
+      # package. A failed publish leaves the changeset on main so rerunning
+      # this workflow can safely try again.
       - name: Version packages
-        if: steps.pending.outputs.has == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          pnpm version-packages
-          git add -A
-          git diff --staged --quiet || git commit -m "Version Packages"
-          git push
+        run: pnpm version-packages
 
       - name: Publish to npm
-        if: steps.pending.outputs.has == 'true'
         run: pnpm release
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
 
-      - name: Push release tags
-        if: steps.pending.outputs.has == 'true'
-        run: git push --follow-tags
+      - name: Commit versions and push release tags
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --staged --quiet || git commit -m "Version Packages"
+          git push
+          git push --follow-tags
