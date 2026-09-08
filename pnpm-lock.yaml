@@ -133,6 +133,9 @@ importers:
       '@formwright/schema':
         specifier: workspace:*
         version: link:../schema
+      '@formwright/ui-core':
+        specifier: workspace:*
+        version: link:../ui-core
       country-flag-icons:
         specifier: ^1.6.17
         version: 1.6.17
@@ -191,6 +194,9 @@ importers:
       '@formwright/reactive':
         specifier: workspace:*
         version: link:../reactive
+      '@formwright/ui-core':
+        specifier: workspace:*
+        version: link:../ui-core
     devDependencies:
       jsdom:
         specifier: ^25.0.1
@@ -209,6 +215,16 @@ importers:
       '@toon-format/toon':
         specifier: ^2.3.0
         version: 2.3.0
+
+  packages/ui-core:
+    dependencies:
+      '@formwright/reactive':
+        specifier: workspace:*
+        version: link:../reactive
+    devDependencies:
+      jsdom:
+        specifier: ^25.0.1
+        version: 25.0.1
 
 packages:
 

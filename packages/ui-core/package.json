@@ -1,12 +1,12 @@
 {
-  "name": "@formwright/overlay-dom",
+  "name": "@formwright/ui-core",
   "version": "0.10.0",
-  "description": "Vanilla-DOM renderer for Overlaywright: focus trap, scroll lock, drag-to-dismiss and snap points. No dependencies outside Formwright.",
+  "description": "Headless DOM foundation shared by every Formwright renderer: scoped disposal, reactive bindings, and the behaviours components are built from. Zero dependencies outside @formwright/reactive.",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/aliarsalan177/formwright.git",
-    "directory": "packages/overlay-dom"
+    "directory": "packages/ui-core"
   },
   "homepage": "https://github.com/aliarsalan177/formwright#readme",
   "bugs": "https://github.com/aliarsalan177/formwright/issues",
@@ -20,20 +20,23 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js",
+      "require": "./dist/testing.cjs"
     }
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "keywords": [
-    "overlay",
-    "modal",
-    "dialog",
-    "drawer",
-    "bottom-sheet",
+    "headless",
+    "dom",
     "signals",
-    "schema-driven",
-    "overlaywright"
+    "disposal",
+    "memory-leak",
+    "formwright"
   ],
   "scripts": {
     "build": "tsup",
@@ -46,13 +49,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@formwright/overlay-core": "workspace:*",
-    "@formwright/overlay-schema": "workspace:*",
-    "@formwright/reactive": "workspace:*",
-    "@formwright/ui-core": "workspace:*"
+    "@formwright/reactive": "workspace:*"
   },
   "devDependencies": {
-    "jsdom": "^25.0.1",
-    "@formwright/ui-core": "workspace:*"
+    "jsdom": "^25.0.1"
   }
 }

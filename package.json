@@ -18,6 +18,7 @@
     "test": "turbo run test",
     "test:watch": "vitest",
     "typecheck": "turbo run typecheck",
+    "size": "node scripts/size-budget.mjs",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css,html}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\"",
