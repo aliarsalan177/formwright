@@ -89,4 +89,18 @@ describe("grid renderer", () => {
       )[0]!;
     expect(firstVisible.children[1]?.textContent).toBe("Amy");
   });
+
+  it("stamps data-row-id and fires onRowClick on virtual rows", () => {
+    const host = document.createElement("div");
+    const grid = new Grid(schema, makeRows(5));
+    grid.setViewportHeight(400);
+    const clicks: string[] = [];
+    mount(grid, host, { onRowClick: (row) => clicks.push(String(row.id)) });
+    const first = [...host.querySelectorAll<HTMLElement>(".gw-row")].find(
+      (r) => r.style.display !== "none",
+    )!;
+    expect(first.getAttribute("data-row-id")).toBe("0");
+    (first.children[1] as HTMLElement).click();
+    expect(clicks).toEqual(["0"]);
+  });
 });
