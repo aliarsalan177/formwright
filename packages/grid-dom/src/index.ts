@@ -6,6 +6,7 @@ import { applyGridMountStyles } from "./styles.js";
 import { GRID_DEFAULT_CSS } from "./default-grid-styles.js";
 
 export type { DetailRenderer, FlowOptions } from "./flow.js";
+export type { RowClickHandler } from "./row-click.js";
 
 /** Mount options — extends flow features with styling overrides. */
 export interface GridMountOptions extends FlowOptions {
@@ -24,7 +25,7 @@ export function mount(grid: Grid, host: Element, options: GridMountOptions = {})
   const needsFlow =
     grid.paginated || grid.masterDetail || grid.grouped || grid.selectionMode !== "none";
   const { styles: _s, customStyles: _c, className: _cn, ...flowOpts } = options;
-  return needsFlow ? mountFlow(grid, host, flowOpts) : mountVirtual(grid, host);
+  return needsFlow ? mountFlow(grid, host, flowOpts) : mountVirtual(grid, host, flowOpts);
 }
 
 export { mountVirtual, mountFlow };

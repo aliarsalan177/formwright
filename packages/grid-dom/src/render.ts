@@ -2,6 +2,7 @@ import { effect, signal, type Dispose, type WriteSignal } from "@formwright/reac
 import type { Grid, ResolvedColumn } from "@formwright/grid-core";
 import { beginEdit, bindCellWidthPin, makeCell, px, renderCellInto } from "./cells.js";
 import { buildHeader } from "./header.js";
+import { bindRowClick, type RowClickHandler } from "./row-click.js";
 
 interface Slot {
   readonly el: HTMLElement;
@@ -14,7 +15,11 @@ interface Slot {
  * window exists in the DOM and a single cell updates surgically when its row
  * changes. Columns (width / order / pin) are reactive.
  */
-export function mountVirtual(grid: Grid, host: Element): Dispose {
+export function mountVirtual(
+  grid: Grid,
+  host: Element,
+  options: { readonly onRowClick?: RowClickHandler } = {},
+): Dispose {
   const disposers: Dispose[] = [];
 
   const root = document.createElement("div");
@@ -120,9 +125,11 @@ export function mountVirtual(grid: Grid, host: Element): Dispose {
           slot.el.style.transform = `translateY(${px(i * grid.rowHeight)})`;
           slot.el.style.display = "flex";
           slot.el.classList.toggle("gw-row-odd", i % 2 === 1);
+          slot.el.setAttribute("data-row-id", ids[i]!);
           slot.rowId.set(ids[i]!);
         } else {
           slot.el.style.display = "none";
+          slot.el.removeAttribute("data-row-id");
           slot.rowId.set(null);
         }
       }
@@ -137,6 +144,7 @@ export function mountVirtual(grid: Grid, host: Element): Dispose {
     ro.observe(viewport);
   }
   grid.setViewportHeight(viewport.clientHeight);
+  disposers.push(bindRowClick(root, grid, options.onRowClick));
 
   return () => {
     disposeSlots();
