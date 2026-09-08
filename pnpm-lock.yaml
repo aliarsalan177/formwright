@@ -171,6 +171,21 @@ importers:
 
   packages/grid-schema: {}
 
+  packages/overlay-core:
+    dependencies:
+      '@formwright/overlay-schema':
+        specifier: workspace:*
+        version: link:../overlay-schema
+      '@formwright/reactive':
+        specifier: workspace:*
+        version: link:../reactive
+
+  packages/overlay-schema:
+    dependencies:
+      '@formwright/schema':
+        specifier: workspace:*
+        version: link:../schema
+
   packages/reactive: {}
 
   packages/schema:

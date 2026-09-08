@@ -133,4 +133,50 @@ describe("flow renderer (pagination/selection/detail)", () => {
     expect(ageCell.textContent).toBe("99");
     expect(host.querySelector(".gw-flowrow")).toBe(firstRow); // same node
   });
+
+  it("stamps data-row-id and fires onRowClick, ignoring checkboxes and pager", () => {
+    const host = document.createElement("div");
+    const grid = new Grid(schema, makeRows(5), {
+      selection: "multi",
+      pagination: { pageSize: 10 },
+    });
+    const clicks: string[] = [];
+    mount(grid, host, {
+      onRowClick: (row) => clicks.push(String(row.id)),
+    });
+    const first = host.querySelector(".gw-flowrow") as HTMLElement;
+    expect(first.getAttribute("data-row-id")).toBe("0");
+
+    (first.querySelector(".gw-cell:not(.gw-lead)") as HTMLElement).click();
+    expect(clicks).toEqual(["0"]);
+
+    (first.querySelector(".gw-check") as HTMLInputElement).click();
+    expect(clicks).toEqual(["0"]);
+
+    const nextBtn = [...host.querySelectorAll<HTMLElement>(".gw-pager-btn")].find((b) =>
+      b.textContent?.includes("Next"),
+    )!;
+    nextBtn.click();
+    expect(clicks).toEqual(["0"]);
+  });
+
+  it("copies column class onto header cells", () => {
+    const host = document.createElement("div");
+    const grid = new Grid(
+      {
+        id: "g",
+        columns: [
+          { field: "id" },
+          { field: "actions", header: "Actions", class: "gw-rowactions-cell", sortable: false },
+        ],
+      },
+      [{ id: "1" }],
+      { pagination: { pageSize: 5 } },
+    );
+    mount(grid, host);
+    const actionsHeader = [...host.querySelectorAll<HTMLElement>(".gw-header .gw-hcell")].find(
+      (c) => c.textContent?.includes("Actions"),
+    );
+    expect(actionsHeader?.classList.contains("gw-rowactions-cell")).toBe(true);
+  });
 });

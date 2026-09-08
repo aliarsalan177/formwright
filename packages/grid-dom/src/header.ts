@@ -1,6 +1,6 @@
 import { effect, type Dispose } from "@formwright/reactive";
 import type { Grid, ResolvedColumn } from "@formwright/grid-core";
-import { applyPin, px } from "./cells.js";
+import { applyPin, px, addClassTokens } from "./cells.js";
 
 export const SEL_W = 44;
 export const EXP_W = 40;
@@ -96,6 +96,7 @@ export function buildHeader(grid: Grid, disposers: Dispose[], leading: LeadingFl
     const hcell = document.createElement("div");
     hcell.className = "gw-hcell";
     hcell.setAttribute("role", "columnheader");
+    addClassTokens(hcell, col.class);
     hcell.style.textAlign = col.align;
     childDisposers.push(
       effect(() => {
