@@ -1,5 +1,15 @@
 # @formwright/overlay-schema
 
+## 0.9.0
+
+### Minor Changes
+
+- 9df39be: Adds a `toast` kind: a passing notice that stacks in a corner, announces itself politely, dismisses on a timer, and never takes focus or locks the page. `overlay.toast({ text, tone, duration, position })`; `duration: 0` keeps it up for a "working…" notice with no known end.
+
+### Patch Changes
+
+- @formwright/schema@0.9.0
+
 ## 0.8.0
 
 ### Minor Changes
