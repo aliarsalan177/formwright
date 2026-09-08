@@ -63,6 +63,7 @@ library, conditional-logic library, and per-framework bindings.
 One schema, one engine — no add-on libraries required:
 
 - **Fields** — text, email, password, number, textarea, select, radio, checkbox, **toggle**,
+  **phone** (international, all countries),
   **color** (swatch + hex), **range** (slider with live value bubble),
   **date / time / datetime / daterange** (with or without time), drag-and-drop **file** upload
   (multi/single, accept, thumbnails), nested **group** (object), repeatable **collection**
@@ -194,6 +195,73 @@ const form = new Form(schema, initialValues, {
 
 form.mount(document.querySelector("#form")!);
 ```
+
+### Default styling
+
+Forms and grids ship with a **light, polished default theme** on first mount — no extra CSS required.
+Built-in styles are scoped to `.fw-root` (forms) and `.gw-root` (grids) and injected once per page.
+
+**Opt out** when you bring your own stylesheet or inline/Tailwind classes (set on `Form` options — `dom` is passed through to the renderer on mount):
+
+```ts
+// Skip built-in CSS (playground demos use this with their dark theme)
+const form = new Form(schema, initialValues, { dom: { customStyles: true } });
+form.mount(host);
+
+// Or pass your own stylesheet URL instead of the default bundle
+const themed = new Form(schema, values, { dom: { styles: "/my-form-theme.css" } });
+themed.mount(host);
+
+// Or disable injected styles entirely
+const bare = new Form(schema, values, { dom: { styles: false } });
+bare.mount(host);
+
+// Grid — pass style options to mount()
+mount(grid, host, { customStyles: true });
+mount(grid, host, { styles: "/my-grid-theme.css" });
+```
+
+When `customStyles: true` or a custom `styles` URL is set, Formwright **does not** inject its default CSS.
+Use schema `class` / `classes` on fields and actions for inline styling, or target `.fw-*` / `.gw-*` hooks in your own sheet.
+
+### Live summary panel
+
+A **live summary** lists filled field values as the user types. It is **on by default**; disable it on the form or hide individual fields:
+
+```ts
+const schema = {
+  id: "checkout",
+  version: "1.0",
+  // summary: false,           // turn off entirely
+  summary: { position: "bottom", title: "Your order" },
+  fields: [
+    { id: "name", type: "text", label: "Name" },
+    { id: "coupon", type: "text", label: "Coupon", omitFromSummary: true },
+    // or: summary: false on a field
+  ],
+};
+```
+
+Per-field opt-out: `omitFromSummary: true` or `summary: false`. Presentational fields (`heading`, `separator`, …) and empty values are never listed.
+
+### Phone field (all countries)
+
+Use `type: "phone"` for an international number with a **country selector** (every country, **SVG flags** on all platforms) and **per-country validation** powered by libphonenumber. The payload is `{ country, national }`:
+
+```ts
+{
+  id: "mobile",
+  type: "phone",
+  label: "Mobile",
+  phone: {
+    defaultCountry: "US",
+    preferredCountries: ["US", "GB", "CA"],
+  },
+  validation: { required: true }, // format: "phone" is implied
+}
+```
+
+Import `@formwright/dom` so the phone validator is registered. Optional helpers: `formatPhoneDisplay`, `normalizePhoneValue`.
 
 ### Form caching (with user consent)
 
@@ -477,7 +545,7 @@ A field is resolved to a widget by `type` and keyed by `id`.
 ### Field types
 
 `text` · `email` · `password` · `number` · `textarea` · `select` · `radio` · `checkbox` ·
-`toggle` · `color` · `range` · `date` · `time` · `datetime` · `daterange` · `file` ·
+`toggle` · `color` · `range` · `phone` · `date` · `time` · `datetime` · `daterange` · `file` ·
 `heading` · `separator` · `paragraph` (presentational) ·
 `group` (nested object) · `collection` (repeatable list) ·
 `steps` (wizard container) · `step` (one wizard step) —
@@ -696,6 +764,41 @@ new Form(schema).mount(document.getElementById("root")!);
 // …or GPT
 import OpenAI from "openai";
 await generateSchema("a contact form", { provider: openaiProvider({ client: new OpenAI() }) });
+```
+
+### JSON + TOON (both supported)
+
+**JSON is canonical** — storage, APIs, npm types, and the default everywhere. **TOON** ([Token-Oriented Object Notation](https://toonformat.dev/)) is a lossless encoding of the same data model, useful for LLM prompts (fewer tokens).
+
+```ts
+import {
+  serializeSchema,
+  deserializeSchema,
+  parseSchemaText,
+  parseSchemaInput,
+} from "@formwright/schema";
+
+const schema = { id: "signup", version: "1.0", fields: [{ id: "email", type: "email" }] };
+
+// Serialize either way
+const json = serializeSchema(schema, "json");
+const toon = serializeSchema(schema, "toon");
+
+// Parse either way (auto-detects format)
+parseSchemaText(json);
+parseSchemaText(toon);
+
+// Form accepts objects, JSON strings, or TOON strings
+new Form(toon).mount(el);
+```
+
+For `@formwright/ai`:
+
+```ts
+await generateSchema("signup form", {
+  promptFormat: "toon", // repair feedback in TOON (lower tokens)
+  outputFormat: "auto", // accept JSON or TOON strings from the model
+});
 ```
 
 ## Bring your own components (React / Vue / any)
@@ -1029,6 +1132,286 @@ Both Formwright and Gridwright share
 [`@formwright/reactive`](https://www.npmjs.com/package/@formwright/reactive), the extracted
 zero-dependency signal core — so a Gridwright cell editor can be a Formwright field.
 See [TABLE_PLAN.md](TABLE_PLAN.md) for the roadmap.
+
+## In production: Next.js App Router
+
+Everything below is lifted from [GymOS](https://gymos.shop), a multi-tenant SaaS that runs both
+packages on every screen — 40-odd forms and every table view. It is the integration layer the
+API reference does not cover: server actions, server-side validation, and swapping the built-in
+widgets for a design system.
+
+### One client wrapper, reused by every form
+
+The engine is framework-agnostic, so React's only job is to own a `<div>` and hand it over.
+Write this once:
+
+```tsx
+"use client";
+
+import { useEffect, useRef } from "react";
+import { Form, type FormSchema } from "@formwright/core";
+import "@formwright/dom";
+
+type SubmitResult = { fieldErrors?: Record<string, string>; error?: string } | void;
+
+export function SchemaForm({
+  schema,
+  values,
+  onSubmit,
+}: {
+  schema: FormSchema;
+  values?: Record<string, unknown>;
+  onSubmit: (values: Record<string, unknown>, form: Form) => Promise<SubmitResult>;
+}) {
+  const host = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = host.current;
+    if (!el) return;
+    const form = new Form(schema, values ?? {}, {
+      // `send` is the engine's submit hook: it owns the pending state,
+      // disables the actions and re-enables them when this resolves.
+      send: async (payload) => {
+        const result = await onSubmit(payload ?? form.getValues(), form);
+        if (result?.fieldErrors) {
+          form.setErrors(result.fieldErrors);
+          throw new Error("validation"); // keeps the form in its error state
+        }
+        if (result?.error) throw new Error(result.error);
+        return result ?? {};
+      },
+    });
+    const dispose = form.mount(el);
+    return () => {
+      dispose?.();
+      form.destroy();
+    };
+  }, [schema, values, onSubmit]);
+
+  return <div ref={host} />;
+}
+```
+
+Two things that will bite you if you skip them:
+
+- **Memoise `schema`, `values` and `onSubmit`.** They are effect dependencies, so a fresh object
+  literal on every render tears the form down and rebuilds it — losing focus mid-typing. Wrap
+  them in `useMemo` / `useCallback`.
+- **`form.destroy()` in the cleanup**, not just the mount disposer. The disposer unbinds the DOM;
+  `destroy` releases the signal subscriptions.
+
+### Calling a server action
+
+Server actions take `FormData`, and the engine hands you plain values, so convert between them:
+
+```ts
+export function valuesToFormData(values: Record<string, unknown>): FormData {
+  const fd = new FormData();
+  for (const [key, value] of Object.entries(values)) {
+    if (value == null) continue;
+    if (typeof value === "boolean") {
+      if (value) fd.set(key, "on"); // unchecked boxes are absent, as in a real form post
+      continue;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) fd.append(key, String(item));
+      continue;
+    }
+    fd.set(key, String(value));
+  }
+  return fd;
+}
+```
+
+Then a form is a schema, a `useMemo`, and one call:
+
+```tsx
+"use client";
+
+export function GymProfileForm({ initial }: { initial: GymProfile }) {
+  const schema: FormSchema = useMemo(
+    () => ({
+      id: "gym-profile",
+      version: "1",
+      fields: [
+        {
+          id: "name",
+          type: "text",
+          label: "Gym name",
+          colSpan: 12,
+          validation: { kind: "string", required: true, maxLength: 120 },
+        },
+        { id: "address", type: "text", label: "Address", colSpan: 12 },
+        { id: "city", type: "text", label: "City", colSpan: 6 },
+        { id: "phone", type: "phone", label: "Phone", colSpan: 6 },
+      ],
+      actions: [{ name: "submit", role: "submit", label: "Save" }],
+      actionsAlign: "end",
+    }),
+    [],
+  );
+
+  const values = useMemo(() => ({ ...initial }), [initial]);
+  const onSubmit = useCallback(
+    (vals: Record<string, unknown>) => saveGymProfileAction(valuesToFormData(vals)),
+    [],
+  );
+
+  return <SchemaForm schema={schema} values={values} onSubmit={onSubmit} />;
+}
+```
+
+### Server validation, mapped back onto the fields
+
+Validate on the server regardless of what the schema says — client validation is a convenience,
+not a boundary. Return field errors keyed by field `id` and the engine paints them in place:
+
+```ts
+"use server";
+
+export async function saveGymProfileAction(formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return { fieldErrors: { name: "Gym name is required." } };
+
+  await db.tenant.update({ where: { id: tenantId }, data: { name } });
+  revalidatePath("/settings/general");
+}
+```
+
+### The redirect gotcha
+
+A server action that calls `redirect()` signals it by **throwing**. Left alone, that surfaces as a
+failed submit and the form paints an error a moment before the browser navigates away. Swallow it:
+
+```ts
+function isNextRedirectError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const digest = "digest" in error && error.digest != null ? String(error.digest) : "";
+  return digest.startsWith("NEXT_REDIRECT");
+}
+
+// inside `send`
+try {
+  return (await onSubmit(payload, form)) ?? {};
+} catch (error) {
+  if (isNextRedirectError(error)) return {}; // a redirect is a success
+  throw error;
+}
+```
+
+### Using your own components instead of the built-ins
+
+This is the part worth the integration effort: `registerWidget` replaces a field type's renderer
+globally, so a schema stays portable while every `select` becomes _your_ select. The binding is
+signal-driven, not prop-driven — subscribe to it and re-render:
+
+```tsx
+import { registerWidget, type WidgetBinding } from "@formwright/dom";
+import { createRoot } from "react-dom/client";
+
+function mountReactWidget(host, binding: WidgetBinding, render) {
+  const root = createRoot(host);
+  const state = { value: binding.value(), enabled: true };
+  const paint = () => root.render(render(state.value, state.enabled));
+  binding.onValue((value) => {
+    state.value = value;
+    paint();
+  });
+  binding.onEnabled((enabled) => {
+    state.enabled = enabled;
+    paint();
+  });
+  // Unmount on a microtask — React refuses to unmount during a render pass.
+  return () => queueMicrotask(() => root.unmount());
+}
+
+registerWidget("select", {
+  mount: (host, binding) =>
+    mountReactWidget(host, binding, (value, enabled) => (
+      <MySelect
+        id={binding.field.domId}
+        value={value == null ? "" : String(value)}
+        disabled={!enabled}
+        onChange={(next) => binding.setValue(next)}
+        options={(binding.field.schema.options ?? []).map((o) => ({
+          value: String(o.value ?? ""),
+          label: String(o.label ?? o.value ?? ""),
+        }))}
+      />
+    )),
+});
+```
+
+Register once, at module scope behind a guard — registration is global, and doing it inside a
+component re-registers on every mount.
+
+For a widget that draws its own label (a toggle, say), hide the one the engine rendered:
+
+```ts
+host.closest(".fw-field")?.querySelector(":scope > label")?.classList.add("sr-only");
+```
+
+### Grids: columns as data, cells as your components
+
+Same shape — a memoised schema, a host `<div>`, and `mount`:
+
+```tsx
+"use client";
+
+import { Grid } from "@formwright/grid-core";
+import { mount, registerCellRenderer } from "@formwright/grid-dom";
+
+registerCellRenderer("statusBadge", (value) => {
+  const el = document.createElement("span");
+  el.className = `badge badge--${String(value).toLowerCase()}`;
+  el.textContent = String(value);
+  return el;
+});
+
+export function PackagesGrid({ rows }: { rows: Row[] }) {
+  const host = useRef<HTMLDivElement>(null);
+
+  const schema = useMemo(
+    () => ({
+      id: "packages",
+      columns: [
+        { field: "name", header: "Package", flex: 2, minWidth: 160 },
+        { field: "priceLabel", header: "Price", width: 120 },
+        { field: "durationLabel", header: "Duration", width: 120 },
+        { field: "status", header: "Status", width: 90, cellRenderer: "statusBadge" },
+      ],
+    }),
+    [],
+  );
+
+  useEffect(() => {
+    const grid = new Grid(schema, rows, {
+      selection: "multi",
+      pagination: { pageSize: 25 },
+    });
+    const dispose = mount(grid, host.current!);
+    const off = grid.onSelectionChange((selected) => setBulkBar(selected));
+    return () => {
+      off?.();
+      dispose?.();
+    };
+  }, [schema, rows]);
+
+  return <div ref={host} />;
+}
+```
+
+The grid owns sort, filter, page and selection internally — do not mirror them into React state.
+Subscribe (`onSelectionChange`, `onStateChange`, `subscribe`) and read `getData()` when you need a
+snapshot. Mirroring is what makes framework grids stutter, and it is the mistake this engine
+exists to avoid.
+
+### Rendering both on a page that streams
+
+Both engines mount in `useEffect`, so they are client-only by definition. In the App Router that
+means the page stays a server component and only the grid or form is a `"use client"` island —
+the table data is fetched server-side, passed as plain rows, and the client bundle carries the
+engine but none of the data-fetching code.
 
 ## Packages
 
