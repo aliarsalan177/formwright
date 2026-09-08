@@ -1,4 +1,4 @@
-# @formwright/overlay-schema
+# @formwright/overlay-dom
 
 ## 0.7.0
 
@@ -10,14 +10,7 @@
 
 ### Patch Changes
 
-- @formwright/schema@0.7.0
-
-## 0.6.0
-
-### Minor Changes
-
-- e4d7b04: Add Overlaywright to npm: `@formwright/overlay-schema` and `@formwright/overlay-core` for schema-driven modals, drawers, and sheets.
-
-### Patch Changes
-
-- @formwright/schema@0.6.0
+- Updated dependencies [cac7912]
+  - @formwright/overlay-schema@0.7.0
+  - @formwright/overlay-core@0.7.0
+  - @formwright/reactive@0.7.0

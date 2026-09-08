@@ -1,6 +1,6 @@
 {
   "name": "@formwright/overlay-dom",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Vanilla-DOM renderer for Overlaywright: focus trap, scroll lock, drag-to-dismiss and snap points. No dependencies outside Formwright.",
   "license": "MIT",
   "repository": {

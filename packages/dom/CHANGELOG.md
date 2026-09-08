@@ -1,5 +1,12 @@
 # @formwright/dom
 
+## 0.7.0
+
+### Patch Changes
+
+- @formwright/core@0.7.0
+- @formwright/schema@0.7.0
+
 ## 0.6.0
 
 ### Patch Changes

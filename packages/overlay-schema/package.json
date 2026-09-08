@@ -1,6 +1,6 @@
 {
   "name": "@formwright/overlay-schema",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Overlay/dialog schema types and a dependency-free validator for Overlaywright.",
   "license": "MIT",
   "repository": {

@@ -1,5 +1,12 @@
 # @formwright/grid-core
 
+## 0.7.0
+
+### Patch Changes
+
+- @formwright/grid-schema@0.7.0
+- @formwright/reactive@0.7.0
+
 ## 0.6.0
 
 ### Patch Changes
