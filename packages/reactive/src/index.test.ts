@@ -167,3 +167,33 @@ describe("diamond dependency", () => {
     expect(seen).toEqual([5, 7]);
   });
 });
+
+describe("two copies of this module", () => {
+  it("share one tracking graph", async () => {
+    // A consumer that installs two packages whose `reactive` versions do
+    // not dedupe — or a tarball, which never dedupes — loads this module
+    // twice. Before the graph moved onto globalThis each copy kept its
+    // own activeObserver, so a signal created by one and read inside an
+    // effect from the other recorded no dependency: nothing threw, the
+    // UI just stopped updating.
+    const a = await import("./index.js");
+    // A literal query: the bundler needs a static specifier, and the
+    // different URL is what forces a second module instance.
+    // @ts-expect-error — the query suffix is what forces a second module
+    // instance; TypeScript has no declaration for a specifier like this.
+    const b = (await import("./index.js?second-copy")) as typeof a;
+    expect(b).not.toBe(a);
+
+    const count = a.signal(0);
+    const seen: number[] = [];
+    const stop = b.effect(() => {
+      seen.push(count.get());
+    });
+
+    count.set(1);
+    count.set(2);
+    stop();
+
+    expect(seen).toEqual([0, 1, 2]);
+  });
+});

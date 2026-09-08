@@ -41,13 +41,39 @@ interface Source {
   readonly observers: Set<Observer>;
 }
 
-let activeObserver: Observer | null = null;
-let batchDepth = 0;
-const pendingEffects = new Set<EffectNode>();
-let flushing = false;
+/**
+ * The tracking graph lives on `globalThis`, not in module scope.
+ *
+ * A signal created by one copy of this module and read inside an effect
+ * from another copy would otherwise never link: each copy would have its
+ * own `state.activeObserver`, so the read records no dependency and the effect
+ * never re-runs. Nothing throws — the UI simply stops updating, which is
+ * about the hardest failure to diagnose from the symptom.
+ *
+ * Two copies is not hypothetical. Every package here depends on this one,
+ * and a consumer only has to install two of them at versions that do not
+ * dedupe — or install a tarball, which never dedupes — to end up with
+ * two. Keying the state to a versioned symbol on `globalThis` means the
+ * graph is shared however many copies get loaded.
+ */
+interface ReactiveState {
+  activeObserver: Observer | null;
+  batchDepth: number;
+  readonly pendingEffects: Set<EffectNode>;
+  flushing: boolean;
+}
+
+const STATE_KEY = Symbol.for("@formwright/reactive#state.v1");
+
+const state: ReactiveState = ((globalThis as Record<symbol, unknown>)[STATE_KEY] ??= {
+  activeObserver: null,
+  batchDepth: 0,
+  pendingEffects: new Set<EffectNode>(),
+  flushing: false,
+}) as ReactiveState;
 
 function link(source: Source): void {
-  const obs = activeObserver;
+  const obs = state.activeObserver;
   if (obs === null) return;
   if (!source.observers.has(obs)) {
     source.observers.add(obs);
@@ -61,17 +87,17 @@ function clearSources(obs: Observer): void {
 }
 
 function flush(): void {
-  if (flushing) return;
-  flushing = true;
+  if (state.flushing) return;
+  state.flushing = true;
   try {
     // Re-check each iteration: running an effect may queue more effects.
-    while (pendingEffects.size > 0) {
-      const next = pendingEffects.values().next().value as EffectNode;
-      pendingEffects.delete(next);
+    while (state.pendingEffects.size > 0) {
+      const next = state.pendingEffects.values().next().value as EffectNode;
+      state.pendingEffects.delete(next);
       next.run();
     }
   } finally {
-    flushing = false;
+    state.flushing = false;
   }
 }
 
@@ -93,7 +119,7 @@ class SignalNode<T> implements Source {
     this.value = next;
     // Snapshot observers: notify() may mutate downstream sets, not ours.
     for (const obs of [...this.observers]) obs.notify();
-    if (batchDepth === 0) flush();
+    if (state.batchDepth === 0) flush();
   }
 
   update(fn: (prev: T) => T): void {
@@ -128,13 +154,13 @@ class ComputedNode<T> implements Source, Observer {
 
   private recompute(): void {
     clearSources(this);
-    const prev = activeObserver;
-    activeObserver = this;
+    const prev = state.activeObserver;
+    state.activeObserver = this;
     try {
       this.value = this.fn();
       this.dirty = false;
     } finally {
-      activeObserver = prev;
+      state.activeObserver = prev;
     }
   }
 }
@@ -150,19 +176,19 @@ class EffectNode implements Observer {
 
   notify(): void {
     if (this.disposed) return;
-    pendingEffects.add(this);
+    state.pendingEffects.add(this);
   }
 
   run(): void {
     if (this.disposed) return;
     this.runCleanup();
     clearSources(this);
-    const prev = activeObserver;
-    activeObserver = this;
+    const prev = state.activeObserver;
+    state.activeObserver = this;
     try {
       this.cleanup = this.fn();
     } finally {
-      activeObserver = prev;
+      state.activeObserver = prev;
     }
   }
 
@@ -178,7 +204,7 @@ class EffectNode implements Observer {
     this.disposed = true;
     this.runCleanup();
     clearSources(this);
-    pendingEffects.delete(this);
+    state.pendingEffects.delete(this);
   }
 }
 
@@ -204,27 +230,27 @@ export function effect(fn: () => void | (() => void)): Dispose {
 
 /** Read reactive values inside `fn` without subscribing the current observer. */
 export function untrack<T>(fn: () => T): T {
-  const prev = activeObserver;
-  activeObserver = null;
+  const prev = state.activeObserver;
+  state.activeObserver = null;
   try {
     return fn();
   } finally {
-    activeObserver = prev;
+    state.activeObserver = prev;
   }
 }
 
 /** Batch multiple writes so effects flush once, after `fn` returns. */
 export function batch<T>(fn: () => T): T {
-  batchDepth++;
+  state.batchDepth++;
   try {
     return fn();
   } finally {
-    batchDepth--;
-    if (batchDepth === 0) flush();
+    state.batchDepth--;
+    if (state.batchDepth === 0) flush();
   }
 }
 
 /** True when called inside an effect/computed tracking context. */
 export function isTracking(): boolean {
-  return activeObserver !== null;
+  return state.activeObserver !== null;
 }

@@ -164,6 +164,19 @@ export class OverlayStore {
       return this.#handle<T>(existing.id, existing.lifecycle);
     }
 
+    // One at a time within a group: a second sheet cancels the first,
+    // even one still playing its entry transition. A fast double-tap, or
+    // a second action chosen before the first settled, would otherwise
+    // leave two stacked — the user dismisses one and is surprised to
+    // find another behind it.
+    if (schema.group) {
+      for (const other of this.#records.peek()) {
+        if (other.open && other.schema.group === schema.group) {
+          this.close(other.id);
+        }
+      }
+    }
+
     const lifecycle = createLifecycle(options.onClose);
 
     const record: Record_ = {

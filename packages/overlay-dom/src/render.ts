@@ -99,11 +99,17 @@ export interface RenderedPanel {
   dispose(): void;
 }
 
+/** The renderer's class plus whatever the schema added. */
+function cx(base: string, extra: string | undefined): string {
+  return extra ? `${base} ${extra}` : base;
+}
+
 export function renderPanel(entry: OverlayEntry, ctx: RenderContext): RenderedPanel {
   const schema: OverlaySchema = entry.schema;
+  const cn = schema.classNames ?? {};
   const disposers: (() => void)[] = [];
 
-  const panel = el("div", "ow-panel");
+  const panel = el("div", cx("ow-panel", cn.panel));
   panel.dataset.kind = entry.kind;
   panel.dataset.size = schema.size ?? "md";
   panel.setAttribute("role", schema.dismiss === "alert" ? "alertdialog" : "dialog");
@@ -120,17 +126,22 @@ export function renderPanel(entry: OverlayEntry, ctx: RenderContext): RenderedPa
     panel.appendChild(grip);
   }
 
-  if (schema.title || schema.description) {
-    const head = el("div", "ow-head");
+  if (schema.titleHidden) {
+    // Named without adding anything to the DOM. aria-label carries the
+    // accessible name on its own, so a host drawing its own header does
+    // not have to style around a hidden element it did not ask for.
+    if (schema.title) panel.setAttribute("aria-label", schema.title);
+  } else if (schema.title || schema.description) {
+    const head = el("div", cx("ow-head", cn.head));
     if (schema.title) {
-      const h = el("h2", "ow-title");
+      const h = el("h2", cx("ow-title", cn.title));
       h.id = `${entry.id}-title`;
       h.textContent = schema.title;
       head.appendChild(h);
       panel.setAttribute("aria-labelledby", h.id);
     }
     if (schema.description) {
-      const p = el("p", "ow-desc");
+      const p = el("p", cx("ow-desc", cn.description));
       p.id = `${entry.id}-desc`;
       p.textContent = schema.description;
       head.appendChild(p);
@@ -139,17 +150,29 @@ export function renderPanel(entry: OverlayEntry, ctx: RenderContext): RenderedPa
     panel.appendChild(head);
   }
 
-  const body = el("div", "ow-body");
+  const body = el("div", cx("ow-body", cn.body));
   for (const block of schema.body ?? []) {
     const node = renderBlock(block, ctx, disposers);
     if (node) body.appendChild(node);
   }
   panel.appendChild(body);
 
-  if (schema.actions?.length) {
-    const foot = el("div", "ow-foot");
-    for (const action of schema.actions) {
-      const button = el("button", "ow-action");
+  if (schema.footer?.length || schema.actions?.length) {
+    const foot = el("div", cx("ow-foot", cn.footer));
+
+    // Host content first, then the button row, so a total or a note sits
+    // above the actions rather than beside them.
+    if (schema.footer?.length) {
+      const custom = el("div", "ow-foot-content");
+      for (const block of schema.footer) {
+        const node = renderBlock(block, ctx, disposers);
+        if (node) custom.appendChild(node);
+      }
+      foot.appendChild(custom);
+    }
+
+    for (const action of schema.actions ?? []) {
+      const button = el("button", cx("ow-action", cn.action));
       button.type = "button";
       button.textContent = action.label;
       if (action.role) button.dataset.role = action.role;

@@ -73,6 +73,32 @@ describe("mountOverlays", () => {
     expect(panels()).toHaveLength(1);
   });
 
+  it("closes when the backdrop is clicked", () => {
+    const store = new OverlayStore();
+    dispose = host(store);
+    store.open({ id: "a", kind: "drawer" });
+
+    const backdrop = document.querySelector<HTMLElement>(".ow-backdrop")!;
+    // Press and release, both outside — a press alone is the start of a
+    // drag, which might still end inside the panel.
+    backdrop.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    backdrop.dispatchEvent(new Event("pointerup", { bubbles: true }));
+
+    expect(store.get("a")).toBeNull();
+  });
+
+  it("does not close when the click started inside the panel", () => {
+    const store = new OverlayStore();
+    dispose = host(store);
+    store.open({ id: "a", kind: "modal", title: "Keep me" });
+
+    const panel = panels()[0]!;
+    panel.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    panel.dispatchEvent(new Event("pointerup", { bubbles: true }));
+
+    expect(store.get("a")?.open).toBe(true);
+  });
+
   it("ignores Escape for an alert", () => {
     const store = new OverlayStore();
     dispose = host(store);
@@ -127,6 +153,47 @@ describe("mountOverlays", () => {
     expect(document.querySelector(".ow-rule")).not.toBeNull();
   });
 
+  it("pins host footer content outside the scrolling body", () => {
+    const store = new OverlayStore();
+    dispose = host(store);
+
+    const bar = document.createElement("div");
+    bar.id = "submit-bar";
+    store.open(
+      {
+        id: "a",
+        kind: "drawer",
+        body: [{ type: "slot", name: "content" }],
+        footer: [{ type: "slot", name: "footer" }],
+        actions: [{ name: "save", label: "Save" }],
+      },
+      { slots: { content: document.createElement("div"), footer: bar } },
+    );
+
+    const panel = panels()[0]!;
+    const foot = panel.querySelector(".ow-foot")!;
+    // In the footer, not the body — so it stays put while the body scrolls.
+    expect(foot.contains(bar)).toBe(true);
+    expect(panel.querySelector(".ow-body")!.contains(bar)).toBe(false);
+    // Host content sits above the button row.
+    expect(foot.querySelector(".ow-foot-content")).not.toBeNull();
+    expect(foot.querySelector(".ow-action")!.textContent).toBe("Save");
+  });
+
+  it("renders a footer with no actions at all", () => {
+    const store = new OverlayStore();
+    dispose = host(store);
+    store.open({
+      id: "a",
+      kind: "sheet",
+      footer: [{ type: "text", text: "Total PKR 5,000" }],
+    });
+
+    const foot = panels()[0]!.querySelector(".ow-foot")!;
+    expect(foot.textContent).toContain("Total PKR 5,000");
+    expect(foot.querySelector(".ow-action")).toBeNull();
+  });
+
   it("escapes text rather than interpreting it as markup", () => {
     const store = new OverlayStore();
     dispose = host(store);
@@ -152,6 +219,98 @@ describe("mountOverlays", () => {
     expect(panel.getAttribute("aria-modal")).toBe("true");
     expect(panel.getAttribute("aria-labelledby")).toBe("a-title");
     expect(panel.getAttribute("aria-describedby")).toBe("a-desc");
+  });
+
+  it("names a hidden-title dialog without adding to the DOM", () => {
+    const store = new OverlayStore();
+    dispose = host(store);
+    store.open({
+      id: "a",
+      kind: "sheet",
+      title: "Register member",
+      titleHidden: true,
+      body: [{ type: "slot", name: "content" }],
+    });
+
+    const panel = panels()[0]!;
+    // The host draws its own header inside the slot, so nothing is
+    // rendered here — but the dialog still has an accessible name.
+    expect(panel.querySelector(".ow-head")).toBeNull();
+    expect(panel.getAttribute("aria-label")).toBe("Register member");
+  });
+
+  it("appends host classes without dropping its own", () => {
+    const store = new OverlayStore();
+    dispose = host(store);
+    store.open({
+      id: "a",
+      kind: "modal",
+      title: "Styled",
+      body: [{ type: "text", text: "hi" }],
+      actions: [{ name: "ok", label: "OK" }],
+      classNames: {
+        panel: "rounded-2xl",
+        head: "px-6",
+        body: "text-sm",
+        footer: "justify-start",
+        action: "btn",
+      },
+    });
+
+    const panel = panels()[0]!;
+    expect(panel.className).toBe("ow-panel rounded-2xl");
+    expect(panel.querySelector(".ow-head")!.className).toBe("ow-head px-6");
+    expect(panel.querySelector(".ow-body")!.className).toBe("ow-body text-sm");
+    expect(panel.querySelector(".ow-foot")!.className).toBe("ow-foot justify-start");
+    expect(panel.querySelector(".ow-action")!.className).toBe("ow-action btn");
+  });
+
+  it("closes on a click in the layer outside the panel", () => {
+    const store = new OverlayStore();
+    dispose = host(store);
+    store.open({ id: "a", kind: "drawer" });
+
+    const layer = document.querySelector<HTMLElement>(".ow-layer")!;
+    layer.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    layer.dispatchEvent(new Event("pointerup", { bubbles: true }));
+
+    expect(store.get("a")).toBeNull();
+  });
+
+  it("keeps swallowing pointer events through its exit", () => {
+    // The browser hit-tests the `click` after the pointerup that
+    // dismissed the drawer. If the layer stopped taking pointer events
+    // the moment it started closing, that click would land on the row
+    // underneath — closing the drawer and reopening the row in one tap.
+    //
+    // jsdom neither hit-tests nor honours pointer-events, so the effect
+    // itself cannot be observed here; this pins the mechanism that
+    // produces it.
+    const store = new OverlayStore();
+    dispose = mountOverlays({ store, exitMs: 50 });
+    store.open({ id: "a", kind: "drawer" });
+
+    const layer = document.querySelector<HTMLElement>(".ow-layer")!;
+    layer.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    layer.dispatchEvent(new Event("pointerup", { bubbles: true }));
+
+    expect(layer.dataset.open).toBe("false");
+    expect(layer.style.pointerEvents).toBe("auto");
+  });
+
+  it("treats a drag that starts inside the panel as a selection", () => {
+    const store = new OverlayStore();
+    dispose = host(store);
+    store.open({ id: "a", kind: "modal", body: [{ type: "text", text: "select me" }] });
+
+    const panel = panels()[0]!;
+    const layer = document.querySelector<HTMLElement>(".ow-layer")!;
+    // Down inside, up outside: selecting text past the edge must not
+    // throw away whatever the dialog was holding.
+    panel.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    layer.dispatchEvent(new Event("pointerup", { bubbles: true }));
+
+    expect(store.get("a")?.open).toBe(true);
   });
 
   it("uses alertdialog and no backdrop dismissal for an alert", () => {

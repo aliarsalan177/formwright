@@ -137,15 +137,11 @@ export function mountOverlays(options: MountOptions = {}): () => void {
     layer.style.zIndex = String(entry.index);
 
     const backdrop = document.createElement("div");
-    backdrop.className = "ow-backdrop";
+    backdrop.className = entry.schema.classNames?.backdrop
+      ? `ow-backdrop ${entry.schema.classNames.backdrop}`
+      : "ow-backdrop";
     applyBackdrop(backdrop, entry.schema.backdrop);
-    if (entry.dismiss !== "non-modal") {
-      backdrop.addEventListener("pointerdown", (event) => {
-        if (event.target !== backdrop) return;
-        dismiss(entry);
-      });
-      layer.appendChild(backdrop);
-    }
+    if (entry.dismiss !== "non-modal") layer.appendChild(backdrop);
 
     const rendered = renderPanel(entry, {
       slots: entry.slots as Record<string, unknown>,
@@ -157,6 +153,28 @@ export function mountOverlays(options: MountOptions = {}): () => void {
     });
     layer.appendChild(rendered.panel);
     root.appendChild(layer);
+
+    if (entry.dismiss !== "non-modal") {
+      // "Outside" means outside the panel, not "exactly on the backdrop
+      // element". Listening on the backdrop alone missed any padding or
+      // wrapper the layer picks up from a host theme, which is how a
+      // click in the empty area could land on nothing and do nothing.
+      //
+      // pointerdown, and the release has to land outside too: a drag that
+      // starts on text inside the panel and ends past its edge is a
+      // selection, not a dismissal.
+      layer.addEventListener("pointerdown", (event) => {
+        const target = event.target;
+        if (target instanceof Node && rendered.panel.contains(target)) return;
+        const release = (up: PointerEvent) => {
+          layer.removeEventListener("pointerup", release);
+          const upTarget = up.target;
+          if (upTarget instanceof Node && rendered.panel.contains(upTarget)) return;
+          dismiss(entry);
+        };
+        layer.addEventListener("pointerup", release);
+      });
+    }
 
     const record: Mounted = {
       layer,
@@ -204,6 +222,13 @@ export function mountOverlays(options: MountOptions = {}): () => void {
     const record = mounted.get(id);
     if (!record || record.closing) return;
     record.closing = true;
+    // Keep taking pointer events through the exit. The stylesheet drops
+    // them at data-open="false", and the browser hit-tests the `click`
+    // after the pointerup that dismissed us — so the layer would already
+    // be transparent and the click would land on whatever is underneath.
+    // Tapping the backdrop over a list closed the drawer and opened the
+    // row behind it in the same gesture.
+    record.layer.style.pointerEvents = "auto";
     record.layer.dataset.open = "false";
     record.stopDrag?.();
     // Release focus before the element goes, so the previously focused

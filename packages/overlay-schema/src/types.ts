@@ -115,6 +115,18 @@ export interface OverlaySchema {
   title?: string;
   description?: string;
   body?: readonly OverlayBlock[];
+  /**
+   * Pinned to the bottom of the panel while the body scrolls.
+   *
+   * `actions` covers the common case of a row of buttons. This is for
+   * anything else that has to stay put — a running total, a submit bar,
+   * a host's own controls supplied through a `slot`. Without it a host
+   * rendering everything into one body slot has no way to keep a footer
+   * out of the scroll.
+   *
+   * Rendered above `actions` when both are given.
+   */
+  footer?: readonly OverlayBlock[];
   actions?: readonly OverlayAction[];
   /** Fractions of the viewport height a sheet may rest at, ascending,
    *  each in (0, 1]. Only meaningful for `sheet`. */
@@ -130,6 +142,46 @@ export interface OverlaySchema {
   duration?: number;
   /** Colours a toast: success, danger, and so on. */
   tone?: BlockTone;
+  /**
+   * Do not draw the title and description.
+   *
+   * For a host that renders its own header inside a `slot`: without this
+   * the heading appears twice. The dialog is still named — the title
+   * becomes the panel's `aria-label` rather than a hidden element, so
+   * nothing is added to the DOM to be styled around or stepped over.
+   */
+  titleHidden?: boolean;
+  /**
+   * Your classes on the pieces the renderer builds, alongside its own.
+   *
+   * Additive, never replacing: the `ow-` names stay so the default
+   * stylesheet and anything keyed to them keep working, and these are
+   * appended. Lets a host style panels with its own utility classes
+   * instead of overriding selectors it does not own.
+   */
+  classNames?: {
+    panel?: string;
+    head?: string;
+    title?: string;
+    description?: string;
+    body?: string;
+    footer?: string;
+    action?: string;
+    backdrop?: string;
+  };
+  /**
+   * Only one overlay in a group is open at a time.
+   *
+   * Opening a second closes the first, including one still playing its
+   * entry transition. Without it a fast double-tap, or a second action
+   * chosen before the first sheet settled, leaves two stacked — the user
+   * dismisses one and is surprised to find another behind it.
+   *
+   * Distinct from a shared `id`, which refreshes the same overlay in
+   * place. A group holds overlays that are genuinely different but
+   * mutually exclusive: the create sheet and the edit sheet on one list.
+   */
+  group?: string;
   /** Renderer hints. Never interpreted by the engine. */
   meta?: Record<string, unknown>;
 }

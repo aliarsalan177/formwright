@@ -71,6 +71,14 @@ export function validateSchema(schema: unknown): ValidationResult {
     }
   }
 
+  if (s.footer !== undefined) {
+    if (!Array.isArray(s.footer)) {
+      push("footer", "`footer` must be an array of blocks.");
+    } else {
+      s.footer.forEach((block, i) => validateBlock(block, `footer[${i}]`, push));
+    }
+  }
+
   if (s.actions !== undefined) {
     if (!Array.isArray(s.actions)) {
       push("actions", "`actions` must be an array.");

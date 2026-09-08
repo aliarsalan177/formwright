@@ -115,6 +115,19 @@ export const OVERLAY_STYLES = `
 .ow-grip:active { cursor: grabbing; }
 
 .ow-head { flex: none; padding: 1rem 1.25rem 0.5rem; }
+/* Out of sight, still in the accessibility tree. display:none would
+   take it out of both. */
+.ow-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
 .ow-title { margin: 0; font-size: 1rem; font-weight: 600; }
 .ow-desc { margin: 0.25rem 0 0; font-size: 0.875rem; color: var(--ow-muted); }
 .ow-body { flex: 1 1 auto; overflow-y: auto; padding: 0.5rem 1.25rem 1rem; font-size: 0.875rem; }
@@ -130,13 +143,18 @@ export const OVERLAY_STYLES = `
 .ow-field dt { color: var(--ow-muted); }
 .ow-field dd { margin: 0; font-variant-numeric: tabular-nums; }
 
+/* Pinned: the body scrolls, this does not. flex-wrap so host content
+   and the button row stack on a narrow panel rather than squeezing. */
 .ow-foot {
   flex: none;
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
   padding: 0.75rem 1.25rem 1.25rem;
 }
+.ow-foot-content { flex: 1 1 100%; }
 .ow-action {
   border: 1px solid var(--ow-border);
   border-radius: 8px;

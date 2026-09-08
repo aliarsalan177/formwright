@@ -268,3 +268,44 @@ describe("the ambient store", () => {
     store.closeAll();
   });
 });
+
+describe("groups", () => {
+  const sheet = (id: string, group?: string): OverlaySchema => ({
+    id,
+    kind: "sheet",
+    ...(group ? { group } : {}),
+  });
+
+  it("closes the previous member when a new one opens", () => {
+    const store = new OverlayStore();
+    store.open(sheet("create", "forms"));
+    store.open(sheet("edit", "forms"));
+
+    expect(store.get("create")?.open).toBe(false);
+    expect(store.get("edit")?.open).toBe(true);
+  });
+
+  it("cancels one that is still animating in", async () => {
+    // The first sheet has opened but its exit has not been reported, so
+    // it is still on the stack. Opening the second must still cancel it.
+    const store = new OverlayStore();
+    const first = store.open<string>(sheet("a", "forms"));
+    store.open(sheet("b", "forms"));
+
+    await expect(first.result).resolves.toBeUndefined();
+    expect(store.get("a")?.open).toBe(false);
+  });
+
+  it("leaves overlays in other groups, and ungrouped ones, alone", () => {
+    const store = new OverlayStore();
+    store.open(sheet("nav", "navigation"));
+    store.open(sheet("loose"));
+    store.open(sheet("create", "forms"));
+    store.open(sheet("edit", "forms"));
+
+    expect(store.get("nav")?.open).toBe(true);
+    expect(store.get("loose")?.open).toBe(true);
+    expect(store.get("create")?.open).toBe(false);
+    expect(store.get("edit")?.open).toBe(true);
+  });
+});
