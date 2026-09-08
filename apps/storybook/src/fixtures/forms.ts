@@ -83,7 +83,12 @@ export const CHECKOUT: FormSchema = {
       maxItems: 3,
       fields: [
         { id: "name", type: "text", label: "Name" },
-        { id: "phone", type: "phone", label: "Phone", validation: { required: true } },
+        {
+          id: "phone",
+          type: "phone",
+          label: "Phone",
+          validation: { kind: "string", format: "phone", required: true },
+        },
       ],
     },
   ],
@@ -114,7 +119,12 @@ export const WIZARD: FormSchema = {
               label: "Full name",
               validation: { kind: "string", required: true, minLength: 2 },
             },
-            { id: "phone", type: "phone", label: "Phone", validation: { required: true } },
+            {
+              id: "phone",
+              type: "phone",
+              label: "Phone",
+              validation: { kind: "string", format: "phone", required: true },
+            },
           ],
         },
         {
