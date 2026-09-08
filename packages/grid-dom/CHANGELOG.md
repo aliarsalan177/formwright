@@ -1,5 +1,13 @@
 # @formwright/grid-dom
 
+## 0.8.0
+
+### Patch Changes
+
+- @formwright/grid-core@0.8.0
+- @formwright/grid-schema@0.8.0
+- @formwright/reactive@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes

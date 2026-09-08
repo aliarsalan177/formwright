@@ -1,5 +1,13 @@
 # @formwright/overlay-core
 
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies [3f71d46]
+  - @formwright/overlay-schema@0.8.0
+  - @formwright/reactive@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes

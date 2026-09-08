@@ -1,5 +1,12 @@
 # @formwright/core
 
+## 0.8.0
+
+### Patch Changes
+
+- @formwright/reactive@0.8.0
+- @formwright/schema@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes
