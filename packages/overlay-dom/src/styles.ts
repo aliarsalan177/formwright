@@ -26,6 +26,7 @@ export const OVERLAY_STYLES = `
   --ow-accent: #18181b;
   --ow-accent-text: #ffffff;
   --ow-danger: #dc2626;
+  --ow-success: #16a34a;
   position: fixed;
   inset: 0;
   z-index: 2147483000;
@@ -100,6 +101,54 @@ export const OVERLAY_STYLES = `
 
 /* A sheet resting at a snap point is sized to it. */
 .ow-panel[data-kind="sheet"] { height: var(--ow-snap, auto); }
+
+/* Toasts live outside the modal stack. Regions anchor and stack them;
+   each toast remains interactive without making the full-screen root
+   intercept clicks. Colours derive from theme tokens, including custom
+   host themes that override the variables on .ow-root. */
+.ow-toasts {
+  position: fixed;
+  z-index: 2147483640;
+  display: flex;
+  width: min(24rem, calc(100vw - 2rem));
+  flex-direction: column;
+  gap: 0.625rem;
+  pointer-events: none;
+}
+.ow-toasts[data-position^="top-"] { top: max(1rem, env(safe-area-inset-top)); }
+.ow-toasts[data-position^="bottom-"] { bottom: max(1rem, env(safe-area-inset-bottom)); }
+.ow-toasts[data-position$="-left"] { left: max(1rem, env(safe-area-inset-left)); }
+.ow-toasts[data-position$="-right"] { right: max(1rem, env(safe-area-inset-right)); }
+.ow-toasts[data-position$="-center"] { left: 50%; transform: translateX(-50%); }
+.ow-toasts .ow-panel[data-kind="toast"] {
+  position: relative;
+  width: 100%;
+  max-height: none;
+  border: 1px solid var(--ow-border);
+  border-radius: calc(var(--ow-radius) * 0.75);
+  opacity: 0;
+  pointer-events: auto;
+  transform: translate3d(0, 0.5rem, 0);
+}
+.ow-toasts[data-position^="top-"] .ow-panel[data-kind="toast"] {
+  transform: translate3d(0, -0.5rem, 0);
+}
+.ow-toasts .ow-panel[data-kind="toast"][data-open="true"] {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+.ow-toasts .ow-panel[data-kind="toast"][data-tone="success"] {
+  border-color: var(--ow-success);
+  background: color-mix(in srgb, var(--ow-panel) 90%, var(--ow-success));
+}
+.ow-toasts .ow-panel[data-kind="toast"][data-tone="danger"] {
+  border-color: var(--ow-danger);
+  background: color-mix(in srgb, var(--ow-panel) 90%, var(--ow-danger));
+}
+.ow-toasts .ow-panel[data-kind="toast"] .ow-body {
+  overflow: visible;
+  padding: 0.75rem 1rem;
+}
 
 .ow-grip {
   flex: none;

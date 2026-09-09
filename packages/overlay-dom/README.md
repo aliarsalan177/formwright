@@ -44,6 +44,25 @@ Pass `styles: false` to use only the stable `.ow-*` classes and provide your own
 
 Slot values may be an `HTMLElement` or a string. Raw `html` body blocks are not sanitized; never populate them with untrusted input.
 
+## Toasts and themes
+
+Toasts are positioned, stacked, animated, and safe-area aware:
+
+```ts
+overlay.toast({
+  text: "Changes saved",
+  tone: "success",
+  position: "top-right",
+  duration: 3000,
+});
+```
+
+The default toast colors follow the same `--ow-panel`, `--ow-text`, and
+`--ow-border` tokens as dialogs. Override `--ow-success` and `--ow-danger`
+on `.ow-root` to match light, dark, or tenant-specific themes. Applications
+using `styles: false` can target `.ow-toasts` and
+`.ow-panel[data-kind="toast"]` while keeping the package renderer and API.
+
 ## License
 
 MIT

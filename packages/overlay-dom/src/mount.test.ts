@@ -372,6 +372,19 @@ describe("backdrop", () => {
 });
 
 describe("toasts", () => {
+  it("ships stacking, transition, and theme-token styles", () => {
+    const store = new OverlayStore();
+    dispose = host(store);
+
+    const styles = document.querySelector<HTMLStyleElement>(
+      "#formwright-overlay-styles",
+    )?.textContent;
+    expect(styles).toContain('.ow-toasts[data-position$="-right"]');
+    expect(styles).toContain('.ow-panel[data-kind="toast"][data-open="true"]');
+    expect(styles).toContain("var(--ow-success)");
+    expect(styles).toContain("var(--ow-danger)");
+  });
+
   it("stacks in a corner region without a backdrop or scroll lock", () => {
     const store = new OverlayStore();
     dispose = host(store);
