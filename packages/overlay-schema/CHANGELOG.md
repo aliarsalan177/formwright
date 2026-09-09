@@ -1,5 +1,12 @@
 # @formwright/overlay-schema
 
+## 0.10.1
+
+### Patch Changes
+
+- afe74be: Add package-level npm documentation with installation, quick-start, API, safety, and integration guidance.
+  - @formwright/schema@0.10.1
+
 ## 0.10.0
 
 ### Minor Changes

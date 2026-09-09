@@ -1,5 +1,14 @@
 # @formwright/overlay-core
 
+## 0.10.1
+
+### Patch Changes
+
+- afe74be: Add package-level npm documentation with installation, quick-start, API, safety, and integration guidance.
+- Updated dependencies [afe74be]
+  - @formwright/reactive@0.10.1
+  - @formwright/overlay-schema@0.10.1
+
 ## 0.10.0
 
 ### Minor Changes

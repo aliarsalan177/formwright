@@ -1,5 +1,11 @@
 # @formwright/grid-schema
 
+## 0.10.1
+
+### Patch Changes
+
+- afe74be: Add package-level npm documentation with installation, quick-start, API, safety, and integration guidance.
+
 ## 0.10.0
 
 ## 0.9.0

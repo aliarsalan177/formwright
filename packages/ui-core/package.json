@@ -1,6 +1,6 @@
 {
   "name": "@formwright/ui-core",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Headless DOM foundation shared by every Formwright renderer: scoped disposal, reactive bindings, and the behaviours components are built from. Zero dependencies outside @formwright/reactive.",
   "license": "MIT",
   "repository": {
