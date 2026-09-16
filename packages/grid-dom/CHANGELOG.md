@@ -1,5 +1,16 @@
 # @formwright/grid-dom
 
+## 0.11.0
+
+### Patch Changes
+
+- Updated dependencies [36a5675]
+- Updated dependencies [b19eee8]
+  - @formwright/ui-core@0.11.0
+  - @formwright/grid-core@0.11.0
+  - @formwright/grid-schema@0.11.0
+  - @formwright/reactive@0.11.0
+
 ## 0.10.3
 
 ### Patch Changes

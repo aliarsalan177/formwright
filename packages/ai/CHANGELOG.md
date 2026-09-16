@@ -1,5 +1,11 @@
 # @formwright/ai
 
+## 0.11.0
+
+### Patch Changes
+
+- @formwright/schema@0.11.0
+
 ## 0.10.3
 
 ### Patch Changes
