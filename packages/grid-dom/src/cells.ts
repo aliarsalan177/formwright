@@ -9,6 +9,17 @@ export function px(n: number): string {
   return `${n}px`;
 }
 
+/**
+ * Align a cell. Cells are flex containers (to centre content vertically), and
+ * `text-align` does not move a flex item, so alignment is set on both axes
+ * that matter: `justify-content` for the content, `text-align` for wrapped text.
+ */
+export function applyAlign(el: HTMLElement, align: "left" | "right" | "center"): void {
+  el.style.textAlign = align;
+  el.style.justifyContent =
+    align === "right" ? "flex-end" : align === "center" ? "center" : "flex-start";
+}
+
 /** Apply sticky positioning for a pinned cell (header, filter, or body). */
 export function applyPin(grid: Grid, el: HTMLElement, field: string, leadingWidth: number): void {
   const pin = grid.columnPin(field);
@@ -73,7 +84,7 @@ export function makeCell(col: ResolvedColumn): HTMLElement {
   cell.className = "gw-cell";
   cell.setAttribute("role", "gridcell");
   cell.style.width = px(col.width);
-  cell.style.textAlign = col.align;
+  applyAlign(cell, col.align);
   addClassTokens(cell, col.class);
   if (col.editable) cell.classList.add("gw-cell-editable");
   return cell;

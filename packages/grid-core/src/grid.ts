@@ -8,7 +8,7 @@ import {
   type WriteSignal,
 } from "@formwright/reactive";
 import type { AggFunc, GridSchema, Row, SortDirection } from "@formwright/grid-schema";
-import { resolveColumn, type ResolvedColumn } from "./columns.js";
+import { layoutFlexColumns, resolveColumn, type ResolvedColumn } from "./columns.js";
 
 /** A group header row in the rendered list (when grouping is active). */
 export interface GroupRow {
@@ -135,6 +135,7 @@ export class Grid {
 
   private readonly scrollTop = signal(0);
   private readonly viewportHeight = signal(0);
+  private readonly viewportWidth = signal(0);
 
   private readonly page = signal(1);
   private readonly pageSize = signal(DEFAULT_PAGE_SIZE);
@@ -161,6 +162,8 @@ export class Grid {
 
   /** Visible columns in render order: pinned-left, center, pinned-right. */
   readonly orderedColumns: ReadSignal<ResolvedColumn[]>;
+  /** Widths of `flex` columns for the current viewport width (empty until measured). */
+  private readonly flexWidths: ReadSignal<Readonly<Record<string, number>>>;
   /** Filtered + sorted row ids across the whole client dataset (client mode). */
   readonly viewRowIds: ReadSignal<string[]>;
   /** The ids to actually display — the current page (paginated) or the full view. */
@@ -194,6 +197,13 @@ export class Grid {
         ...cols.filter((c) => pinOf(c) === "right"),
       ];
     });
+    this.flexWidths = computed(() =>
+      layoutFlexColumns(
+        this.orderedColumns.get(),
+        this.widthOverrides.get(),
+        this.viewportWidth.get(),
+      ),
+    );
     this.rowHeight = schema.rowHeight ?? 36;
     this.headerHeight = schema.headerHeight ?? 40;
     this.overscan = schema.overscan ?? 6;
@@ -695,9 +705,17 @@ export class Grid {
 
   // ---- columns: resize / reorder / pin / visibility ----------------------
 
-  /** Current width of a column (reactive). */
+  /**
+   * Current width of a column (reactive): a user resize wins, then the `flex`
+   * share of the viewport, then the schema `width`.
+   */
   columnWidth(field: string): number {
-    return this.widthOverrides.get()[field] ?? this.colByField.get(field)?.width ?? 150;
+    return (
+      this.widthOverrides.get()[field] ??
+      this.flexWidths.get()[field] ??
+      this.colByField.get(field)?.width ??
+      150
+    );
   }
 
   setColumnWidth(field: string, width: number): void {
@@ -774,6 +792,15 @@ export class Grid {
 
   setViewportHeight(px: number): void {
     this.viewportHeight.set(px);
+  }
+
+  /**
+   * Width available to the columns, measured by the renderer. `flex` columns
+   * share whatever the fixed-width columns leave of it; until it is set they
+   * fall back to their `width`.
+   */
+  setViewportWidth(px: number): void {
+    this.viewportWidth.set(Math.max(0, Math.floor(px)));
   }
 
   /** Tear down the server-fetch effect (if any). */

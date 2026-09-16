@@ -60,3 +60,55 @@ export function resolveColumn(def: ColumnDef): ResolvedColumn {
     class: def.class,
   };
 }
+
+/**
+ * Share the width the fixed columns leave over between the `flex` columns.
+ *
+ * A column the user has resized is fixed from then on, even if the schema gave
+ * it a `flex`. A share smaller than a column's `minWidth` is clamped, and the
+ * clamped column drops out so the rest is shared again among the others. Shares
+ * are whole pixels; the rounding remainder goes to the last flex column so the
+ * row fills the viewport exactly instead of leaving a sub-pixel gap or a
+ * horizontal scrollbar.
+ *
+ * Returns only the flex columns. Before the viewport is measured (`available`
+ * is 0) it returns nothing, and callers fall back to each column's `width`.
+ */
+export function layoutFlexColumns(
+  columns: readonly ResolvedColumn[],
+  overrides: Readonly<Record<string, number>>,
+  available: number,
+): Record<string, number> {
+  const isFlex = (c: ResolvedColumn) =>
+    c.flex !== undefined && c.flex > 0 && overrides[c.field] === undefined;
+  let pending = columns.filter(isFlex);
+  if (available <= 0 || pending.length === 0) return {};
+
+  const fixed = columns.reduce((w, c) => (isFlex(c) ? w : w + (overrides[c.field] ?? c.width)), 0);
+  let pool = Math.max(0, available - fixed);
+  const widths: Record<string, number> = {};
+
+  for (let clamped = true; clamped && pending.length > 0; ) {
+    clamped = false;
+    const totalFlex = pending.reduce((sum, c) => sum + (c.flex ?? 0), 0);
+    for (const c of pending) {
+      if ((pool * (c.flex ?? 0)) / totalFlex < c.minWidth) {
+        widths[c.field] = c.minWidth;
+        pool = Math.max(0, pool - c.minWidth);
+        pending = pending.filter((p) => p !== c);
+        clamped = true;
+        break;
+      }
+    }
+  }
+
+  const totalFlex = pending.reduce((sum, c) => sum + (c.flex ?? 0), 0);
+  let assigned = 0;
+  pending.forEach((c, i) => {
+    const width =
+      i === pending.length - 1 ? pool - assigned : Math.floor((pool * (c.flex ?? 0)) / totalFlex);
+    widths[c.field] = width;
+    assigned += width;
+  });
+  return widths;
+}

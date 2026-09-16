@@ -100,6 +100,7 @@ export const GRID_DEFAULT_CSS = `
   border-right: 1px solid var(--gw-border);
 }
 .gw-root .gw-finput {
+  box-sizing: border-box;
   width: 100%;
   font: inherit;
   font-size: 12px;
@@ -114,17 +115,78 @@ export const GRID_DEFAULT_CSS = `
   border-color: var(--gw-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--gw-accent) 22%, transparent);
 }
-.gw-root .gw-row {
+/* Virtualized rows are pooled and placed with translateY, so they must sit
+   out of flow on a positioned canvas — otherwise every row is pushed down by
+   the ones before it as well as by its own transform. */
+.gw-root .gw-canvas {
+  position: relative;
+}
+.gw-root .gw-canvas > .gw-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+/* .gw-row is the virtualized row; the flow renderer (pagination, selection,
+   grouping, master/detail) emits .gw-flowrow, .gw-grouprow and .gw-grandtotal. */
+.gw-root .gw-row,
+.gw-root .gw-flowrow,
+.gw-root .gw-grouprow,
+.gw-root .gw-grandtotal {
   display: flex;
   align-items: stretch;
   border-bottom: 1px solid color-mix(in srgb, var(--gw-border) 65%, transparent);
   transition: background 0.12s;
 }
-.gw-root .gw-row.gw-row-odd {
+.gw-root .gw-row.gw-row-odd,
+.gw-root .gw-flowrow.gw-row-odd {
   background: color-mix(in srgb, var(--gw-panel-2) 50%, transparent);
 }
-.gw-root .gw-row:hover {
+.gw-root .gw-row:hover,
+.gw-root .gw-flowrow:hover,
+.gw-root .gw-flowrow.gw-selected {
   background: var(--gw-accent-soft);
+}
+.gw-root .gw-grouprow {
+  background: var(--gw-panel);
+  font-weight: 600;
+}
+.gw-root .gw-grandtotal {
+  border-top: 1px solid var(--gw-border-strong);
+  border-bottom: 0;
+  background: var(--gw-panel);
+  font-weight: 600;
+}
+.gw-root .gw-agg,
+.gw-root .gw-grandtotal-label {
+  font-variant-numeric: tabular-nums;
+}
+.gw-root .gw-detail {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--gw-border);
+  background: var(--gw-panel);
+}
+/* Cells are sized by the column model: the width set on them is the width
+   they occupy, padding included, and a flex row must not squeeze them. */
+.gw-root .gw-hcell,
+.gw-root .gw-fcell,
+.gw-root .gw-cell,
+.gw-root .gw-expand {
+  box-sizing: border-box;
+  flex: none;
+}
+.gw-root .gw-lead {
+  justify-content: center;
+  padding: 0;
+}
+.gw-root .gw-expand {
+  border: 0;
+  background: transparent;
+  color: var(--gw-muted);
+  font: inherit;
+  cursor: pointer;
+}
+.gw-root .gw-expand:hover {
+  color: var(--gw-text);
 }
 .gw-root .gw-cell {
   display: flex;

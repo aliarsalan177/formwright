@@ -139,12 +139,17 @@ export function mountVirtual(
 
   const onScroll = () => grid.setScrollTop(viewport.scrollTop);
   viewport.addEventListener("scroll", onScroll, { passive: true });
+  // Height drives the row window; width lets `flex` columns fill the grid.
+  const measure = () => {
+    grid.setViewportHeight(viewport.clientHeight);
+    grid.setViewportWidth(viewport.clientWidth);
+  };
   let ro: ResizeObserver | undefined;
   if (typeof ResizeObserver !== "undefined") {
-    ro = new ResizeObserver(() => grid.setViewportHeight(viewport.clientHeight));
+    ro = new ResizeObserver(measure);
     ro.observe(viewport);
   }
-  grid.setViewportHeight(viewport.clientHeight);
+  measure();
   scope.add(bindRowClick(root, grid, options.onRowClick));
 
   return () => {

@@ -1,6 +1,6 @@
 import { effect } from "@formwright/reactive";
 import type { Grid, ResolvedColumn } from "@formwright/grid-core";
-import { applyPin, px, addClassTokens } from "./cells.js";
+import { applyAlign, applyPin, px, addClassTokens } from "./cells.js";
 import { Scope } from "@formwright/ui-core";
 
 export const SEL_W = 44;
@@ -98,7 +98,7 @@ export function buildHeader(grid: Grid, scope: Scope, leading: LeadingFlags): He
     hcell.className = "gw-hcell";
     hcell.setAttribute("role", "columnheader");
     addClassTokens(hcell, col.class);
-    hcell.style.textAlign = col.align;
+    applyAlign(hcell, col.align);
     childScope.add(
       effect(() => {
         hcell.style.width = px(grid.columnWidth(col.field));

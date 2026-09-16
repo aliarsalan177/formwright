@@ -53,3 +53,76 @@ describe("column model", () => {
     expect(g.pinnedOffset("c")).toBe(g.columnWidth("b")); // after b
   });
 });
+
+describe("flex columns", () => {
+  const flexSchema: GridSchema = {
+    id: "flex",
+    columns: [
+      { field: "a", width: 100 },
+      { field: "b", flex: 1 },
+      { field: "c", flex: 2 },
+    ],
+  };
+
+  it("keep their schema width until the viewport is measured", () => {
+    const g = new Grid(flexSchema, rows);
+    expect(g.columnWidth("b")).toBe(150);
+    expect(g.totalColumnsWidth()).toBe(400);
+  });
+
+  it("share what the fixed columns leave of the viewport", () => {
+    const g = new Grid(flexSchema, rows);
+    g.setViewportWidth(700);
+    expect(g.columnWidth("a")).toBe(100);
+    expect(g.columnWidth("b")).toBe(200);
+    expect(g.columnWidth("c")).toBe(400);
+    expect(g.totalColumnsWidth()).toBe(700);
+  });
+
+  it("fill the viewport exactly when the shares do not divide evenly", () => {
+    const g = new Grid(flexSchema, rows);
+    g.setViewportWidth(701);
+    expect(g.totalColumnsWidth()).toBe(701);
+  });
+
+  it("follow viewport resizes", () => {
+    const g = new Grid(flexSchema, rows);
+    g.setViewportWidth(700);
+    g.setViewportWidth(1000);
+    expect(g.columnWidth("b")).toBe(300);
+    expect(g.columnWidth("c")).toBe(600);
+  });
+
+  it("never shrink below minWidth, and re-share the rest", () => {
+    const g = new Grid(
+      {
+        id: "min",
+        columns: [
+          { field: "a", width: 100 },
+          { field: "b", flex: 1, minWidth: 120 },
+          { field: "c", flex: 3 },
+        ],
+      },
+      rows,
+    );
+    g.setViewportWidth(400); // 300 left: b's share would be 75
+    expect(g.columnWidth("b")).toBe(120);
+    expect(g.columnWidth("c")).toBe(180);
+  });
+
+  it("become fixed once the user resizes them", () => {
+    const g = new Grid(flexSchema, rows);
+    g.setViewportWidth(700);
+    g.setColumnWidth("b", 250);
+    expect(g.columnWidth("b")).toBe(250);
+    expect(g.columnWidth("c")).toBe(350);
+  });
+
+  it("ignore hidden columns", () => {
+    const g = new Grid(flexSchema, rows);
+    g.setViewportWidth(700);
+    g.setColumnHidden("a", true);
+    expect(g.columnWidth("b")).toBeCloseTo(233, 0);
+    expect(g.totalColumnsWidth()).toBe(700);
+  });
+});

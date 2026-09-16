@@ -264,7 +264,18 @@ export function mountFlow(grid: Grid, host: Element, options: FlowOptions = {}):
 
   scope.add(bindRowClick(root, grid, options.onRowClick));
 
+  // Selection / expander columns sit outside the column model, so `flex`
+  // columns share only what is left beside them.
+  const measure = () => grid.setViewportWidth(viewport.clientWidth - leadingWidth);
+  let ro: ResizeObserver | undefined;
+  if (typeof ResizeObserver !== "undefined") {
+    ro = new ResizeObserver(measure);
+    ro.observe(viewport);
+  }
+  measure();
+
   return () => {
+    ro?.disconnect();
     disposeRows();
     scope.dispose();
     root.remove();
