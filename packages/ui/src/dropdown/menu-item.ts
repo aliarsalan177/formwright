@@ -1,6 +1,7 @@
 import { untrack } from "@formwright/reactive";
 import type { Scope } from "@formwright/ui-core";
 import { FwElement, type PropMap } from "../core/element.js";
+import type { FwSubmenu } from "./submenu.js";
 
 export type MenuItemType = "normal" | "checkbox" | "radio";
 
@@ -27,9 +28,14 @@ const styles = /* css */ `
 .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .suffix { margin-inline-start: auto; padding-inline-start: 1rem; color: var(--_muted); font-size: 0.8125em; }
 ::slotted([slot="prefix"]) { display: inline-flex; flex: none; }
+:host([aria-expanded="true"]) { background: var(--_surface-2); }
+.chevron { display: none; flex: none; margin-inline-end: -0.25rem; color: var(--_muted); }
+:host([aria-haspopup="menu"]) .chevron { display: inline-flex; }
+:host(:dir(rtl)) .chevron { transform: scaleX(-1); }
 `;
 
 const CHECK = `<svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
+const CHEVRON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>`;
 const DOT = `<svg class="dot" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4"/></svg>`;
 
 const ROLE: Record<MenuItemType, string> = {
@@ -47,16 +53,26 @@ const ROLE: Record<MenuItemType, string> = {
  * <fw-menu-item type="checkbox" value="archived" checked>Show archived</fw-menu-item>
  * <fw-menu-item type="radio" group="sort" value="name" checked>Sort by name</fw-menu-item>
  * <fw-menu-item type="radio" group="sort" value="joined">Sort by join date</fw-menu-item>
+ * <fw-menu-item>
+ *   Share
+ *   <fw-submenu slot="submenu">
+ *     <fw-menu-item value="email">Email</fw-menu-item>
+ *   </fw-submenu>
+ * </fw-menu-item>
  * ```
  *
  * `type="checkbox"` items toggle `checked` when chosen; `type="radio"`
  * items become checked and uncheck every other radio item with the same
- * `group` in the same dropdown. The item is the page's own element, so its
+ * `group` in the same dropdown or submenu. An item holding a
+ * `<fw-submenu>` gets `aria-haspopup="menu"`, `aria-expanded` and a
+ * chevron (mirrored right-to-left), and opens the submenu instead of
+ * being chosen. The item is the page's own element, so its
  * role, `aria-checked` and `aria-disabled` are set on it directly and it
  * receives real focus while the menu is open.
  *
- * Slots: default (label), `prefix` (icon), `suffix` (shortcut hint).
- * Parts: `check`, `label`, `suffix`.
+ * Slots: default (label), `prefix` (icon), `suffix` (shortcut hint),
+ * `submenu` (an `<fw-submenu>`).
+ * Parts: `check`, `label`, `suffix`, `chevron`.
  */
 export class FwMenuItem extends FwElement {
   static override props: PropMap = {
@@ -87,6 +103,11 @@ export class FwMenuItem extends FwElement {
     return text.trim();
   }
 
+  /** The `<fw-submenu>` this item opens, if it has one. */
+  get submenu(): FwSubmenu | null {
+    return this.querySelector<FwSubmenu>(":scope > fw-submenu");
+  }
+
   protected render(root: ShadowRoot): void {
     const check = document.createElement("span");
     check.className = "check";
@@ -109,7 +130,16 @@ export class FwMenuItem extends FwElement {
     suffixSlot.name = "suffix";
     suffix.append(suffixSlot);
 
-    root.append(check, prefix, label, suffix);
+    const chevron = document.createElement("span");
+    chevron.className = "chevron";
+    chevron.setAttribute("part", "chevron");
+    chevron.setAttribute("aria-hidden", "true");
+    chevron.innerHTML = CHEVRON;
+
+    const submenu = document.createElement("slot");
+    submenu.name = "submenu";
+
+    root.append(check, prefix, label, suffix, chevron, submenu);
   }
 
   protected override connected(scope: Scope): void {
@@ -134,7 +164,8 @@ export class FwMenuItem extends FwElement {
       const type = this.#type(this.prop<string>("type").get());
       const group = this.prop<string | null>("group").get();
       if (!checked || type !== "radio") return;
-      const container = this.closest("fw-dropdown") ?? this.parentElement;
+      const menu = this.closest("fw-submenu, fw-dropdown");
+      const container = menu ?? this.parentElement;
       if (!container) return;
       // Untracked: reading the others' state must not subscribe this item
       // to them, or their becoming checked would re-run this and fight.
@@ -142,7 +173,7 @@ export class FwMenuItem extends FwElement {
         for (const other of container.querySelectorAll<FwMenuItem>("fw-menu-item")) {
           if (other === this || !other.checked) continue;
           if (other.type !== "radio" || (other.group ?? null) !== (group ?? null)) continue;
-          if (other.closest("fw-dropdown") !== this.closest("fw-dropdown")) continue;
+          if (other.closest("fw-submenu, fw-dropdown") !== menu) continue;
           other.checked = false;
         }
       });

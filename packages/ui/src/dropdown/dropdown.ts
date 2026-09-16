@@ -9,23 +9,14 @@ import {
 } from "@formwright/ui-core";
 import { FwElement, type PropMap } from "../core/element.js";
 import type { FwMenuItem } from "./menu-item.js";
+import { MENU, hasPopover, isRtl, menuStyles, ownItems, type FwSubmenu } from "./submenu.js";
 
-const styles = /* css */ `
-:host { display: contents; }
+const styles = menuStyles;
 
-.menu {
-  margin: 0; inset: auto; padding: 0.25rem;
-  min-width: 10rem;
-  max-height: min(24rem, var(--fw-available-height, 24rem));
-  overflow: auto; overscroll-behavior: contain;
-  background: var(--_surface); color: var(--_text);
-  border: 1px solid var(--_border); border-radius: var(--_radius);
-  box-shadow: var(--_shadow);
-  outline: none;
-}
-`;
-
-const hasPopover = typeof HTMLElement !== "undefined" && "showPopover" in HTMLElement.prototype;
+/** Hovering an item waits this long before opening its submenu. */
+const HOVER_OPEN_MS = 100;
+/** And this long before closing a submenu the pointer left, so a diagonal move into it survives. */
+const HOVER_CLOSE_MS = 200;
 
 export interface DropdownSelectDetail {
   value: string;
@@ -41,6 +32,13 @@ export interface DropdownSelectDetail {
  *   <fw-menu-label>Membership</fw-menu-label>
  *   <fw-menu-item value="renew">Renew<kbd slot="suffix">R</kbd></fw-menu-item>
  *   <fw-menu-item value="freeze">Freeze</fw-menu-item>
+ *   <fw-menu-item>
+ *     Move to
+ *     <fw-submenu slot="submenu">
+ *       <fw-menu-item value="gold">Gold plan</fw-menu-item>
+ *       <fw-menu-item value="silver">Silver plan</fw-menu-item>
+ *     </fw-submenu>
+ *   </fw-menu-item>
  *   <fw-menu-divider></fw-menu-divider>
  *   <fw-menu-item type="checkbox" value="vip">VIP</fw-menu-item>
  *   <fw-menu-divider></fw-menu-divider>
@@ -55,19 +53,28 @@ export interface DropdownSelectDetail {
  * activates, Escape closes and returns focus to the trigger, and Tab closes
  * and lets focus move on. A press outside closes it.
  *
- * Choosing an item fires `fw-select` with `{ value, item }`, toggles a
+ * Submenus (`<fw-submenu slot="submenu">` inside an item) nest to any
+ * depth. On an item with one, ArrowRight (ArrowLeft right-to-left), Enter
+ * or Space opens it on its first item; inside it, ArrowLeft (ArrowRight
+ * right-to-left) or Escape closes just that submenu and returns to its
+ * item, the arrows, Home, End and typeahead stay within it, and Tab closes
+ * the whole tree. Hovering an item opens its submenu after a moment;
+ * moving to another item closes it after a short grace period, which
+ * moving into the submenu cancels. Clicking the item toggles it.
+ *
+ * Choosing an item, at any depth, fires `fw-select` from the dropdown with `{ value, item }`, toggles a
  * checkbox item or checks a radio item, and closes the menu unless
  * `close-on-select="false"`.
  *
  * Accessibility note. Focus moves onto the items themselves: they are in
  * the page and the menu is in the shadow root, so `aria-activedescendant`
  * could not reach them. `aria-haspopup="menu"` and `aria-expanded` are set
- * on the slotted trigger, and the menu is named after the trigger's text.
- * Submenus are not supported.
+ * on the slotted trigger, and the menu is named after the trigger's text;
+ * a submenu is named after its item.
  *
  * Events: `fw-select` (detail `{ value, item }`), `fw-show`, `fw-hide`.
  * Slots: `trigger`, default (menu items, dividers and labels).
- * Parts: `menu`.
+ * Parts: `menu` (and `menu` on each `<fw-submenu>`, `chevron` on its item).
  */
 export class FwDropdown extends FwElement {
   static override props: PropMap = {
@@ -90,6 +97,9 @@ export class FwDropdown extends FwElement {
   #shown = false;
   #ariaTarget: Element | null = null;
   readonly #slots = signal(0);
+  #hoverTimer: ReturnType<typeof setTimeout> | null = null;
+  #hoverMenu: Element | null = null;
+  #hoverFor: FwSubmenu | null = null;
 
   /** The slotted trigger element, if there is one. */
   get triggerElement(): HTMLElement | null {
@@ -98,9 +108,7 @@ export class FwDropdown extends FwElement {
 
   /** This dropdown's items, in document order — not those of a dropdown nested inside it. */
   get items(): FwMenuItem[] {
-    return [...this.querySelectorAll<FwMenuItem>("fw-menu-item")].filter(
-      (item) => item.closest("fw-dropdown") === this && !item.closest('[slot="trigger"]'),
-    );
+    return ownItems(this);
   }
 
   protected render(root: ShadowRoot): void {
@@ -159,19 +167,29 @@ export class FwDropdown extends FwElement {
       else this.#hide();
     });
     scope.add(() => this.#hide(false));
+    scope.add(() => this.#clearHover());
 
     const inTrigger = (node: EventTarget | null) => {
       const trigger = this.triggerElement;
       return Boolean(trigger && node instanceof Node && trigger.contains(node));
     };
-    const itemFrom = (node: EventTarget | null): FwMenuItem | null => {
-      const item = (node as Element | null)?.closest?.("fw-menu-item") as FwMenuItem | null;
-      return item && item.closest("fw-dropdown") === this ? item : null;
+    // The item an event is on, and the menu — this or a submenu — it is in.
+    // Walked outward, so a press on a submenu's padding is not taken for
+    // the item that opened it.
+    const locate = (event: Event): { item: FwMenuItem | null; menu: Element | null } => {
+      for (const node of event.composedPath()) {
+        if (node === this) break;
+        if (!(node instanceof Element)) continue;
+        if (node.localName !== "fw-menu-item" && node.localName !== "fw-submenu") continue;
+        if (node.closest("fw-dropdown") !== this) break;
+        if (node.localName === "fw-submenu") return { item: null, menu: node };
+        return { item: node as FwMenuItem, menu: node.closest(MENU) };
+      }
+      return { item: null, menu: null };
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      const collection = this.#collection;
-      if (!collection) return;
+      if (!this.#collection) return;
 
       if (inTrigger(event.target)) {
         switch (event.key) {
@@ -196,8 +214,32 @@ export class FwDropdown extends FwElement {
       }
 
       if (!this.prop<boolean>("open").peek()) return;
-      const item = itemFrom(event.target);
-      if (!item) return;
+      const { item, menu } = locate(event);
+      if (!item || !menu) return;
+
+      const rtl = isRtl(item);
+      const submenu = item.submenu;
+      if (
+        submenu &&
+        (event.key === (rtl ? "ArrowLeft" : "ArrowRight") ||
+          event.key === "Enter" ||
+          event.key === " ")
+      ) {
+        event.preventDefault();
+        if (!item.disabled) this.#openSubmenu(submenu, true);
+        return;
+      }
+      if (
+        menu !== this &&
+        (event.key === (rtl ? "ArrowRight" : "ArrowLeft") || event.key === "Escape")
+      ) {
+        event.preventDefault();
+        // Only this submenu closes: the dropdown, and whatever it sits in, stay open.
+        event.stopPropagation();
+        this.#closeSubmenu(menu as FwSubmenu, true);
+        return;
+      }
+
       switch (event.key) {
         case "Escape":
           event.preventDefault();
@@ -216,7 +258,11 @@ export class FwDropdown extends FwElement {
           this.#activate(item);
           return;
       }
-      if (collection.handleKey(event)) event.preventDefault();
+      const moved = this.#collectionOf(menu);
+      if (moved?.handleKey(event)) {
+        event.preventDefault();
+        this.#closeChildren(menu, moved.active());
+      }
     };
 
     const onClick = (event: MouseEvent) => {
@@ -225,16 +271,52 @@ export class FwDropdown extends FwElement {
         else this.#openAt("first");
         return;
       }
-      const item = itemFrom(event.target);
-      if (item) this.#activate(item);
+      const { item } = locate(event);
+      if (!item) return;
+      const submenu = item.submenu;
+      if (!submenu) this.#activate(item);
+      else if (item.disabled) return;
+      else if (submenu.open) this.#closeSubmenu(submenu, false);
+      else this.#openSubmenu(submenu, false);
     };
 
     const onPointerMove = (event: Event) => {
       if (!this.prop<boolean>("open").peek()) return;
-      const item = itemFrom(event.target);
-      if (item && !item.disabled && this.#collection?.active() !== item) {
-        this.#collection?.setActive(item);
+      const { item, menu } = locate(event);
+      if (!menu) return;
+      // In a submenu, so a pending change to a menu above would close it.
+      if (this.#hoverMenu && this.#hoverMenu !== menu && this.#hoverMenu.contains(menu)) {
+        this.#clearHover();
       }
+      if (!item || item.disabled) return;
+
+      const parent = (menu as FwSubmenu).parentItem;
+      if (menu !== this && parent) {
+        const outer = this.#collectionOf(parent.closest(MENU));
+        if (outer && outer.active() !== parent) outer.setActive(parent);
+      }
+      const collection = this.#collectionOf(menu);
+      if (collection?.active() !== item) collection?.setActive(item);
+      else if (document.activeElement !== item) item.focus({ preventScroll: true });
+
+      const wanted = item.submenu;
+      const current = this.#openChild(menu);
+      if (wanted === current) {
+        if (this.#hoverMenu === menu) this.#clearHover();
+        return;
+      }
+      if (this.#hoverMenu === menu && this.#hoverFor === wanted) return;
+      this.#clearHover();
+      this.#hoverMenu = menu;
+      this.#hoverFor = wanted;
+      this.#hoverTimer = setTimeout(
+        () => {
+          this.#clearHover();
+          if (wanted) this.#openSubmenu(wanted, false);
+          else this.#closeChildren(menu, null);
+        },
+        current ? HOVER_CLOSE_MS : HOVER_OPEN_MS,
+      );
     };
 
     // `composedPath` sees into shadow roots, so a press inside the menu —
@@ -275,6 +357,56 @@ export class FwDropdown extends FwElement {
     else collection.last();
   }
 
+  #collectionOf(menu: Element | null): Collection | null {
+    if (menu === this) return this.#collection;
+    return menu?.localName === "fw-submenu" ? (menu as FwSubmenu).collection : null;
+  }
+
+  /** The open submenu among a menu's own items. */
+  #openChild(menu: Element): FwSubmenu | null {
+    for (const item of ownItems(menu)) {
+      const submenu = item.submenu;
+      if (submenu?.open) return submenu;
+    }
+    return null;
+  }
+
+  /** Close a menu's open submenus, except the one belonging to `keep`. */
+  #closeChildren(menu: Element, keep: HTMLElement | null): void {
+    for (const item of ownItems(menu)) {
+      const submenu = item.submenu;
+      if (submenu?.open && item !== keep) submenu.open = false;
+    }
+  }
+
+  #openSubmenu(submenu: FwSubmenu, focusFirst: boolean): void {
+    this.#clearHover();
+    const parent = submenu.parentItem;
+    if (parent) this.#closeChildren(parent.closest(MENU) ?? this, parent);
+    submenu.open = true;
+    const collection = submenu.collection;
+    if (!focusFirst || !collection) return;
+    collection.setActive(null);
+    collection.first();
+  }
+
+  #closeSubmenu(submenu: FwSubmenu, returnFocus: boolean): void {
+    this.#clearHover();
+    submenu.open = false;
+    const parent = submenu.parentItem;
+    if (!returnFocus || !parent) return;
+    const outer = this.#collectionOf(parent.closest(MENU));
+    if (outer?.active() !== parent) outer?.setActive(parent);
+    if (document.activeElement !== parent) parent.focus();
+  }
+
+  #clearHover(): void {
+    if (this.#hoverTimer) clearTimeout(this.#hoverTimer);
+    this.#hoverTimer = null;
+    this.#hoverMenu = null;
+    this.#hoverFor = null;
+  }
+
   #activate(item: FwMenuItem): void {
     if (item.disabled) return;
     if (item.type === "checkbox") item.checked = !item.checked;
@@ -310,6 +442,10 @@ export class FwDropdown extends FwElement {
   }
 
   #hide(emit = true): void {
+    this.#clearHover();
+    for (const submenu of this.querySelectorAll<FwSubmenu>("fw-submenu")) {
+      if (submenu.closest("fw-dropdown") === this) submenu.open = false;
+    }
     this.#anchored?.dispose();
     this.#anchored = null;
     if (!this.#shown) return;
