@@ -85,6 +85,25 @@ describe("fw-tabs", () => {
     expect(panel("billing").tabIndex).toBe(0);
   });
 
+  it("pairs tabs and panels set through properties", async () => {
+    document.body.innerHTML = "<fw-tabs></fw-tabs>";
+    const tabs = document.querySelector("fw-tabs")!;
+    for (const name of ["one", "two"]) {
+      const tab = document.createElement("fw-tab") as HTMLElement & { panel: string };
+      tab.slot = "nav";
+      tab.panel = name;
+      tab.textContent = name;
+      const panel = document.createElement("fw-tab-panel") as HTMLElement & { name: string };
+      panel.name = name;
+      tabs.append(tab, panel);
+    }
+    (tabs as HTMLElement & { value: string }).value = "two";
+    await new Promise((r) => setTimeout(r, 0));
+    expect(tabs.querySelector('fw-tab[panel="two"]')!.hasAttribute("selected")).toBe(true);
+    expect((tabs.querySelector('fw-tab-panel[name="one"]') as HTMLElement).hidden).toBe(true);
+    expect((tabs.querySelector('fw-tab-panel[name="two"]') as HTMLElement).hidden).toBe(false);
+  });
+
   it("reflects value, orientation and variant", () => {
     const el = mount();
     el.value = "billing";

@@ -59,7 +59,10 @@ overlay.toast({
 
 The default toast colors follow the same `--ow-panel`, `--ow-text`, and
 `--ow-border` tokens as dialogs. Override `--ow-success` and `--ow-danger`
-on `.ow-root` to match light, dark, or tenant-specific themes. Applications
+on `.ow-root` to match light, dark, or tenant-specific themes. Dialog buttons
+use `--ow-hover` for their hover background, and `--ow-accent-hover` and
+`--ow-danger-hover` (defaulting to `--ow-accent` and `--ow-danger`) for the
+confirm and danger buttons. Applications
 using `styles: false` can target `.ow-toasts` and
 `.ow-panel[data-kind="toast"]` while keeping the package renderer and API.
 

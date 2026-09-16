@@ -39,7 +39,7 @@ const styles = /* css */ `
  */
 export class FwTab extends FwElement {
   static override props: PropMap = {
-    panel: { type: "string" },
+    panel: { type: "string", reflect: true },
     disabled: { type: "boolean", reflect: true },
     /** Set by `<fw-tabs>`. */
     selected: { type: "boolean", reflect: true },

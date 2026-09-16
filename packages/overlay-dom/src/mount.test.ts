@@ -385,6 +385,18 @@ describe("toasts", () => {
     expect(styles).toContain("var(--ow-danger)");
   });
 
+  it("themes action hovers with tokens, keeping confirm and danger colors", () => {
+    const store = new OverlayStore();
+    dispose = host(store);
+
+    const styles =
+      document.querySelector<HTMLStyleElement>("#formwright-overlay-styles")?.textContent ?? "";
+    expect(styles).toContain(".ow-action:hover:not(:disabled) { background: var(--ow-hover); }");
+    expect(styles).toContain("var(--ow-accent-hover, var(--ow-accent))");
+    expect(styles).toContain("var(--ow-danger-hover, var(--ow-danger))");
+    expect(styles).not.toMatch(/\.ow-action:hover[^}]*#[0-9a-f]{3,6}/i);
+  });
+
   it("stacks in a corner region without a backdrop or scroll lock", () => {
     const store = new OverlayStore();
     dispose = host(store);

@@ -23,7 +23,7 @@ const styles = /* css */ `
  */
 export class FwTabPanel extends FwElement {
   static override props: PropMap = {
-    name: { type: "string" },
+    name: { type: "string", reflect: true },
   };
   static override styles = styles;
 

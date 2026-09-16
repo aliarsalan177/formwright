@@ -25,6 +25,7 @@ export const OVERLAY_STYLES = `
   --ow-ease: cubic-bezier(0.32, 0.72, 0, 1);
   --ow-accent: #18181b;
   --ow-accent-text: #ffffff;
+  --ow-hover: #f4f4f5;
   --ow-danger: #dc2626;
   --ow-success: #16a34a;
   position: fixed;
@@ -215,10 +216,18 @@ export const OVERLAY_STYLES = `
   color: var(--ow-text);
   cursor: pointer;
 }
-.ow-action:hover:not(:disabled) { background: #f4f4f5; }
+.ow-action:hover:not(:disabled) { background: var(--ow-hover); }
 .ow-action:disabled { opacity: 0.5; cursor: default; }
 .ow-action[data-role="confirm"] { background: var(--ow-accent); border-color: var(--ow-accent); color: var(--ow-accent-text); }
 .ow-action[data-role="danger"] { background: var(--ow-danger); border-color: var(--ow-danger); color: #ffffff; }
+.ow-action[data-role="confirm"]:hover:not(:disabled) {
+  background: var(--ow-accent-hover, var(--ow-accent));
+  border-color: var(--ow-accent-hover, var(--ow-accent));
+}
+.ow-action[data-role="danger"]:hover:not(:disabled) {
+  background: var(--ow-danger-hover, var(--ow-danger));
+  border-color: var(--ow-danger-hover, var(--ow-danger));
+}
 
 @media (prefers-color-scheme: dark) {
   .ow-root {
@@ -228,8 +237,8 @@ export const OVERLAY_STYLES = `
     --ow-border: #3f3f46;
     --ow-accent: #fafafa;
     --ow-accent-text: #18181b;
+    --ow-hover: #27272a;
   }
-  .ow-action:hover:not(:disabled) { background: #27272a; }
 }
 
 @media (prefers-reduced-motion: reduce) {
