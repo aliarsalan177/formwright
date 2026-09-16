@@ -1,5 +1,11 @@
 # @formwright/ui-core
 
+## 0.10.3
+
+### Patch Changes
+
+- @formwright/reactive@0.10.3
+
 ## 0.10.2
 
 ### Patch Changes
