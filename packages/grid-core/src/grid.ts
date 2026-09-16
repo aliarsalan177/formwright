@@ -158,6 +158,8 @@ export class Grid {
   private readonly pinOverrides = signal<Record<string, "left" | "right" | "none">>({});
 
   private reqSeq = 0;
+  /** Bumped by refresh() so the server fetch re-runs with unchanged paging/sort/filter state. */
+  private readonly refetchTick = signal(0);
   private fetchDispose: Dispose | undefined;
 
   /** Visible columns in render order: pinned-left, center, pinned-right. */
@@ -343,6 +345,7 @@ export class Grid {
 
   private startServerFetch(): void {
     this.fetchDispose = effect(() => {
+      this.refetchTick.get();
       const req: PageRequest = {
         page: this.page.get(),
         pageSize: this.pageSize.get(),
@@ -470,8 +473,8 @@ export class Grid {
 
   /** Re-run the server fetch for the current page (no-op in client mode). */
   refresh(): void {
-    if (this.serverMode)
-      this.page.update((p) => p); // bump deps → effect re-runs
+    // Signals ignore same-value writes, so re-setting the page would not refetch.
+    if (this.serverMode) this.refetchTick.update((n) => n + 1);
     else this.structure.update((n) => n + 1);
   }
 

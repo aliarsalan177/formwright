@@ -222,6 +222,27 @@ describe("server mode", () => {
     expect(calls).toEqual([1, 2]);
     g.destroy();
   });
+
+  it("refetches the current page on refresh(), for filters the grid does not own", async () => {
+    let external = "a";
+    const seen: string[] = [];
+    const g = new Grid(schema, [], {
+      datasource: async () => {
+        seen.push(external);
+        return { rows: [{ id: external, name: external, age: 1 }], total: 1 };
+      },
+      pagination: { pageSize: 10 },
+    });
+    await new Promise((r) => setTimeout(r, 0));
+
+    external = "b";
+    g.refresh();
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(seen).toEqual(["a", "b"]);
+    expect(g.getRow("b")).toMatchObject({ name: "b" });
+    g.destroy();
+  });
 });
 
 describe("viewport windowing", () => {
