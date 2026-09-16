@@ -1,5 +1,14 @@
 # @formwright/overlay-dom
 
+## 0.10.2
+
+### Patch Changes
+
+- @formwright/overlay-core@0.10.2
+- @formwright/overlay-schema@0.10.2
+- @formwright/reactive@0.10.2
+- @formwright/ui-core@0.10.2
+
 ## 0.10.1
 
 ### Patch Changes

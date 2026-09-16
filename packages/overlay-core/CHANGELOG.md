@@ -1,5 +1,12 @@
 # @formwright/overlay-core
 
+## 0.10.2
+
+### Patch Changes
+
+- @formwright/overlay-schema@0.10.2
+- @formwright/reactive@0.10.2
+
 ## 0.10.1
 
 ### Patch Changes

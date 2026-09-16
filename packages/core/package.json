@@ -1,6 +1,6 @@
 {
   "name": "@formwright/core",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "description": "Signal-reactive core and the Form class for Formwright.",
   "license": "MIT",
   "repository": {
