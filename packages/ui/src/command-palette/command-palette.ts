@@ -8,6 +8,7 @@ import {
   type Scope,
 } from "@formwright/ui-core";
 import { FwElement, nextId, type PropMap } from "../core/element.js";
+import { LAYER_SLOT, enterModalLayer } from "../core/layers.js";
 import { srOnly } from "../core/styles.js";
 import type { FwCommand } from "./command.js";
 import type { FwCommandGroup } from "./command-group.js";
@@ -160,7 +161,10 @@ function rankOf(command: FwCommand, query: string): number {
  * clears the search if there is one and closes if not. Clicking the
  * backdrop closes. Focus returns to wherever it was before opening.
  *
- * Ranking reorders matches visually with CSS `order`, so commands and
+ * Ranking moves the matching commands (and groups) into rank order in the
+ * page itself, not just on screen, so a screen reader browsing the list
+ * meets them in the same order the arrow keys do. The authored order comes
+ * back when the search is cleared or the palette closes. Commands and
  * groups should be direct children of the palette (commands of a group,
  * direct children of the group).
  *
@@ -196,6 +200,10 @@ export class FwCommandPalette extends FwElement {
   #trap: FocusTrap | null = null;
   #locked = false;
   #returnFocus: HTMLElement | null = null;
+  #leaveLayer: (() => void) | null = null;
+  #observer: MutationObserver | null = null;
+  /** Authored position of each command and group, taken when a search starts. */
+  #authored: WeakMap<Element, number> | null = null;
   /** Visible commands in the order they appear. */
   #visible: FwCommand[] = [];
 
@@ -255,7 +263,11 @@ export class FwCommandPalette extends FwElement {
     footer.name = "footer";
 
     this.#panel.append(search, this.#list, this.#empty, footer);
-    this.#dialog.append(this.#panel);
+    // Toast regions move in here while the palette is open, so they stay
+    // clickable instead of inert behind it.
+    const layer = document.createElement("slot");
+    layer.name = LAYER_SLOT;
+    this.#dialog.append(this.#panel, layer);
     root.append(this.#dialog);
   }
 
@@ -297,6 +309,7 @@ export class FwCommandPalette extends FwElement {
       const observer = new MutationObserver(() => {
         if (this.prop<boolean>("open").peek()) this.#filter(false);
       });
+      this.#observer = observer;
       observer.observe(this, {
         childList: true,
         subtree: true,
@@ -304,7 +317,10 @@ export class FwCommandPalette extends FwElement {
         attributes: true,
         attributeFilter: ["keywords", "disabled", "value", "heading"],
       });
-      scope.add(() => observer.disconnect());
+      scope.add(() => {
+        observer.disconnect();
+        this.#observer = null;
+      });
     }
 
     const onHotkey = (event: KeyboardEvent) => {
@@ -441,6 +457,7 @@ export class FwCommandPalette extends FwElement {
       this.#locked = true;
     }
     this.#input.focus({ preventScroll: true });
+    this.#leaveLayer ??= enterModalLayer(this);
     this.emit("fw-show");
   }
 
@@ -457,7 +474,11 @@ export class FwCommandPalette extends FwElement {
       unlockScroll();
       this.#locked = false;
     }
+    this.#leaveLayer?.();
+    this.#leaveLayer = null;
     this.#collection?.setActive(null);
+    // Leave the page's markup as it was written.
+    this.#arrange(null);
 
     const previous = this.#returnFocus;
     this.#returnFocus = null;
@@ -516,53 +537,24 @@ export class FwCommandPalette extends FwElement {
     for (const command of commands) {
       const rank = query === "" ? 0 : rankOf(command, query);
       command.toggleAttribute("data-filtered", rank < 0);
-      command.style.order = query !== "" && rank >= 0 ? String(rank) : "";
       if (rank >= 0) ranks.set(command, rank);
     }
 
-    const groupRank = new Map<FwCommandGroup, number>();
+    const groupRanks = new Map<Element, number>();
     for (const group of this.querySelectorAll<FwCommandGroup>("fw-command-group")) {
       const best = Math.min(
         ...[...group.querySelectorAll<FwCommand>("fw-command")].map(
           (c) => ranks.get(c) ?? Infinity,
         ),
       );
-      const visible = Number.isFinite(best);
-      group.toggleAttribute("data-filtered", !visible);
-      group.style.order = query !== "" && visible ? String(best) : "";
-      if (visible) groupRank.set(group, best);
+      group.toggleAttribute("data-filtered", !Number.isFinite(best));
+      if (Number.isFinite(best)) groupRanks.set(group, best);
     }
 
-    // The same order CSS will lay them out in: by the rank of the block
-    // each sits in (a group or the command itself), then within it.
-    const position = new Map<Element, number>();
-    commands.forEach((c, i) => position.set(c, i));
-    const blockOf = (command: FwCommand) =>
-      (command.parentElement?.localName === "fw-command-group"
-        ? command.parentElement
-        : command) as Element;
-    const blockRank = (command: FwCommand) => {
-      const block = blockOf(command);
-      return block === command
-        ? (ranks.get(command) ?? 0)
-        : (groupRank.get(block as FwCommandGroup) ?? 0);
-    };
-    const blockIndex = (command: FwCommand) => {
-      const block = blockOf(command);
-      return block === command
-        ? (position.get(command) ?? 0)
-        : (position.get(block.querySelector("fw-command")!) ?? 0);
-    };
+    this.#arrange(query === "" ? null : (el) => ranks.get(el as FwCommand) ?? groupRanks.get(el));
 
-    this.#visible = commands
-      .filter((c) => ranks.has(c))
-      .sort(
-        (a, b) =>
-          blockRank(a) - blockRank(b) ||
-          blockIndex(a) - blockIndex(b) ||
-          (ranks.get(a) ?? 0) - (ranks.get(b) ?? 0) ||
-          (position.get(a) ?? 0) - (position.get(b) ?? 0),
-      );
+    // The page order is now the ranked order.
+    this.#visible = this.commands.filter((c) => ranks.has(c));
 
     const empty = this.#visible.length === 0;
     this.#empty.hidden = !empty;
@@ -578,5 +570,52 @@ export class FwCommandPalette extends FwElement {
     collection.setActive(null);
     collection.first();
     if (!collection.active()) this.#markActive(null);
+  }
+
+  /**
+   * Put commands and groups in rank order in the page — matches first, best
+   * rank first, ties in authored order, non-matches after — or, with no
+   * ranking, back in authored order.
+   *
+   * Moving the nodes rather than reordering them with CSS keeps the reading
+   * order a screen reader browses in the same as what is on screen. Only
+   * nodes out of place are moved, and the observer's records of our own
+   * moves are dropped so they do not trigger another filter.
+   */
+  #arrange(rankOf: ((el: Element) => number | undefined) | null): void {
+    if (!rankOf && !this.#authored) return;
+    const isBlock = (el: Element) =>
+      el.localName === "fw-command" || el.localName === "fw-command-group";
+    const parents: Element[] = [this, ...this.querySelectorAll(":scope > fw-command-group")];
+
+    if (rankOf && !this.#authored) {
+      const authored = new WeakMap<Element, number>();
+      for (const parent of parents) {
+        [...parent.children].filter(isBlock).forEach((el, i) => authored.set(el, i));
+      }
+      this.#authored = authored;
+    }
+    const authored = this.#authored!;
+    const indexOf = (el: Element) => authored.get(el) ?? Number.MAX_SAFE_INTEGER;
+
+    for (const parent of parents) {
+      const current = [...parent.children].filter(isBlock);
+      const wanted = [...current].sort((a, b) => {
+        if (rankOf) {
+          const ra = rankOf(a) ?? Infinity;
+          const rb = rankOf(b) ?? Infinity;
+          if (ra !== rb) return ra - rb;
+        }
+        return indexOf(a) - indexOf(b);
+      });
+      if (wanted.every((el, i) => el === current[i])) continue;
+      // Gathered where the last block was; other children (the slotted
+      // empty text, the footer) are in their own slots and unaffected.
+      const anchor = current[current.length - 1]!.nextSibling;
+      for (const el of wanted) parent.insertBefore(el, anchor);
+    }
+
+    this.#observer?.takeRecords();
+    if (!rankOf) this.#authored = null;
   }
 }

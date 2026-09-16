@@ -43,6 +43,18 @@
     <fw-dropdown id="dd">
       <button slot="trigger" id="ddTrigger">Actions</button>
       <fw-menu-item value="edit">Edit</fw-menu-item>
+      <fw-menu-item id="share">
+        Share
+        <fw-submenu slot="submenu">
+          <fw-menu-item value="email">Email</fw-menu-item>
+          <fw-menu-item id="more">
+            More
+            <fw-submenu slot="submenu"
+              ><fw-menu-item value="link">Copy link</fw-menu-item></fw-submenu
+            >
+          </fw-menu-item>
+        </fw-submenu>
+      </fw-menu-item>
       <fw-menu-item value="delete" danger>Delete</fw-menu-item>
     </fw-dropdown>
 
@@ -66,6 +78,8 @@
     <fw-command-palette id="cp" hotkey="">
       <fw-command value="members">Go to members</fw-command>
       <fw-command value="settings">Open settings</fw-command>
+      <fw-command value="session">Close session</fw-command>
+      <fw-command value="search">Search members</fw-command>
     </fw-command-palette>
 
     <script type="module">
@@ -161,6 +175,47 @@
           !menu.matches(":popover-open") && document.activeElement === $("ddTrigger"),
         );
 
+        // Submenus: ArrowRight opens beside the item, Escape closes one level,
+        // a leaf two levels down selects from the root and closes everything.
+        $("ddTrigger").focus();
+        key($("ddTrigger"), "ArrowDown");
+        await tick();
+        $("share").focus();
+        key($("share"), "ArrowRight");
+        await tick();
+        const shareMenu = $("share").querySelector("fw-submenu");
+        const sharePanel = shareMenu.shadowRoot.querySelector("[part~=menu]");
+        log("submenuTopLayer", sharePanel.matches(":popover-open"));
+        log(
+          "submenuBesideItem",
+          sharePanel.getBoundingClientRect().left >= $("share").getBoundingClientRect().right - 1,
+        );
+        log("submenuFocusFirst", document.activeElement?.getAttribute("value") === "email");
+        $("more").focus();
+        key($("more"), "ArrowRight");
+        await tick();
+        log("nestedSubmenuFocus", document.activeElement?.getAttribute("value") === "link");
+        key(document.activeElement, "Escape");
+        await tick();
+        log(
+          "escapeClosesOneLevel",
+          document.activeElement === $("more") &&
+            sharePanel.matches(":popover-open") &&
+            menu.matches(":popover-open"),
+        );
+        key($("more"), "ArrowRight");
+        await tick();
+        let picked = null;
+        $("dd").addEventListener("fw-select", (e) => (picked = e.detail.value), { once: true });
+        key(document.activeElement, "Enter");
+        await tick();
+        log(
+          "nestedSelectFromRoot",
+          picked === "link" &&
+            !menu.matches(":popover-open") &&
+            !sharePanel.matches(":popover-open"),
+        );
+
         // Popover
         $("popTrigger").click();
         await tick();
@@ -204,17 +259,42 @@
         const toast = document.querySelector("fw-toast");
         const region = document.querySelector("fw-toast-region");
         log("toastRegionTopLayer", region.matches(":popover-open"));
-        // Hit-testing can't confirm stacking here: a modal dialog makes the
-        // rest of the page inert, so the toast is visible above the backdrop
-        // but not clickable until the dialog closes.
         const tr = toast.getBoundingClientRect();
         log("toastInCorner", tr.right > innerWidth - 40 && tr.bottom > innerHeight - 40);
+        // Hit-testing skips inert content, so this only lands on the toast's
+        // close button if the open modal left it interactive.
+        const closeRect = toast.shadowRoot
+          .querySelector("[part~=close-button]")
+          .getBoundingClientRect();
+        const hit = document.elementFromPoint(
+          closeRect.left + closeRect.width / 2,
+          closeRect.top + closeRect.height / 2,
+        );
+        log("toastClickableOverDialog", hit === toast);
+        log("toastInsideDialog", region.parentElement === $("dlg"));
+        const extra = showToast({ message: "Dismiss me", duration: 0 });
+        await tick(60);
+        const extraToast = [...region.querySelectorAll("fw-toast")].pop();
+        const extraClose = extraToast.shadowRoot.querySelector("[part~=close-button]");
+        for (const type of ["pointerdown", "pointerup"]) {
+          extraClose.dispatchEvent(
+            new PointerEvent(type, { bubbles: true, composed: true, button: 0 }),
+          );
+        }
+        extraClose.click();
+        await tick(400);
+        log("toastCloseKeepsDialogOpen", !extraToast.isConnected && $("dlg").open);
 
         $("dlg").hide();
         await tick(400);
         log("dialogClosed", !nativeDialog.open && !$("dlg").open);
         log("dialogScrollReleased", document.body.style.position === "");
         log("dialogFocusReturned", document.activeElement === opener);
+        log(
+          "toastRegionBackHome",
+          region.parentElement === document.body && region.matches(":popover-open"),
+        );
+        toast.dismiss();
 
         // Drawer
         $("drw").show();
@@ -243,11 +323,21 @@
           "paletteFilters",
           visible.length === 1 && visible[0].getAttribute("value") === "settings",
         );
+        const order = () =>
+          [...$("cp").querySelectorAll("fw-command")].map((c) => c.getAttribute("value")).join();
+        cpInput.value = "se";
+        cpInput.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true }));
+        await tick();
+        log("paletteRanksInPageOrder", order().startsWith("search,settings,session"));
+        cpInput.value = "sett";
+        cpInput.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true }));
+        await tick();
         let ran = null;
         $("cp").addEventListener("fw-select", (e) => (ran = e.detail.value));
         key(cpInput, "Enter");
         await tick(400);
         log("paletteRuns", ran === "settings" && !$("cp").open);
+        log("paletteAuthoredOrderRestored", order() === "members,settings,session,search");
 
         log("DONE", true);
       } catch (e) {

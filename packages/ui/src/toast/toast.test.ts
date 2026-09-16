@@ -264,3 +264,56 @@ describe("showToast", () => {
     leaks.assertClean("toasts leaked", { strict: true });
   });
 });
+
+describe("above a modal", () => {
+  it("moves into the innermost open modal, keeps counting down, and goes back home", async () => {
+    await import("../dialog/index.js");
+    document.body.innerHTML = `
+      <main id="app"><fw-toast-region id="r"></fw-toast-region><p id="after"></p></main>
+      <fw-dialog id="outer" heading="Outer"><fw-dialog id="inner" heading="Inner"></fw-dialog></fw-dialog>`;
+    const region = document.getElementById("r")!;
+    const outer = document.getElementById("outer") as HTMLElement & { show(): void; open: boolean };
+    const inner = document.getElementById("inner") as HTMLElement & { show(): void; open: boolean };
+
+    const handle = showToast({ message: "Saved", duration: 1000 });
+    const toast = region.querySelector("fw-toast")!;
+    vi.advanceTimersByTime(600);
+
+    outer.show();
+    // Inside the modal's flat tree, where a native modal leaves it clickable.
+    expect(region.parentElement).toBe(outer);
+    expect(region.getAttribute("slot")).toBe("fw-layer");
+    expect(
+      outer.shadowRoot!.querySelector<HTMLSlotElement>('slot[name="fw-layer"]'),
+    ).not.toBeNull();
+
+    inner.show();
+    expect(region.parentElement).toBe(inner);
+    inner.open = false;
+    expect(region.parentElement).toBe(outer);
+
+    // 600ms had passed before the moves; the rest of the second runs out
+    // instead of starting over.
+    vi.advanceTimersByTime(450);
+    expect(toast.isConnected).toBe(false);
+
+    outer.open = false;
+    expect(region.parentElement).toBe(document.getElementById("app"));
+    expect(region.nextElementSibling).toBe(document.getElementById("after"));
+    expect(region.hasAttribute("slot")).toBe(false);
+    handle.dismiss();
+  });
+
+  it("follows a modal removed while open back out", async () => {
+    await import("../dialog/index.js");
+    document.body.innerHTML = `<fw-dialog id="d" heading="D"></fw-dialog>`;
+    const dialog = document.getElementById("d") as HTMLElement & { show(): void };
+    dialog.show();
+    showToast({ message: "Saved", duration: 0 });
+    const region = document.querySelector("fw-toast-region")!;
+    expect(region.parentElement).toBe(dialog);
+    dialog.remove();
+    expect(region.parentElement).toBe(document.body);
+    expect(region.querySelector("fw-toast")).not.toBeNull();
+  });
+});

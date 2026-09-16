@@ -9,6 +9,7 @@ import {
 } from "@formwright/ui-core";
 import { FwElement, nextId, type PropMap } from "../core/element.js";
 import { slotHasContent } from "../core/field.js";
+import { LAYER_SLOT, enterModalLayer } from "../core/layers.js";
 
 /** What asked a modal to close. */
 export type CloseSource = "escape" | "backdrop" | "close-button" | "method";
@@ -183,6 +184,8 @@ export abstract class FwModal extends FwElement {
   #syncing = false;
   #resync = false;
   #pressedOutside = false;
+  #leaveLayer: (() => void) | null = null;
+  #layer!: HTMLSlotElement;
   readonly #slots = signal(0);
 
   protected render(root: ShadowRoot): void {
@@ -243,7 +246,12 @@ export abstract class FwModal extends FwElement {
     footer.append(footerSlot);
 
     panel.append(header, body, footer);
-    dialog.append(panel);
+    // Toast regions move in here while this is the innermost modal, so
+    // they stay clickable instead of inert behind it.
+    const layer = document.createElement("slot");
+    layer.name = LAYER_SLOT;
+    dialog.append(panel, layer);
+    this.#layer = layer;
     root.append(dialog);
 
     this.dialog = dialog;
@@ -321,7 +329,11 @@ export abstract class FwModal extends FwElement {
       this.#dismiss("escape");
     };
 
-    const outside = (event: Event) => !event.composedPath().includes(this.panel);
+    // A toast moved in above the dialog is not the backdrop either.
+    const outside = (event: Event) => {
+      const path = event.composedPath();
+      return !path.includes(this.panel) && !path.includes(this.#layer);
+    };
     const onPointerDown = (event: MouseEvent) => {
       this.#pressedOutside = this.#phase === "open" && event.button === 0 && outside(event);
     };
@@ -453,6 +465,7 @@ export abstract class FwModal extends FwElement {
     }
 
     this.#focusInitial();
+    this.#leaveLayer ??= enterModalLayer(this);
 
     const ms = transitionMs(dialog, this.panel);
     if (ms > 0) {
@@ -506,6 +519,8 @@ export abstract class FwModal extends FwElement {
       this.#locked = false;
       unlockScroll();
     }
+    this.#leaveLayer?.();
+    this.#leaveLayer = null;
 
     // Only take focus back if it is still ours to give — inside the dialog,
     // or dropped to <body> because what held it was removed. Someone who

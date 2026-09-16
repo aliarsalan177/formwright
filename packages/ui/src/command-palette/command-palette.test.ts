@@ -132,12 +132,27 @@ describe("fw-command-palette", () => {
       // has a word starting with it — so Billing and its command rank first.
       search(el, "in");
       expect(activeValue()).toBe("invoice");
-      expect(Number(group("Billing").style.order)).toBeLessThan(
-        Number(group("Members").style.order),
-      );
+      // In the page, not just on screen, so the reading order matches.
+      const groups = [...el.querySelectorAll("fw-command-group")];
+      expect(groups.indexOf(group("Billing"))).toBeLessThan(groups.indexOf(group("Members")));
 
       search(el, "se");
       expect(activeValue()).toBe("settings");
+    });
+
+    it("puts the authored order back when the search clears and on close", () => {
+      const el = mount();
+      const authored = () => [...el.querySelectorAll("fw-command, fw-command-group")];
+      const before = authored();
+      el.show();
+      search(el, "in");
+      expect(authored()).not.toEqual(before);
+      search(el, "");
+      expect(authored()).toEqual(before);
+
+      search(el, "in");
+      el.hide();
+      expect(authored()).toEqual(before);
     });
 
     it("shows the empty state when nothing matches", () => {

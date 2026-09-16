@@ -159,6 +159,10 @@ export class FwToast extends FwElement {
   #hovered = false;
   #focused = false;
   #dismissing = false;
+  /** The duration the countdown was started with. */
+  #duration: number | undefined;
+  /** Taken out of the page mid-countdown; resumes with what was left. */
+  #suspended = false;
 
   protected render(root: ShadowRoot): void {
     const base = document.createElement("div");
@@ -227,12 +231,28 @@ export class FwToast extends FwElement {
       this.#close.hidden = dismissible === false || dismissible === "false";
     });
 
-    // A new duration starts the countdown over.
+    // A new duration starts the countdown over. Moved to another place in
+    // the page with the same duration — a region following a dialog open —
+    // it carries on with the time it had left.
     scope.bind(() => {
-      const duration = this.prop<number | null>("duration").get();
-      untrack(() => this.#restart(duration ?? 5000));
+      const duration = this.prop<number | null>("duration").get() ?? 5000;
+      untrack(() => {
+        if (this.#suspended && duration === this.#duration) {
+          this.#suspended = false;
+          this.#armed = true;
+          this.#syncPause();
+        } else {
+          this.#suspended = false;
+          this.#duration = duration;
+          this.#restart(duration);
+        }
+      });
     });
     scope.add(() => {
+      if (this.#timer !== undefined) {
+        this.#remaining = Math.max(0, this.#remaining - (Date.now() - this.#startedAt));
+      }
+      this.#suspended = this.#armed && !this.#dismissing;
       this.#clearTimer();
       this.#armed = false;
       if (this.#exitTimer !== undefined) {

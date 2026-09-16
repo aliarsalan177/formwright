@@ -8,7 +8,6 @@ const styles = /* css */ `
   padding: 0.5rem 0.75rem 0.25rem; font-size: 0.75rem; font-weight: 500;
   color: var(--_muted); user-select: none;
 }
-/* Flex, so the palette can rank matches with \`order\` without moving nodes. */
 .items { display: flex; flex-direction: column; }
 `;
 

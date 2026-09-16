@@ -131,6 +131,16 @@ describe("fw-dialog", () => {
     expect(el.open).toBe(true);
   });
 
+  it("does not treat a press on content moved into its fw-layer slot as the backdrop", () => {
+    const el = mount(`open`);
+    const toast = document.createElement("div");
+    toast.slot = "fw-layer";
+    el.append(toast);
+    pointer(toast, "pointerdown");
+    pointer(toast, "pointerup");
+    expect(el.open).toBe(true);
+  });
+
   it("closes from the close button", () => {
     const el = mount(`open`);
     const onRequest = vi.fn((e: Event) => (e as CustomEvent<RequestCloseDetail>).detail.source);

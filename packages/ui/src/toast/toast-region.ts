@@ -1,5 +1,6 @@
 import type { Scope } from "@formwright/ui-core";
 import { FwElement, type PropMap } from "../core/element.js";
+import { LAYER_SLOT, onModalLayerChange, topModalLayer } from "../core/layers.js";
 
 export type ToastPlacement =
   | "top-start"
@@ -41,6 +42,13 @@ const styles = /* css */ `
  * <fw-toast-region placement="top-center" max="3"></fw-toast-region>
  * ```
  *
+ * While a `<fw-dialog>`, `<fw-drawer>` or `<fw-command-palette>` is open
+ * the region moves inside the innermost one (into its `fw-layer` slot) and
+ * back to where it was when that closes. A modal dialog makes everything
+ * outside it inert, so a toast left in place would show above the dialog
+ * but ignore clicks; inside it, its buttons work. Countdowns carry on
+ * across the move.
+ *
  * `aria-live="polite"`, `role="region"` and an `aria-label` of
  * "Notifications" are added unless already present. Toasts stack in the
  * order they were added. When more than `max` are showing, the oldest are
@@ -65,6 +73,9 @@ export class FwToastRegion extends FwElement {
 
   declare placement: ToastPlacement;
   declare max: number;
+
+  /** Where it was before moving into a modal. */
+  #home: { parent: Node; next: Node | null; slot: string | null } | null = null;
 
   protected render(root: ShadowRoot): void {
     root.append(document.createElement("slot"));
@@ -99,6 +110,38 @@ export class FwToastRegion extends FwElement {
       observer.observe(this, { childList: true });
       scope.add(() => observer.disconnect());
     }
+
+    scope.add(onModalLayerChange(() => this.#relocate()));
+    // Last: moving reconnects this element, which runs all of the above
+    // again in the new place.
+    this.#relocate();
+  }
+
+  /** Follow the innermost open modal in, or go back home when none is. */
+  #relocate(): void {
+    const top = topModalLayer();
+    const target = top && top !== this && !this.contains(top) ? top : null;
+    if (target) {
+      if (this.parentNode === target) return;
+      if (!this.#home && this.parentNode) {
+        this.#home = {
+          parent: this.parentNode,
+          next: this.nextSibling,
+          slot: this.getAttribute("slot"),
+        };
+      }
+      this.setAttribute("slot", LAYER_SLOT);
+      target.append(this);
+      return;
+    }
+    const home = this.#home;
+    if (!home) return;
+    this.#home = null;
+    if (home.slot === null) this.removeAttribute("slot");
+    else this.setAttribute("slot", home.slot);
+    const parent = home.parent.isConnected ? home.parent : document.body;
+    const next = home.next?.parentNode === parent ? home.next : null;
+    parent.insertBefore(this, next);
   }
 
   #raise(): void {
