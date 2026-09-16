@@ -1,0 +1,80 @@
+{
+  "name": "@formwright/ui",
+  "version": "0.10.3",
+  "description": "Web components built on Formwright's headless foundation: <fw-button>, <fw-input>, <fw-select> and the rest. Framework-free, form-associated, themeable with CSS custom properties, one import path per component.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aliarsalan177/formwright.git",
+    "directory": "packages/ui"
+  },
+  "homepage": "https://github.com/aliarsalan177/formwright#readme",
+  "bugs": "https://github.com/aliarsalan177/formwright/issues",
+  "type": "module",
+  "sideEffects": [
+    "./dist/index.js",
+    "./dist/index.cjs",
+    "./dist/*/index.js",
+    "./dist/*/index.cjs"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js",
+      "require": "./dist/core/index.cjs"
+    },
+    "./button": {
+      "types": "./dist/button/index.d.ts",
+      "import": "./dist/button/index.js",
+      "require": "./dist/button/index.cjs"
+    },
+    "./input": {
+      "types": "./dist/input/index.d.ts",
+      "import": "./dist/input/index.js",
+      "require": "./dist/input/index.cjs"
+    },
+    "./select": {
+      "types": "./dist/select/index.d.ts",
+      "import": "./dist/select/index.js",
+      "require": "./dist/select/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "keywords": [
+    "web-components",
+    "custom-elements",
+    "ui",
+    "design-system",
+    "form-associated",
+    "formwright"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "exports": "node scripts/sync-exports.mjs",
+    "clean": "rm -rf dist .turbo"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@formwright/reactive": "workspace:*",
+    "@formwright/ui-core": "workspace:*"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1"
+  }
+}

@@ -219,6 +219,19 @@ importers:
         specifier: ^2.3.0
         version: 2.3.0
 
+  packages/ui:
+    dependencies:
+      '@formwright/reactive':
+        specifier: workspace:*
+        version: link:../reactive
+      '@formwright/ui-core':
+        specifier: workspace:*
+        version: link:../ui-core
+    devDependencies:
+      jsdom:
+        specifier: ^25.0.1
+        version: 25.0.1
+
   packages/ui-core:
     dependencies:
       '@formwright/reactive':

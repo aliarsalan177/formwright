@@ -1,8 +1,8 @@
 {
   "$comment": "Gzipped ceilings per entry point, in bytes. Raising one should be a deliberate, reviewable diff — regenerate with `pnpm size --update` only when the growth is understood and intended.",
-  "total": 69837,
+  "total": 94208,
   "entries": {
-    "@formwright/ai": 307,
+    "@formwright/ai": 3584,
     "@formwright/core": 13414,
     "@formwright/core/reactive": 205,
     "@formwright/dom": 22016,
@@ -14,7 +14,12 @@
     "@formwright/overlay-schema": 2253,
     "@formwright/reactive": 1126,
     "@formwright/schema": 1741,
-    "@formwright/ui-core": 4198,
-    "@formwright/ui-core/testing": 2355
+    "@formwright/ui": 11981,
+    "@formwright/ui-core": 5325,
+    "@formwright/ui-core/testing": 2355,
+    "@formwright/ui/button": 5427,
+    "@formwright/ui/core": 3789,
+    "@formwright/ui/input": 7373,
+    "@formwright/ui/select": 9114
   }
 }

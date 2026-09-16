@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@formwright/ui</title>
+    <!-- Served from the repo root: `npx serve .` then open /packages/ui/demo/ -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@formwright/reactive": "/packages/reactive/dist/index.js",
+          "@formwright/ui-core": "/packages/ui-core/dist/index.js"
+        }
+      }
+    </script>
+    <script type="module" src="/packages/ui/dist/index.js"></script>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        padding: 2rem;
+        background: #fafafa;
+        color: #18181b;
+      }
+      main {
+        max-width: 34rem;
+        margin: 0 auto;
+        display: grid;
+        gap: 1.25rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+        margin: 0;
+      }
+      .row {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      fieldset {
+        border: 0;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 1rem;
+      }
+      pre {
+        background: #fff;
+        border: 1px solid #e4e4e7;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        font-size: 0.8rem;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>&lt;fw-*&gt; components</h1>
+
+      <div class="row">
+        <fw-button>Primary</fw-button>
+        <fw-button variant="secondary">Secondary</fw-button>
+        <fw-button variant="ghost">Ghost</fw-button>
+        <fw-button variant="danger">Danger</fw-button>
+        <fw-button loading>Saving</fw-button>
+        <fw-button size="sm" variant="secondary" href="#top">Link</fw-button>
+      </div>
+
+      <form id="member">
+        <fieldset id="fields">
+          <fw-input name="name" label="Full name" required placeholder="Ali Arsalan"></fw-input>
+          <fw-input
+            name="email"
+            type="email"
+            label="Email"
+            help="Receipts are sent here"
+          ></fw-input>
+          <fw-input name="password" type="password" label="Password"></fw-input>
+          <fw-input name="price" type="number" label="Price" min="0">
+            <span slot="prefix">PKR</span>
+          </fw-input>
+          <fw-select name="gender" label="Gender" placeholder="Choose…" required clearable>
+            <fw-option value="MALE">Male</fw-option>
+            <fw-option value="FEMALE">Female</fw-option>
+            <fw-option value="OTHER" disabled>Other</fw-option>
+          </fw-select>
+        </fieldset>
+        <div class="row" style="margin-top: 1rem">
+          <fw-button type="submit">Register</fw-button>
+          <fw-button type="reset" variant="secondary">Reset</fw-button>
+        </div>
+      </form>
+
+      <pre id="out">Submit the form to see what it sends.</pre>
+    </main>
+    <script type="module">
+      const form = document.getElementById("member");
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        document.getElementById("out").textContent = JSON.stringify(
+          Object.fromEntries(new FormData(form)),
+          null,
+          2,
+        );
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <script type="importmap">
+      {
+        "imports": {
+          "@formwright/reactive": "/packages/reactive/dist/index.js",
+          "@formwright/ui-core": "/packages/ui-core/dist/index.js"
+        }
+      }
+    </script>
+  </head>
+  <body style="padding: 40px">
+    <form id="f">
+      <fieldset id="fs">
+        <fw-input id="name" name="name" required value="Initial"></fw-input>
+        <fw-select id="gender" name="gender" required>
+          <fw-option value="MALE">Male</fw-option>
+          <fw-option value="FEMALE">Female</fw-option>
+        </fw-select>
+      </fieldset>
+      <fw-button id="submit" type="submit">Go</fw-button>
+    </form>
+    <script type="module">
+      document.title = "PROBE {}";
+      await import("/packages/ui/dist/index.js");
+      const r = {};
+      const log = (k, v) => {
+        r[k] = v;
+        document.title = "PROBE " + JSON.stringify(r);
+      };
+      try {
+        await Promise.all(
+          ["fw-input", "fw-select", "fw-button"].map((t) => customElements.whenDefined(t)),
+        );
+        await new Promise((res) => setTimeout(res, 50));
+        const form = document.getElementById("f");
+        const name = document.getElementById("name");
+        const gender = document.getElementById("gender");
+
+        log("internals", typeof name.attachInternals === "function");
+        log("formElementsHasName", form.elements.namedItem("name") === name);
+        log("formDataName", new FormData(form).get("name"));
+        log("invalidWhileSelectEmpty", form.checkValidity() === false);
+        log("genderValueMissing", gender.validity?.valueMissing === true);
+
+        let submitted = 0;
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          submitted++;
+        });
+        document.getElementById("submit").shadowRoot.querySelector("[part~=base]").click();
+        log("submitBlockedWhenInvalid", submitted === 0);
+
+        gender.value = "FEMALE";
+        log("formDataGender", new FormData(form).get("gender"));
+        log("validAfterChoosing", form.checkValidity());
+        document.getElementById("submit").shadowRoot.querySelector("[part~=base]").click();
+        log("submitViaFwButton", submitted === 1);
+
+        name.value = "Changed";
+        form.reset();
+        log("resetRestoresInput", name.value === "Initial");
+        log("resetRestoresSelect", gender.value === "");
+
+        document.getElementById("fs").disabled = true;
+        await new Promise((res) => setTimeout(res, 0));
+        log("fieldsetDisablesInput", name.shadowRoot.querySelector("input").disabled === true);
+        document.getElementById("fs").disabled = false;
+        await new Promise((res) => setTimeout(res, 0));
+
+        const trigger = gender.shadowRoot.querySelector("[role=combobox]");
+        const listbox = gender.shadowRoot.querySelector("[role=listbox]");
+        trigger.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, composed: true }),
+        );
+        await new Promise((res) => setTimeout(res, 50));
+        log("popoverInTopLayer", listbox.matches(":popover-open"));
+        const t = trigger.getBoundingClientRect(),
+          l = listbox.getBoundingClientRect();
+        log("listBelowTrigger", Math.round(l.top) === Math.round(t.bottom + 4));
+        log("listSameWidth", Math.round(l.width) >= Math.round(t.width));
+        log("focusOnOption", document.activeElement?.tagName === "FW-OPTION");
+        log("placement", listbox.dataset.placement);
+        document.activeElement.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", bubbles: true, composed: true }),
+        );
+        log("escapeCloses", !listbox.matches(":popover-open"));
+        log("focusBackOnTrigger", gender.shadowRoot.activeElement === trigger);
+      } catch (e) {
+        log("error", String((e && e.stack) || e));
+      }
+      document.title = "PROBE " + JSON.stringify(r);
+    </script>
+  </body>
+</html>
