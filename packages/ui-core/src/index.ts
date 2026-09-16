@@ -16,3 +16,17 @@ export type { Dispose } from "@formwright/reactive";
  */
 export { focusableWithin, trapFocus, type FocusTrap } from "./focus-trap.js";
 export { lockScroll, unlockScroll, resetScrollLock } from "./scroll-lock.js";
+export { observeResize } from "./resize.js";
+export {
+  anchorTo,
+  computePosition,
+  type Align,
+  type AnchorOptions,
+  type Anchored,
+  type Placement,
+  type Position,
+  type PositionOptions,
+  type Rect,
+  type Side,
+  type Size,
+} from "./anchor.js";

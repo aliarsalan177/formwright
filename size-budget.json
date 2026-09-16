@@ -14,7 +14,7 @@
     "@formwright/overlay-schema": 2253,
     "@formwright/reactive": 1126,
     "@formwright/schema": 1741,
-    "@formwright/ui-core": 2560,
+    "@formwright/ui-core": 4198,
     "@formwright/ui-core/testing": 2355
   }
 }
