@@ -18,6 +18,12 @@ export { focusableWithin, trapFocus, type FocusTrap } from "./focus-trap.js";
 export { lockScroll, unlockScroll, resetScrollLock } from "./scroll-lock.js";
 export { observeResize } from "./resize.js";
 export {
+  createCollection,
+  type Collection,
+  type CollectionOptions,
+  type Orientation,
+} from "./collection.js";
+export {
   anchorTo,
   computePosition,
   type Align,

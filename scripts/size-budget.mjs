@@ -69,13 +69,33 @@ function entriesFor(pkgDir, pkg) {
   const exp = pkg.exports ?? { ".": { import: pkg.module ?? pkg.main } };
   for (const [subpath, target] of Object.entries(exp)) {
     const file = typeof target === "string" ? target : target?.import;
-    if (typeof file !== "string") continue;
+    // Only code: "./package.json" is an export too, and is not shipped JS.
+    if (typeof file !== "string" || !/\.m?js$/.test(file)) continue;
     const abs = join(pkgDir, file);
     if (!existsSync(abs)) continue;
     const name = subpath === "." ? pkg.name : `${pkg.name}${subpath.slice(1)}`;
     found.push({ name, file: abs });
   }
   return found;
+}
+
+/**
+ * An entry and every file it loads through relative imports.
+ *
+ * A package built with code splitting has entry files that are little more
+ * than import statements; the code is in shared chunks. Measuring the
+ * entry alone would report a component as a few hundred bytes while a page
+ * importing it downloads kilobytes, and the budget would never trip.
+ */
+function closure(file, seen = new Set()) {
+  if (seen.has(file) || !existsSync(file)) return seen;
+  seen.add(file);
+  const source = readFileSync(file, "utf8");
+  const pattern = /(?:from|import)\s*["'](\.{1,2}\/[^"']+)["']/g;
+  for (const match of source.matchAll(pattern)) {
+    closure(join(dirname(file), match[1]), seen);
+  }
+  return seen;
 }
 
 function measure() {
@@ -87,12 +107,15 @@ function measure() {
     const pkg = JSON.parse(readFileSync(manifest, "utf8"));
     if (pkg.private) continue;
     for (const entry of entriesFor(pkgDir, pkg)) {
-      const raw = readFileSync(entry.file);
+      const files = [...closure(entry.file)];
+      // Concatenated before compressing, the way a bundler would ship them.
+      const raw = Buffer.concat(files.map((f) => readFileSync(f)));
       rows.push({
         name: entry.name,
         raw: raw.byteLength,
         gzip: gzipSync(raw, { level: 9 }).byteLength,
         dev: isDevEntry(entry.name),
+        files,
       });
     }
   }
@@ -114,7 +137,14 @@ if (rows.length === 0) {
   process.exit(1);
 }
 
-const total = rows.reduce((sum, r) => (r.dev ? sum : sum + r.gzip), 0);
+// Each file counted once: a package's barrel and its per-component entries
+// share chunks, and adding the entries up would count those chunks again
+// for every component.
+const shippedFiles = [...new Set(rows.filter((r) => !r.dev).flatMap((r) => r.files))];
+const total = shippedFiles.reduce(
+  (sum, f) => sum + gzipSync(readFileSync(f), { level: 9 }).byteLength,
+  0,
+);
 
 if (asJson) {
   console.log(JSON.stringify({ total, entries: rows }, null, 2));
@@ -182,9 +212,7 @@ if (budget.total && total > budget.total) {
 }
 
 if (missing.length > 0) {
-  console.error(
-    `✗ ${missing.length} entry point(s) have no budget: ${missing.join(", ")}`,
-  );
+  console.error(`✗ ${missing.length} entry point(s) have no budget: ${missing.join(", ")}`);
   console.error("  Run `pnpm size --update` and commit the result.");
 }
 
@@ -201,9 +229,7 @@ if (over.length > 0) {
 }
 
 if (stale.length > 0) {
-  console.log(
-    `· ${stale.length} ceiling(s) now well above actual — worth tightening:`,
-  );
+  console.log(`· ${stale.length} ceiling(s) now well above actual — worth tightening:`);
   for (const row of stale) {
     console.log(`    ${row.name}  ${kb(row.gzip)} vs ${kb(row.ceiling)}`);
   }
