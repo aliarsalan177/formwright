@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Real-browser checks for what jsdom cannot run: form association,
+         the top layer, native modal dialogs, focus and layout. Serve the
+         repo root and open /packages/ui/demo/probe-all.html; results are
+         written to document.title. -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@formwright/reactive": "/packages/reactive/dist/index.js",
+          "@formwright/ui-core": "/packages/ui-core/dist/index.js"
+        }
+      }
+    </script>
+  </head>
+  <body style="padding: 40px; height: 3000px">
+    <form id="f">
+      <fw-checkbox id="cb" name="terms" value="yes" aria-label="Accept terms"></fw-checkbox>
+      <fw-switch id="sw" name="alerts" checked>Alerts</fw-switch>
+      <fw-radio-group id="rg" name="plan" label="Plan">
+        <fw-radio value="basic">Basic</fw-radio>
+        <fw-radio value="pro">Pro</fw-radio>
+      </fw-radio-group>
+      <fw-slider id="sl" name="volume" min="0" max="10" value="4"></fw-slider>
+      <fw-textarea id="ta" name="notes" value="hello"></fw-textarea>
+      <fw-multi-select id="ms" name="tags" label="Tags">
+        <fw-option value="a">A</fw-option>
+        <fw-option value="b">B</fw-option>
+      </fw-multi-select>
+      <fw-tags-input id="ti" name="labels" value="x,y"></fw-tags-input>
+      <fw-number-input id="ni" name="qty" value="3" min="0" max="5"></fw-number-input>
+      <fw-otp-input id="otp" name="code" length="4"></fw-otp-input>
+      <fw-date-picker id="dp" name="period" mode="range" label="Period"></fw-date-picker>
+      <fw-combobox id="cmb" name="city" label="City">
+        <fw-option value="khi">Karachi</fw-option>
+        <fw-option value="lhe">Lahore</fw-option>
+        <fw-option value="isb">Islamabad</fw-option>
+      </fw-combobox>
+    </form>
+
+    <fw-dropdown id="dd">
+      <button slot="trigger" id="ddTrigger">Actions</button>
+      <fw-menu-item value="edit">Edit</fw-menu-item>
+      <fw-menu-item value="delete" danger>Delete</fw-menu-item>
+    </fw-dropdown>
+
+    <fw-popover id="pop">
+      <button slot="trigger" id="popTrigger">Info</button>
+      <p>Details <a href="#">link</a></p>
+    </fw-popover>
+
+    <fw-tabs id="tabs">
+      <fw-tab slot="nav" panel="one">One</fw-tab>
+      <fw-tab slot="nav" panel="two">Two</fw-tab>
+      <fw-tab-panel name="one">First</fw-tab-panel>
+      <fw-tab-panel name="two">Second</fw-tab-panel>
+    </fw-tabs>
+
+    <fw-dialog id="dlg" heading="Edit member">
+      <fw-input id="dlgInput" label="Name"></fw-input>
+    </fw-dialog>
+    <fw-drawer id="drw" heading="Filters">Body</fw-drawer>
+
+    <fw-command-palette id="cp" hotkey="">
+      <fw-command value="members">Go to members</fw-command>
+      <fw-command value="settings">Open settings</fw-command>
+    </fw-command-palette>
+
+    <script type="module">
+      document.title = "PROBE {}";
+      const r = {};
+      const log = (k, v) => {
+        r[k] = v;
+        document.title = "PROBE " + JSON.stringify(r);
+      };
+      const tick = (ms = 30) => new Promise((res) => setTimeout(res, ms));
+      const key = (el, k, init = {}) =>
+        el.dispatchEvent(
+          new KeyboardEvent("keydown", { key: k, bubbles: true, composed: true, ...init }),
+        );
+      const deepActive = () => {
+        let a = document.activeElement;
+        while (a?.shadowRoot?.activeElement) a = a.shadowRoot.activeElement;
+        return a;
+      };
+
+      try {
+        log("start", true);
+        await import("/packages/ui/dist/index.js");
+        log("imported", true);
+        await customElements.whenDefined("fw-command-palette");
+        await tick(80);
+        log("ready", true);
+        const $ = (id) => document.getElementById(id);
+        const form = $("f");
+
+        // Form association
+        let fd = new FormData(form);
+        log("checkboxUncheckedOmitted", fd.get("terms") === null);
+        $("cb").checked = true;
+        log("checkboxChecked", new FormData(form).get("terms") === "yes");
+        log(
+          "checkboxAriaLabel",
+          $("cb").shadowRoot.querySelector("input").getAttribute("aria-label") === "Accept terms",
+        );
+        log("switch", fd.get("alerts") === "on");
+        log("slider", fd.get("volume") === "4");
+        $("sl").value = 99;
+        log("sliderClamped", new FormData(form).get("volume") === "10");
+        log("textarea", fd.get("notes") === "hello");
+        $("ms").value = ["a", "b"];
+        log("multiSelect", new FormData(form).getAll("tags").join() === "a,b");
+        log("tagsInput", fd.getAll("labels").join() === "x,y");
+        log("numberInput", fd.get("qty") === "3");
+        $("otp").value = "1234";
+        log("otp", new FormData(form).get("code") === "1234");
+        $("dp").value = "2026-09-01/2026-09-12";
+        log("dateRange", new FormData(form).get("period") === "2026-09-01/2026-09-12");
+
+        // Radio group: arrows move focus and select
+        const radios = $("rg").querySelectorAll("fw-radio");
+        radios[0].focus();
+        key(radios[0], "ArrowDown");
+        await tick();
+        log("radioArrowSelects", $("rg").value === "pro" && document.activeElement === radios[1]);
+
+        // Combobox: focus stays in the input, active option by reflection
+        const cmbInput = $("cmb").shadowRoot.querySelector("input");
+        cmbInput.focus();
+        cmbInput.value = "lah";
+        cmbInput.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true }));
+        await tick();
+        key(cmbInput, "ArrowDown");
+        await tick();
+        const cmbList = $("cmb").shadowRoot.querySelector("[role=listbox]");
+        log("comboboxTopLayer", cmbList.matches(":popover-open"));
+        log(
+          "comboboxActiveDescendant",
+          "ariaActiveDescendantElement" in Element.prototype
+            ? cmbInput.ariaActiveDescendantElement?.getAttribute("value") === "lhe"
+            : "unsupported",
+        );
+        log("comboboxFocusKept", deepActive() === cmbInput);
+        key(cmbInput, "Enter");
+        await tick();
+        log("comboboxCommit", $("cmb").value === "lhe" && new FormData(form).get("city") === "lhe");
+
+        // Dropdown: opens in the top layer and focuses the first item
+        $("ddTrigger").focus();
+        key($("ddTrigger"), "ArrowDown");
+        await tick();
+        const menu = $("dd").shadowRoot.querySelector("[part~=menu]");
+        log("dropdownTopLayer", menu.matches(":popover-open"));
+        log("dropdownFocusFirst", document.activeElement?.getAttribute("value") === "edit");
+        key(document.activeElement, "Escape");
+        await tick();
+        log(
+          "dropdownEscape",
+          !menu.matches(":popover-open") && document.activeElement === $("ddTrigger"),
+        );
+
+        // Popover
+        $("popTrigger").click();
+        await tick();
+        const panel = $("pop").shadowRoot.querySelector("[part~=panel]");
+        log("popoverTopLayer", panel.matches(":popover-open"));
+        const pt = $("popTrigger").getBoundingClientRect();
+        const pp = panel.getBoundingClientRect();
+        log("popoverBelowTrigger", pp.top >= pt.bottom);
+        $("pop").hide();
+        await tick();
+
+        // Tabs
+        const tabs = $("tabs").querySelectorAll("fw-tab");
+        tabs[1].click();
+        await tick();
+        const panels = $("tabs").querySelectorAll("fw-tab-panel");
+        log("tabsSwitch", panels[0].hidden && !panels[1].hidden && $("tabs").value === "two");
+
+        // Dialog: native modal, focus inside, scroll locked, released on close
+        const opener = $("ddTrigger");
+        opener.focus();
+        $("dlg").show();
+        await tick(60);
+        const nativeDialog = $("dlg").shadowRoot.querySelector("dialog");
+        log("dialogModal", nativeDialog.matches(":modal"));
+        log(
+          "dialogFocusInside",
+          $("dlg").contains(document.activeElement) || document.activeElement === $("dlg"),
+        );
+        log(
+          "dialogScrollLocked",
+          document.body.style.position !== "" ||
+            getComputedStyle(document.documentElement).overflow === "hidden" ||
+            getComputedStyle(document.body).overflow === "hidden",
+        );
+
+        // Toast above the open dialog
+        const { showToast } = await import("/packages/ui/dist/toast/index.js");
+        showToast({ message: "Saved", duration: 0 });
+        await tick(60);
+        const toast = document.querySelector("fw-toast");
+        const region = document.querySelector("fw-toast-region");
+        log("toastRegionTopLayer", region.matches(":popover-open"));
+        // Hit-testing can't confirm stacking here: a modal dialog makes the
+        // rest of the page inert, so the toast is visible above the backdrop
+        // but not clickable until the dialog closes.
+        const tr = toast.getBoundingClientRect();
+        log("toastInCorner", tr.right > innerWidth - 40 && tr.bottom > innerHeight - 40);
+
+        $("dlg").hide();
+        await tick(400);
+        log("dialogClosed", !nativeDialog.open && !$("dlg").open);
+        log("dialogScrollReleased", document.body.style.position === "");
+        log("dialogFocusReturned", document.activeElement === opener);
+
+        // Drawer
+        $("drw").show();
+        await tick(60);
+        const drawerDialog = $("drw").shadowRoot.querySelector("dialog");
+        log("drawerModal", drawerDialog.matches(":modal"));
+        const dr = drawerDialog.getBoundingClientRect();
+        log("drawerAtEnd", Math.round(dr.right) === innerWidth);
+        $("drw").hide();
+        await tick(400);
+        log("drawerClosed", !drawerDialog.open);
+
+        // Command palette
+        $("cp").show();
+        await tick(60);
+        const cpInput = $("cp").shadowRoot.querySelector("input");
+        log("paletteModal", $("cp").shadowRoot.querySelector("dialog").matches(":modal"));
+        log("paletteFocusInput", deepActive() === cpInput);
+        cpInput.value = "sett";
+        cpInput.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true }));
+        await tick();
+        const visible = [...$("cp").querySelectorAll("fw-command")].filter(
+          (c) => c.getBoundingClientRect().height > 0,
+        );
+        log(
+          "paletteFilters",
+          visible.length === 1 && visible[0].getAttribute("value") === "settings",
+        );
+        let ran = null;
+        $("cp").addEventListener("fw-select", (e) => (ran = e.detail.value));
+        key(cpInput, "Enter");
+        await tick(400);
+        log("paletteRuns", ran === "settings" && !$("cp").open);
+
+        log("DONE", true);
+      } catch (e) {
+        log("ERROR", String(e && e.stack ? e.stack : e).slice(0, 300));
+      }
+    </script>
+  </body>
+</html>

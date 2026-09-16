@@ -31,20 +31,190 @@
       "import": "./dist/core/index.js",
       "require": "./dist/core/index.cjs"
     },
+    "./accordion": {
+      "types": "./dist/accordion/index.d.ts",
+      "import": "./dist/accordion/index.js",
+      "require": "./dist/accordion/index.cjs"
+    },
+    "./alert": {
+      "types": "./dist/alert/index.d.ts",
+      "import": "./dist/alert/index.js",
+      "require": "./dist/alert/index.cjs"
+    },
+    "./avatar": {
+      "types": "./dist/avatar/index.d.ts",
+      "import": "./dist/avatar/index.js",
+      "require": "./dist/avatar/index.cjs"
+    },
+    "./badge": {
+      "types": "./dist/badge/index.d.ts",
+      "import": "./dist/badge/index.js",
+      "require": "./dist/badge/index.cjs"
+    },
+    "./breadcrumbs": {
+      "types": "./dist/breadcrumbs/index.d.ts",
+      "import": "./dist/breadcrumbs/index.js",
+      "require": "./dist/breadcrumbs/index.cjs"
+    },
     "./button": {
       "types": "./dist/button/index.d.ts",
       "import": "./dist/button/index.js",
       "require": "./dist/button/index.cjs"
+    },
+    "./calendar": {
+      "types": "./dist/calendar/index.d.ts",
+      "import": "./dist/calendar/index.js",
+      "require": "./dist/calendar/index.cjs"
+    },
+    "./card": {
+      "types": "./dist/card/index.d.ts",
+      "import": "./dist/card/index.js",
+      "require": "./dist/card/index.cjs"
+    },
+    "./checkbox": {
+      "types": "./dist/checkbox/index.d.ts",
+      "import": "./dist/checkbox/index.js",
+      "require": "./dist/checkbox/index.cjs"
+    },
+    "./combobox": {
+      "types": "./dist/combobox/index.d.ts",
+      "import": "./dist/combobox/index.js",
+      "require": "./dist/combobox/index.cjs"
+    },
+    "./command-palette": {
+      "types": "./dist/command-palette/index.d.ts",
+      "import": "./dist/command-palette/index.js",
+      "require": "./dist/command-palette/index.cjs"
+    },
+    "./date-picker": {
+      "types": "./dist/date-picker/index.d.ts",
+      "import": "./dist/date-picker/index.js",
+      "require": "./dist/date-picker/index.cjs"
+    },
+    "./dialog": {
+      "types": "./dist/dialog/index.d.ts",
+      "import": "./dist/dialog/index.js",
+      "require": "./dist/dialog/index.cjs"
+    },
+    "./divider": {
+      "types": "./dist/divider/index.d.ts",
+      "import": "./dist/divider/index.js",
+      "require": "./dist/divider/index.cjs"
+    },
+    "./drawer": {
+      "types": "./dist/drawer/index.d.ts",
+      "import": "./dist/drawer/index.js",
+      "require": "./dist/drawer/index.cjs"
+    },
+    "./dropdown": {
+      "types": "./dist/dropdown/index.d.ts",
+      "import": "./dist/dropdown/index.js",
+      "require": "./dist/dropdown/index.cjs"
+    },
+    "./empty-state": {
+      "types": "./dist/empty-state/index.d.ts",
+      "import": "./dist/empty-state/index.js",
+      "require": "./dist/empty-state/index.cjs"
     },
     "./input": {
       "types": "./dist/input/index.d.ts",
       "import": "./dist/input/index.js",
       "require": "./dist/input/index.cjs"
     },
+    "./multi-select": {
+      "types": "./dist/multi-select/index.d.ts",
+      "import": "./dist/multi-select/index.js",
+      "require": "./dist/multi-select/index.cjs"
+    },
+    "./number-input": {
+      "types": "./dist/number-input/index.d.ts",
+      "import": "./dist/number-input/index.js",
+      "require": "./dist/number-input/index.cjs"
+    },
+    "./otp-input": {
+      "types": "./dist/otp-input/index.d.ts",
+      "import": "./dist/otp-input/index.js",
+      "require": "./dist/otp-input/index.cjs"
+    },
+    "./pagination": {
+      "types": "./dist/pagination/index.d.ts",
+      "import": "./dist/pagination/index.js",
+      "require": "./dist/pagination/index.cjs"
+    },
+    "./popover": {
+      "types": "./dist/popover/index.d.ts",
+      "import": "./dist/popover/index.js",
+      "require": "./dist/popover/index.cjs"
+    },
+    "./progress": {
+      "types": "./dist/progress/index.d.ts",
+      "import": "./dist/progress/index.js",
+      "require": "./dist/progress/index.cjs"
+    },
+    "./radio-group": {
+      "types": "./dist/radio-group/index.d.ts",
+      "import": "./dist/radio-group/index.js",
+      "require": "./dist/radio-group/index.cjs"
+    },
     "./select": {
       "types": "./dist/select/index.d.ts",
       "import": "./dist/select/index.js",
       "require": "./dist/select/index.cjs"
+    },
+    "./skeleton": {
+      "types": "./dist/skeleton/index.d.ts",
+      "import": "./dist/skeleton/index.js",
+      "require": "./dist/skeleton/index.cjs"
+    },
+    "./slider": {
+      "types": "./dist/slider/index.d.ts",
+      "import": "./dist/slider/index.js",
+      "require": "./dist/slider/index.cjs"
+    },
+    "./spinner": {
+      "types": "./dist/spinner/index.d.ts",
+      "import": "./dist/spinner/index.js",
+      "require": "./dist/spinner/index.cjs"
+    },
+    "./stepper": {
+      "types": "./dist/stepper/index.d.ts",
+      "import": "./dist/stepper/index.js",
+      "require": "./dist/stepper/index.cjs"
+    },
+    "./switch": {
+      "types": "./dist/switch/index.d.ts",
+      "import": "./dist/switch/index.js",
+      "require": "./dist/switch/index.cjs"
+    },
+    "./tabs": {
+      "types": "./dist/tabs/index.d.ts",
+      "import": "./dist/tabs/index.js",
+      "require": "./dist/tabs/index.cjs"
+    },
+    "./tag": {
+      "types": "./dist/tag/index.d.ts",
+      "import": "./dist/tag/index.js",
+      "require": "./dist/tag/index.cjs"
+    },
+    "./tags-input": {
+      "types": "./dist/tags-input/index.d.ts",
+      "import": "./dist/tags-input/index.js",
+      "require": "./dist/tags-input/index.cjs"
+    },
+    "./textarea": {
+      "types": "./dist/textarea/index.d.ts",
+      "import": "./dist/textarea/index.js",
+      "require": "./dist/textarea/index.cjs"
+    },
+    "./toast": {
+      "types": "./dist/toast/index.d.ts",
+      "import": "./dist/toast/index.js",
+      "require": "./dist/toast/index.cjs"
+    },
+    "./tooltip": {
+      "types": "./dist/tooltip/index.d.ts",
+      "import": "./dist/tooltip/index.js",
+      "require": "./dist/tooltip/index.cjs"
     },
     "./package.json": "./package.json"
   },
