@@ -16,20 +16,30 @@ const styles =
 :host([size="sm"]) { --_chip-h: 1.25rem; }
 :host([size="lg"]) { --_chip-h: 1.875rem; }
 .control {
-  flex-wrap: wrap; row-gap: 0.25rem;
+  flex-wrap: nowrap; row-gap: 0.25rem;
   --_chip-pad: calc((var(--_height) - 2px - var(--_chip-h)) / 2);
   padding-block: var(--_chip-pad);
   /* A pill radius on a control that has wrapped to several rows turns it
      into an oval; half a row keeps one row a pill and more rows a card. */
   border-radius: min(var(--_radius), calc(var(--_height) / 2));
 }
+:host([wrap]) .control { flex-wrap: wrap; }
 .control:has(.tag) { padding-inline-start: var(--_chip-pad); }
 .control .icon-button { margin-block: calc((var(--_chip-h) - 1.75rem) / 2); }
 /* Not display: contents, which drops the list role in some browsers. */
-.tags { display: flex; flex-wrap: wrap; gap: 0.25rem; min-width: 0; max-width: 100%; }
+/* Chips stay on one row and scroll sideways, so the field keeps the
+   height of an input however many are chosen. The wrap attribute goes
+   back to filling rows. */
+.tags {
+  display: flex; flex-wrap: nowrap; gap: 0.25rem; min-width: 0; max-width: 100%;
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  overscroll-behavior-x: contain; scroll-padding-inline: 0.25rem;
+}
+.tags::-webkit-scrollbar { display: none; }
+:host([wrap]) .tags { flex-wrap: wrap; overflow: visible; }
 .tags:empty { display: none; }
 .tag {
-  display: inline-flex; align-items: center; gap: 0.125rem; max-width: 100%;
+  display: inline-flex; align-items: center; gap: 0.125rem; flex: none; max-width: 14rem;
   height: var(--_chip-h); padding-inline: 0.5rem 0.1875rem;
   border-radius: calc(var(--_radius-sm) - 0.0625rem);
   background: color-mix(in srgb, var(--_text) 8%, var(--_surface));
@@ -130,6 +140,10 @@ export interface TagEventDetail {
  * list or a JSON array. The form submits one `name` entry per tag. The value
  * array is frozen: assign a new array rather than mutating it.
  *
+ * Chips keep to one row and scroll sideways, so the field stays as tall
+ * as an `<fw-input>` however many are chosen; `wrap` lets them fill rows
+ * instead.
+ *
  * Events: `fw-tag-add` and `fw-tag-remove` (cancelable, `{ value }`) before a
  * tag is added or removed; `input` and `change` after.
  * Slots: `label`, `help`, `prefix`, `suffix`.
@@ -146,6 +160,7 @@ export class FwTagsInput extends FwFormElement {
     error: { type: "string" },
     size: { type: "string", reflect: true, default: "md" },
     separators: { type: "string", default: "," },
+    wrap: { type: "boolean", reflect: true },
     max: { type: "number" },
     allowDuplicates: { type: "boolean", attribute: "allow-duplicates" },
     pattern: { type: "string" },
@@ -163,6 +178,7 @@ export class FwTagsInput extends FwFormElement {
   declare error: string | null;
   declare size: "sm" | "md" | "lg";
   declare separators: string;
+  declare wrap: boolean;
   declare max: number | null;
   declare allowDuplicates: boolean;
   declare pattern: string | null;
@@ -425,6 +441,8 @@ export class FwTagsInput extends FwFormElement {
       return tag;
     });
     this.#tags.replaceChildren(...items);
+    // The row scrolls rather than wrapping, so show the newest chip.
+    if (!this.hasAttribute("wrap")) this.#tags.scrollLeft = this.#tags.scrollWidth;
   }
 
   /** Why `text` cannot be added to `values`, or null when it can. */

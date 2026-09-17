@@ -259,3 +259,16 @@ describe("fw-multi-select", () => {
     leaks.assertClean("fw-multi-select leaked", { strict: true });
   });
 });
+
+describe("chips on one row", () => {
+  it("scrolls sideways by default and wraps with the wrap attribute", () => {
+    const el = mount(`value="a,b"`);
+    const tags = el.shadowRoot!.querySelector<HTMLElement>("[part~=tags]")!;
+    const styles = (el.constructor as unknown as { styles: string }).styles;
+    expect(styles).toContain("overflow-x: auto");
+    expect(styles).toContain(":host([wrap]) .tags { flex-wrap: wrap; overflow: visible; }");
+    expect(tags.children).toHaveLength(2);
+    el.wrap = true;
+    expect(el.hasAttribute("wrap")).toBe(true);
+  });
+});

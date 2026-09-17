@@ -24,20 +24,30 @@ const styles =
 :host([size="sm"]) { --_chip-h: 1.25rem; }
 :host([size="lg"]) { --_chip-h: 1.875rem; }
 .control {
-  flex-wrap: wrap; row-gap: 0.25rem;
+  flex-wrap: nowrap; row-gap: 0.25rem;
   --_chip-pad: calc((var(--_height) - 2px - var(--_chip-h)) / 2);
   padding-block: var(--_chip-pad);
   /* A pill radius on a control that has wrapped to several rows turns it
      into an oval; half a row keeps one row a pill and more rows a card. */
   border-radius: min(var(--_radius), calc(var(--_height) / 2));
 }
+:host([wrap]) .control { flex-wrap: wrap; }
 .control:has(.tag) { padding-inline-start: var(--_chip-pad); }
 .control .icon-button { margin-block: calc((var(--_chip-h) - 1.75rem) / 2); }
 /* Not display: contents, which drops the list role in some browsers. */
-.tags { display: flex; flex-wrap: wrap; gap: 0.25rem; min-width: 0; max-width: 100%; }
+/* Chips stay on one row and scroll sideways, so the field keeps the
+   height of an input however many are chosen. The wrap attribute goes
+   back to filling rows. */
+.tags {
+  display: flex; flex-wrap: nowrap; gap: 0.25rem; min-width: 0; max-width: 100%;
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  overscroll-behavior-x: contain; scroll-padding-inline: 0.25rem;
+}
+.tags::-webkit-scrollbar { display: none; }
+:host([wrap]) .tags { flex-wrap: wrap; overflow: visible; }
 .tags:empty { display: none; }
 .tag {
-  display: inline-flex; align-items: center; gap: 0.125rem; max-width: 100%;
+  display: inline-flex; align-items: center; gap: 0.125rem; flex: none; max-width: 14rem;
   height: var(--_chip-h); padding-inline: 0.5rem 0.1875rem;
   border-radius: calc(var(--_radius-sm) - 0.0625rem);
   background: color-mix(in srgb, var(--_text) 8%, var(--_surface));
@@ -171,6 +181,10 @@ function toList(input: unknown): readonly string[] {
  * Options are `<fw-option>`s, or `<fw-list-item>`s for richer rows
  * (import `@formwright/ui/list` to register it).
  *
+ * Chips keep to one row and scroll sideways, so the field stays as tall
+ * as an `<fw-input>` however many are chosen; `wrap` lets them fill rows
+ * instead.
+ *
  * Events: `input` and `change` whenever the selection changes, `fw-show`, `fw-hide`.
  * Slots: default (options), `label`, `help`, `prefix`, `empty`.
  * Parts: `field`, `label`, `control`, `tags`, `tag`, `tag-remove`, `trigger`,
@@ -187,6 +201,7 @@ export class FwMultiSelect extends FwFormElement {
     error: { type: "string" },
     size: { type: "string", reflect: true, default: "md" },
     clearable: { type: "boolean" },
+    wrap: { type: "boolean", reflect: true },
     searchable: { type: "boolean" },
     max: { type: "number" },
     placement: { type: "string", default: "bottom-start" },
@@ -205,6 +220,7 @@ export class FwMultiSelect extends FwFormElement {
   declare error: string | null;
   declare size: "sm" | "md" | "lg";
   declare clearable: boolean;
+  declare wrap: boolean;
   declare searchable: boolean;
   declare max: number | null;
   declare placement: Placement;
@@ -687,6 +703,8 @@ export class FwMultiSelect extends FwFormElement {
       return tag;
     });
     this.#tags.replaceChildren(...tags);
+    // The row scrolls rather than wrapping, so show the newest chip.
+    if (!this.hasAttribute("wrap")) this.#tags.scrollLeft = this.#tags.scrollWidth;
   }
 
   #markActive(item: FwOption | null): void {
