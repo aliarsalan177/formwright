@@ -12,6 +12,7 @@ import {
   parsePhoneNumberFromString,
   type CountryCode,
 } from "libphonenumber-js";
+import { anchorTo } from "@formwright/ui-core";
 import { bindDisabled, on, Scope } from "./internal.js";
 import { createFlagIcon, injectFlagStyles, setFlagIcon } from "./phone-flags.js";
 import { registerWidget, type WidgetContext } from "./widgets.js";
@@ -176,7 +177,18 @@ function createCountryPicker(
     });
   }
 
+  // The list opens in the top layer where the browser supports it, placed
+  // beside the trigger. Inside the form it would be clipped by, or grow a
+  // scrollbar on, any ancestor that scrolls or hides overflow — a card, a
+  // dialog, a docs preview.
+  const topLayer = typeof HTMLElement !== "undefined" && "showPopover" in HTMLElement.prototype;
+  if (topLayer) menu.setAttribute("popover", "manual");
+  let anchor: { dispose(): void } | null = null;
+
   const closeMenu = (): void => {
+    anchor?.dispose();
+    anchor = null;
+    if (topLayer && menu.matches(":popover-open")) menu.hidePopover();
     menu.hidden = true;
     trigger.setAttribute("aria-expanded", "false");
   };
@@ -185,8 +197,20 @@ function createCountryPicker(
     if (isDisabled()) return;
     menu.hidden = false;
     trigger.setAttribute("aria-expanded", "true");
+    if (topLayer) {
+      // Undo the popover defaults (centred, inset 0) that a stylesheet
+      // written for an absolutely positioned list does not override.
+      menu.style.inset = "auto";
+      menu.style.margin = "0";
+      if (!menu.matches(":popover-open")) menu.showPopover();
+      anchor ??= anchorTo(trigger, menu, { placement: "bottom-start", offset: 4 });
+    }
+    // Scroll only the list to the selected country; scrollIntoView would
+    // also scroll the page and every scrolling ancestor.
     const selected = menu.querySelector(`[data-code="${getCountry()}"]`) as HTMLElement | null;
-    selected?.scrollIntoView?.({ block: "nearest" });
+    if (selected) {
+      menu.scrollTop = selected.offsetTop - (menu.clientHeight - selected.offsetHeight) / 2;
+    }
   };
 
   on(scope, trigger, "click", () => {
@@ -204,12 +228,18 @@ function createCountryPicker(
   });
 
   scope.add(() => {
-    const onDoc = (ev: Event) => {
-      if (!root.contains(ev.target as Node)) closeMenu();
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    anchor?.dispose();
+    anchor = null;
   });
+
+  // Registered now and removed on dispose. (This used to be wrapped in
+  // scope.add, which only runs at dispose, so outside clicks never closed
+  // the list and the listener was added as the form was torn down.)
+  const onDoc = (ev: Event) => {
+    if (!menu.hidden && !root.contains(ev.target as Node)) closeMenu();
+  };
+  document.addEventListener("mousedown", onDoc);
+  scope.add(() => document.removeEventListener("mousedown", onDoc));
 
   scope.bind(() => {
     const code = getCountry();
