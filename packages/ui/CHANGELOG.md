@@ -1,5 +1,17 @@
 # @formwright/ui
 
+## 0.12.0
+
+### Minor Changes
+
+- 19cb6f0: New `@formwright/ui/theme`: `createTheme(options, { target? })` themes every component at runtime from a few choices — an accent, optional colours (neutrals, tones and contrast text are derived), radius, density, shadow, font, font size and motion — with light, dark and system modes. `theme.update()` and `theme.setMode()` restyle the page at once; a theme can be scoped to one element; `themeToCss()` renders the same CSS for a server to inline; `presets` offers ocean, forest, rose and mono starting points.
+
+### Patch Changes
+
+- 19cb6f0: A design pass across every component in light and dark: consistent field heights, borders, hover, pressed and focus states; floating lists, menus and popovers share one panel style; tone colours for badges, tags, alerts, toasts and progress read well in both modes; corners stay sensible at a full radius; tabs, stepper, pagination, calendar, switch and chips are refined. Info toasts use the info colour, and a toast region placed in the page flow stays where it is.
+  - @formwright/reactive@0.12.0
+  - @formwright/ui-core@0.12.0
+
 ## 0.11.1
 
 ### Patch Changes
