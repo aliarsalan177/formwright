@@ -51,9 +51,34 @@ const styles =
   border-start-start-radius: min(var(--_radius), 1rem); border-start-end-radius: min(var(--_radius), 1rem);
 }
 
-/* Slides in from its edge. The base styles zero these durations under
-   prefers-reduced-motion, which also makes the close synchronous. */
-.dialog[data-closing] .panel { transform: var(--_from); }
+/* Slides in from its edge over a backdrop that fades on its own: only the
+   dimming changes opacity, never the panel, which stays solid as it moves.
+   In decelerates into place; out accelerates away, a little quicker. The
+   base styles zero these durations under prefers-reduced-motion, which
+   also makes the close synchronous. */
+:host {
+  --_in-duration: var(--fw-drawer-duration, 340ms);
+  --_out-duration: calc(var(--_in-duration) * 0.7);
+  --_in-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --_out-ease: cubic-bezier(0.4, 0, 1, 1);
+}
+.dialog {
+  opacity: 1;
+  transition: background-color var(--_in-duration) var(--_in-ease);
+}
+.dialog[data-closing] {
+  opacity: 1; background-color: transparent;
+  transition: background-color var(--_out-duration) var(--_out-ease);
+}
+@starting-style { .dialog[open] { opacity: 1; background-color: transparent; } }
+.panel {
+  transition: transform var(--_in-duration) var(--_in-ease);
+  will-change: transform;
+}
+.dialog[data-closing] .panel {
+  transform: var(--_from);
+  transition: transform var(--_out-duration) var(--_out-ease);
+}
 @starting-style { .dialog[open] .panel { transform: var(--_from); } }
 `;
 
@@ -97,7 +122,7 @@ const styles =
  * `close-button`, `body`, `footer`.
  *
  * Custom properties: `--fw-drawer-size`, `--fw-backdrop`,
- * `--fw-overlay-duration`, `--fw-overlay-z`.
+ * `--fw-drawer-duration` (slide in, default 340ms; out is 70% of it), `--fw-overlay-z`.
  */
 export class FwDrawer extends FwModal {
   static override props: PropMap = {
