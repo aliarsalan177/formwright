@@ -1,5 +1,12 @@
 # @formwright/ui
 
+## 0.12.1
+
+### Patch Changes
+
+- @formwright/reactive@0.12.1
+- @formwright/ui-core@0.12.1
+
 ## 0.12.0
 
 ### Minor Changes
