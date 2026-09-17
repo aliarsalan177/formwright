@@ -1,5 +1,17 @@
 # @formwright/ui
 
+## 0.13.0
+
+### Minor Changes
+
+- 7848cc3: New `<fw-list>` and `<fw-list-item>` (`@formwright/ui/list`). A list item is one row — `prefix` (icon or avatar), label, `description`, `suffix` (badge, count, shortcut) — that works on its own, as a link (`href`) or action (`interactive`), inside `<fw-list>` (plain, or a single or multiple selection that submits with a form, with roving focus and typeahead), and inside `<fw-select>`, `<fw-combobox>`, `<fw-multi-select>` and `<fw-dropdown>` as an option or menu item. `<fw-option>` and `<fw-menu-item>` are built on the same row, so they gain `description` and `size` and every list looks alike. `FwItemBase` and `itemStyles` are exported from `@formwright/ui/core`.
+
+### Patch Changes
+
+- a4b9b7f: Smoother motion: `<fw-accordion-item>` opens with a decelerating height change while its content fades and settles, and closes a little faster (`--fw-disclosure-duration`, default 280ms). `<fw-drawer>` slides in over 340ms and out over 70% of that with matching easing, and only the backdrop fades — the panel stays solid as it moves (`--fw-drawer-duration`). Both stay still under reduced motion.
+  - @formwright/reactive@0.13.0
+  - @formwright/ui-core@0.13.0
+
 ## 0.12.1
 
 ### Patch Changes
