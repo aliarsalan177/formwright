@@ -11,9 +11,9 @@ const styles = /* css */ `
   max-width: min(20rem, calc(100vw - 16px));
   background: var(--fw-tooltip-background, var(--_text));
   color: var(--fw-tooltip-color, var(--_surface));
-  border: none; border-radius: var(--_radius-sm);
+  border: none; border-radius: min(var(--_radius-sm), 0.75rem);
   box-shadow: var(--_shadow);
-  font-size: 0.8125rem; line-height: 1.35;
+  font-family: var(--_font); font-size: 0.8125rem; font-weight: 500; line-height: 1.35;
   pointer-events: auto;
   overflow-wrap: break-word;
 }

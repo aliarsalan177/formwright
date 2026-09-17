@@ -12,11 +12,13 @@ const styles = /* css */ `
 
 .line, .block {
   display: block; border-radius: var(--_radius-sm);
-  background-color: var(--_surface-2);
+  /* Mixed from text into surface, so the block and its sweep show on a
+     dark surface as well as a light one. */
+  background-color: color-mix(in srgb, var(--_text) 8%, var(--_surface));
   background-image: linear-gradient(
     90deg,
     transparent 0%,
-    color-mix(in srgb, var(--_surface) 60%, transparent) 50%,
+    color-mix(in srgb, var(--_text) 5%, transparent) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -26,7 +28,7 @@ const styles = /* css */ `
 .line { height: var(--_height-line, 0.875em); }
 .line.short { width: 60%; }
 
-.block { width: 100%; height: var(--_block-height, 6rem); border-radius: var(--_radius); }
+.block { width: 100%; height: var(--_block-height, 6rem); border-radius: min(var(--_radius), 1rem); }
 :host([shape="circle"]) .block {
   width: var(--_width, 2.5rem); height: var(--_block-height, var(--_width, 2.5rem));
   border-radius: 50%;

@@ -22,12 +22,13 @@ const styles = /* css */ `
   width: var(--_size); height: var(--_size);
   margin-inline-start: var(--_overlap);
   border-radius: 50%;
-  background: var(--_surface-2); color: var(--_text);
-  font-size: calc(var(--_size) * 0.36); font-weight: 600; line-height: 1;
+  background: color-mix(in srgb, var(--_text) 9%, var(--_surface)); color: var(--_text);
+  font-size: calc(var(--_size) * 0.34); font-weight: 600; line-height: 1;
+  font-variant-numeric: tabular-nums;
   box-shadow: var(--fw-avatar-ring);
   user-select: none;
 }
-:host([shape="square"]) .overflow { border-radius: var(--_radius); }
+:host([shape="square"]) .overflow { border-radius: min(var(--_radius), calc(var(--_size) * 0.25)); }
 `;
 
 const OVERFLOW_MARK = "data-fw-overflow";

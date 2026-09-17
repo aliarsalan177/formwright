@@ -10,36 +10,58 @@ const styles = /* css */ `
 :host([block]) { display: block; }
 
 .base {
+  --_bg: var(--_accent); --_fg: var(--_accent-contrast); --_bd: transparent;
+  --_bg-hover: var(--_accent-hover);
+  --_bg-active: color-mix(in srgb, var(--_accent) 76%, var(--_text));
+  --_focus: var(--_ring);
+  position: relative; box-sizing: border-box;
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-  width: 100%; height: var(--_height); padding: 0 1rem;
+  width: 100%; height: var(--_height); padding: 0 1rem; margin: 0;
   font: inherit; font-size: var(--_text-size); font-weight: 500; line-height: 1;
   white-space: nowrap; text-decoration: none; cursor: pointer; user-select: none;
-  border: 1px solid transparent; border-radius: var(--_radius);
-  background: var(--_accent); color: var(--_accent-contrast);
+  -webkit-tap-highlight-color: transparent;
+  border: 1px solid var(--_bd); border-radius: var(--_radius);
+  background: var(--_bg); color: var(--_fg);
   transition: background-color var(--_duration), border-color var(--_duration), color var(--_duration), box-shadow var(--_duration);
 }
 :host([size="sm"]) .base { padding: 0 0.75rem; gap: 0.375rem; }
 :host([size="lg"]) .base { padding: 0 1.25rem; }
-.base:hover { background: var(--_accent-hover); }
-.base:focus-visible { outline: none; box-shadow: var(--_ring); }
+.base:hover { background: var(--_bg-hover); }
+.base:active { background: var(--_bg-active); }
+.base:focus-visible { outline: none; box-shadow: var(--_focus); }
 
-:host([variant="secondary"]) .base { background: var(--_surface); color: var(--_text); border-color: var(--_border); }
-:host([variant="secondary"]) .base:hover { background: var(--_surface-2); }
-:host([variant="ghost"]) .base { background: transparent; color: var(--_text); }
-:host([variant="ghost"]) .base:hover { background: var(--_surface-2); }
-:host([variant="danger"]) .base { background: var(--_danger); color: #fff; }
-:host([variant="danger"]) .base:hover { background: color-mix(in srgb, var(--_danger) 85%, #000); }
+:host([variant="secondary"]) .base {
+  --_bg: var(--_surface); --_fg: var(--_text); --_bd: var(--_border);
+  --_bg-hover: var(--_surface-2);
+  --_bg-active: color-mix(in srgb, var(--_text) 10%, var(--_surface));
+}
+:host([variant="secondary"]) .base:hover { border-color: color-mix(in srgb, var(--_text) 22%, var(--_border)); }
+:host([variant="ghost"]) .base {
+  --_bg: transparent; --_fg: var(--_text);
+  --_bg-hover: var(--_surface-2);
+  --_bg-active: color-mix(in srgb, var(--_text) 10%, var(--_surface));
+}
+:host([variant="danger"]) .base {
+  --_bg: var(--_danger); --_fg: var(--_danger-contrast);
+  --_bg-hover: color-mix(in srgb, var(--_danger) 86%, var(--_text));
+  --_bg-active: color-mix(in srgb, var(--_danger) 76%, var(--_text));
+  --_focus: 0 0 0 3px color-mix(in srgb, var(--_danger) 30%, transparent);
+}
 
-.base[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; pointer-events: none; }
+.base[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+/* Loading keeps full colour, so the spinner does not read as disabled. */
+:host([loading]:not([disabled])) .base[aria-disabled="true"] { opacity: 0.8; }
 
 .spinner {
-  width: 1em; height: 1em; border-radius: 50%;
-  border: 2px solid currentColor; border-right-color: transparent;
+  flex: none; width: 1em; height: 1em; border-radius: 50%;
+  border: 2px solid currentColor; border-inline-end-color: transparent;
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-::slotted([slot="prefix"]), ::slotted([slot="suffix"]) { display: inline-flex; flex: none; }
+::slotted([slot="prefix"]), ::slotted([slot="suffix"]) {
+  display: inline-flex; align-items: center; flex: none;
+}
 `;
 
 /**

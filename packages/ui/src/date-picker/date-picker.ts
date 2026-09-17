@@ -23,6 +23,9 @@ const styles =
 }
 .input::placeholder { color: var(--_muted); opacity: 1; }
 .input:disabled { cursor: not-allowed; }
+.icon-button { transition: background-color var(--_duration), color var(--_duration); }
+.icon-button svg { display: block; }
+.icon-button[aria-expanded="true"] { background: var(--_surface-2); color: var(--_text); }
 .icon-button:disabled { cursor: not-allowed; opacity: 0.6; }
 .icon-button:disabled:hover { background: transparent; color: var(--_muted); }
 

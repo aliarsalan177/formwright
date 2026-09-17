@@ -18,7 +18,7 @@ const styles = /* css */ `
   overflow: visible;
   max-width: min(24rem, calc(100vw - 16px));
   background: var(--_surface); color: var(--_text);
-  border: 1px solid var(--_border); border-radius: var(--_radius);
+  border: 1px solid var(--_border); border-radius: min(var(--_radius), 0.75rem);
   box-shadow: var(--_shadow);
   font-size: var(--_text-size);
 }

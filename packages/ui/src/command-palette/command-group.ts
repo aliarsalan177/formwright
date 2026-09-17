@@ -3,9 +3,10 @@ import { FwElement, type PropMap } from "../core/element.js";
 
 const styles = /* css */ `
 :host { display: block; }
+:host(:not(:first-child)) { margin-top: 0.375rem; }
 :host([data-filtered]) { display: none !important; }
 .heading {
-  padding: 0.5rem 0.75rem 0.25rem; font-size: 0.75rem; font-weight: 500;
+  padding: 0.5rem 0.75rem 0.375rem; font-size: 0.75rem; font-weight: 500; line-height: 1.25;
   color: var(--_muted); user-select: none;
 }
 .items { display: flex; flex-direction: column; }

@@ -24,7 +24,10 @@ const styles =
 }
 .input::placeholder { color: var(--_muted); opacity: 1; }
 .input:disabled { cursor: not-allowed; }
+.icon-button { transition: background-color var(--_duration), color var(--_duration); }
+.icon-button svg { display: block; }
 .toggle { color: var(--_muted); }
+:host([open]) .toggle { color: var(--_text); }
 .toggle svg { transition: transform var(--_duration); }
 :host([open]) .toggle svg { transform: rotate(180deg); }
 
@@ -45,7 +48,10 @@ const styles =
   border: 1px solid var(--_border); border-radius: var(--_radius);
   box-shadow: var(--_shadow);
 }
-.empty, .loading { padding: 0.5rem 0.625rem; font-size: var(--_text-size); color: var(--_muted); }
+.empty, .loading {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.5rem 0.625rem; font-size: var(--_text-size); line-height: 1.25; color: var(--_muted);
+}
 `;
 
 const CHEVRON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;

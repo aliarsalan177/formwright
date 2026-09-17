@@ -50,7 +50,7 @@ function transitionMs(el: Element): number {
 const styles = /* css */ `
 :host {
   --_toast-duration: var(--fw-overlay-duration, 200ms);
-  --_tone: var(--_accent);
+  --_tone: var(--_info);
   display: block; pointer-events: auto;
   width: var(--fw-toast-width, 22rem); max-width: 100%;
   opacity: 1; transform: none;
@@ -63,30 +63,43 @@ const styles = /* css */ `
 :host([dismissing]) { opacity: 0; transform: translateY(0.5rem); }
 
 .base {
+  position: relative; overflow: hidden;
   display: flex; align-items: flex-start; gap: 0.75rem;
-  padding: 0.75rem 0.875rem;
+  padding-block: 0.875rem; padding-inline: 1.125rem 0.875rem;
   background: var(--_surface); color: var(--_text);
-  border: 1px solid var(--_border); border-inline-start: 3px solid var(--_tone);
-  border-radius: var(--_radius); box-shadow: var(--_shadow);
-  font-size: 0.875rem; line-height: 1.4;
+  border: 1px solid var(--_border);
+  /* Capped so a pill-shaped theme still gets a card, not a lozenge. */
+  border-radius: min(var(--_radius), 1rem); box-shadow: var(--_shadow);
+  font-family: var(--_font); font-size: var(--_font-size); line-height: 1.45;
 }
-.icon { flex: none; display: inline-flex; color: var(--_tone); margin-top: 0.0625rem; }
+/* The tone bar: straight, clipped by the card's rounded corners. */
+.base::before {
+  content: ""; position: absolute; inset-block: 0; inset-inline-start: 0;
+  width: 3px; background: var(--_tone);
+}
+.icon {
+  flex: none; display: inline-flex; align-items: center;
+  height: 1.45em; color: var(--_tone);
+}
 .content { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .heading { font-weight: 600; margin-bottom: 0.125rem; }
-.action { flex: none; display: flex; align-items: center; gap: 0.25rem; }
+.heading:not([hidden]) + .message { color: color-mix(in srgb, var(--_text) 80%, var(--_muted)); }
+.action { flex: none; display: flex; align-items: center; gap: 0.25rem; min-height: 1.45em; }
 ::slotted(button[slot="action"]) {
-  font: inherit; font-size: 0.8125rem; font-weight: 500;
-  padding: 0.25rem 0.625rem; cursor: pointer;
-  border: 1px solid var(--_border); border-radius: var(--_radius-sm);
-  background: transparent; color: var(--_text);
+  font: inherit; font-size: 0.8125rem; font-weight: 500; line-height: 1.25;
+  padding: 0.3125rem 0.625rem; margin-block: -0.25rem; cursor: pointer;
+  border: 1px solid var(--_border); border-radius: min(var(--_radius-sm), 0.75rem);
+  background: var(--_surface); color: var(--_text);
+  transition: background-color var(--_duration);
 }
 ::slotted(button[slot="action"]:hover) { background: var(--_surface-2); }
 ::slotted(button[slot="action"]:focus-visible) { outline: none; box-shadow: var(--_ring); }
 .close {
   flex: none; display: inline-flex; align-items: center; justify-content: center;
-  width: 1.75rem; height: 1.75rem; margin: -0.25rem -0.375rem -0.25rem 0; padding: 0;
+  width: 1.75rem; height: 1.75rem; margin-block: -0.25rem; margin-inline: 0 -0.375rem; padding: 0;
   border: 0; border-radius: var(--_radius-sm); background: transparent;
   color: var(--_muted); cursor: pointer;
+  transition: background-color var(--_duration), color var(--_duration);
 }
 .close:hover { background: var(--_surface-2); color: var(--_text); }
 .close:focus-visible { outline: none; box-shadow: var(--_ring); }

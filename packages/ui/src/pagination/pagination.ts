@@ -14,22 +14,27 @@ const styles = /* css */ `
 .button {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem;
   min-width: var(--_height); height: var(--_height); padding: 0 0.5rem;
-  font: inherit; font-size: var(--_text-size); font-variant-numeric: tabular-nums; line-height: 1;
+  font: inherit; font-size: var(--_text-size); font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1;
   color: var(--_text); background: transparent;
-  border: 1px solid transparent; border-radius: var(--_radius); cursor: pointer;
-  transition: background-color var(--_duration), border-color var(--_duration), box-shadow var(--_duration);
+  border: 1px solid transparent; border-radius: var(--_radius); cursor: pointer; user-select: none;
+  transition: background-color var(--_duration), border-color var(--_duration), color var(--_duration), box-shadow var(--_duration);
 }
 .button:hover { background: var(--_surface-2); }
+.button:active:not(:disabled):not([aria-disabled="true"]) { background: color-mix(in srgb, var(--_text) 9%, var(--_surface)); }
 .button:focus-visible { outline: none; box-shadow: var(--_ring); }
-.button[aria-current="page"] { background: var(--_accent); color: var(--_accent-contrast); font-weight: 500; }
+.button[aria-current="page"] { background: var(--_accent); color: var(--_accent-contrast); font-weight: 600; }
+.button[aria-current="page"]:hover, .button[aria-current="page"]:active { background: var(--_accent-hover); }
 .button[aria-disabled="true"], .button:disabled { opacity: 0.5; cursor: not-allowed; background: transparent; }
 .button[aria-current="page"]:disabled { background: var(--_accent); }
 .ellipsis {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: var(--_height); height: var(--_height); color: var(--_muted); user-select: none;
 }
-.status { padding: 0 0.5rem; font-size: var(--_text-size); color: var(--_text); white-space: nowrap; }
-.icon { display: block; }
+.status {
+  display: inline-flex; align-items: center; height: var(--_height); padding: 0 0.5rem;
+  font-size: var(--_text-size); font-variant-numeric: tabular-nums; color: var(--_text); white-space: nowrap;
+}
+.icon { display: block; flex: none; }
 :host(:dir(rtl)) .icon { transform: scaleX(-1); }
 `;
 

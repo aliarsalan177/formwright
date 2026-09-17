@@ -29,32 +29,37 @@ const styles =
   background: transparent; color: var(--_text); overflow: visible;
 }
 .dialog:not([open]) { display: none; }
-.dialog::backdrop { background: rgb(0 0 0 / 0.4); }
+.dialog::backdrop { background: var(--_backdrop); }
 /* No showModal: sit on top by hand and dim the page with a shadow. */
 .dialog.fallback {
   position: fixed; inset: 0; z-index: 1000; height: fit-content;
-  box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.4); border-radius: var(--_radius);
+  box-shadow: 0 0 0 100vmax var(--_backdrop); border-radius: min(var(--_radius), 1rem);
 }
 .panel {
   display: flex; flex-direction: column; max-height: inherit;
-  background: var(--_surface); border: 1px solid var(--_border); border-radius: var(--_radius);
+  background: var(--_surface); border: 1px solid var(--_border);
+  /* Capped so a pill-shaped theme still gets a panel, not a lozenge. */
+  border-radius: min(var(--_radius), 1rem);
   box-shadow: var(--_shadow); overflow: hidden; font-family: var(--_font); font-size: var(--_text-size);
 }
 .search {
-  display: flex; align-items: center; gap: 0.5rem; padding: 0 0.875rem;
+  flex: none; display: flex; align-items: center; gap: 0.625rem; padding: 0 1rem;
   border-bottom: 1px solid var(--_border); color: var(--_muted);
 }
+.search svg { flex: none; }
 .input {
-  flex: 1; min-width: 0; height: 3rem; padding: 0; border: 0; outline: none;
+  flex: 1; min-width: 0; height: 3.25rem; padding: 0; border: 0; outline: none;
   background: transparent; font: inherit; font-size: 1rem; color: var(--_text);
 }
 .input::placeholder { color: var(--_muted); opacity: 1; }
 .list {
   display: flex; flex-direction: column; min-height: 0;
   overflow: auto; overscroll-behavior: contain; padding: 0.375rem;
+  scroll-padding-block: 0.375rem;
 }
 .list[hidden] { display: none; }
-.empty { padding: 1.5rem 1rem; text-align: center; color: var(--_muted); }
+.empty { padding: 2rem 1rem; text-align: center; color: var(--_muted); }
+::slotted([slot="footer"]) { flex: none; border-top: 1px solid var(--_border); }
 `;
 
 const ICON_SEARCH = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>`;

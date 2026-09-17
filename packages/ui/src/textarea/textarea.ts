@@ -7,23 +7,25 @@ import { FwFormElement } from "../core/form-element.js";
 const styles =
   fieldStyles +
   /* css */ `
-.control { align-items: stretch; padding: 0; }
+/* A pill radius suits a one-line field, not a box of text. */
+.control { align-items: stretch; padding: 0; border-radius: min(var(--_radius), 0.75rem); }
 .textarea {
   flex: 1; min-width: 0; min-height: var(--_height); margin: 0;
-  padding: 0.5rem 0.75rem; border: 0; outline: none; background: transparent;
+  padding: calc((var(--_height) - 2px - 1.5em) / 2) 0.75rem; border: 0; outline: none; background: transparent;
   border-radius: inherit;
   font: inherit; font-size: var(--_text-size); line-height: 1.5; color: inherit;
   resize: vertical;
 }
 .textarea::placeholder { color: var(--_muted); opacity: 1; }
-.textarea:disabled { cursor: not-allowed; }
+.textarea:disabled { cursor: not-allowed; resize: none; }
 :host([resize="none"]) .textarea, :host([autoresize]) .textarea { resize: none; }
 
 .footer { display: flex; align-items: baseline; gap: 0.75rem; }
+.footer:has(> .help[hidden]):has(> .counter[hidden]) { display: none; }
 .footer .help { flex: 1; min-width: 0; }
 .counter {
   margin-inline-start: auto; flex: none;
-  font-size: 0.8125rem; color: var(--_muted); font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem; line-height: 1.125rem; color: var(--_muted); font-variant-numeric: tabular-nums;
 }
 .counter.over { color: var(--_danger); }
 `;

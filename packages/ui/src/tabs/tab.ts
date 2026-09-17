@@ -5,7 +5,7 @@ const styles = /* css */ `
 :host {
   display: inline-flex; align-items: center; flex: none;
   outline: none; cursor: pointer; user-select: none;
-  font-size: var(--_text-size); line-height: 1.25; white-space: nowrap;
+  font-size: var(--_text-size); font-weight: 500; line-height: 1.25; white-space: nowrap;
   color: var(--_muted);
   transition: color var(--_duration), background-color var(--_duration), border-color var(--_duration), box-shadow var(--_duration);
 }
@@ -13,7 +13,8 @@ const styles = /* css */ `
 :host([selected]) { color: var(--_text); }
 :host(:focus-visible) { box-shadow: var(--_ring); }
 :host([disabled]) { opacity: 0.5; cursor: not-allowed; }
-.base { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.875rem; }
+:host([disabled]:hover) { color: var(--_muted); }
+.base { display: inline-flex; align-items: center; gap: 0.5rem; padding: var(--_tab-padding, 0.5rem 0.875rem); }
 ::slotted([slot="prefix"]), ::slotted([slot="suffix"]) { display: inline-flex; flex: none; }
 `;
 

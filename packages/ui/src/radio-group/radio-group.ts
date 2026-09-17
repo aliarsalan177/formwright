@@ -7,14 +7,18 @@ import type { FwRadio } from "./radio.js";
 
 const styles = /* css */ `
 :host { display: block; }
-.field { display: flex; flex-direction: column; gap: 0.375rem; }
-.label { font-size: var(--_text-size); font-weight: 500; color: var(--_text); }
-.label .required { color: var(--_danger); margin-inline-start: 0.125rem; }
+.field { display: flex; flex-direction: column; gap: 0.5rem; }
+.label { font-size: var(--_text-size); font-weight: 500; line-height: 1.25rem; color: var(--_text); }
+.label .required { color: var(--_danger); margin-inline-start: 0.125rem; font-weight: 600; }
 .group { display: flex; flex-direction: column; gap: 0.5rem; }
-:host([orientation="horizontal"]) .group { flex-direction: row; flex-wrap: wrap; column-gap: 1.25rem; }
-.group.disabled ::slotted(*) { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
-.help { font-size: 0.8125rem; color: var(--_muted); }
-.error { font-size: 0.8125rem; color: var(--_danger); }
+:host([orientation="horizontal"]) .group { flex-direction: row; flex-wrap: wrap; column-gap: 1.25rem; row-gap: 0.5rem; }
+:host([invalid]) .group ::slotted(*) { --_radio-border: var(--_danger); }
+.group.disabled ::slotted(*) { opacity: 0.55; cursor: not-allowed; pointer-events: none; }
+.help, .error { font-size: 0.8125rem; line-height: 1.125rem; }
+.help { color: var(--_muted); }
+.error { color: var(--_danger); }
+/* Help and error sit closer to each other than to the options. */
+.help:not([hidden]) + .error { margin-block-start: -0.25rem; }
 `;
 
 /**

@@ -14,29 +14,65 @@ const styles = /* css */ `
 .tablist { display: flex; flex-direction: row; gap: 0.25rem; overflow-x: auto; scrollbar-width: none; }
 :host([orientation="vertical"]) .tablist { flex-direction: column; flex: none; overflow: visible; }
 .panels { flex: 1; min-width: 0; }
-:host([orientation="vertical"]) .panels { padding-inline-start: 1rem; }
+/* Vertical panels sit beside the tabs: start their text level with the
+   first tab's label rather than a panel's full top padding below it. */
+:host([orientation="vertical"]) .panels { padding-inline-start: 1.25rem; margin-block-start: -0.5rem; }
 
 /* line */
-:host(:not([variant="pills"])) .tablist { border-block-end: 1px solid var(--_border); gap: 0; }
+/* The baseline is painted as a background, not a border: the scrolling
+   tablist clips to its padding box, which would cut the indicator in half.
+   The padding (taken back by the margin) keeps a focused tab's ring from
+   being clipped; the background stays within the content box. */
+:host(:not([variant="pills"]):not([orientation="vertical"])) .tablist {
+  padding: 0.25rem 0.25rem 0; margin: -0.25rem -0.25rem 0;
+  background: linear-gradient(var(--_border), var(--_border)) no-repeat bottom / 100% 1px;
+  background-origin: content-box; background-clip: content-box;
+}
 :host(:not([variant="pills"])) ::slotted(fw-tab) {
-  margin-block-end: -1px; border-block-end: 2px solid transparent;
+  border-block-end: 2px solid transparent;
+  border-start-start-radius: var(--_radius-sm); border-start-end-radius: var(--_radius-sm);
+}
+:host(:not([variant="pills"])) ::slotted(fw-tab:not([selected]):not([disabled]):hover) {
+  border-block-end-color: var(--_border);
 }
 :host(:not([variant="pills"])) ::slotted(fw-tab[selected]) { border-block-end-color: var(--_accent); }
 :host(:not([variant="pills"])[orientation="vertical"]) .tablist {
-  border-block-end: 0; border-inline-end: 1px solid var(--_border);
+  border-inline-end: 1px solid var(--_border); gap: 0.125rem;
 }
 :host(:not([variant="pills"])[orientation="vertical"]) ::slotted(fw-tab) {
   margin-block-end: 0; margin-inline-end: -1px;
   border-block-end: 0; border-inline-end: 2px solid transparent;
+  border-radius: 0; border-start-start-radius: var(--_radius-sm); border-end-start-radius: var(--_radius-sm);
+}
+:host(:not([variant="pills"])[orientation="vertical"]) ::slotted(fw-tab:not([selected]):not([disabled]):hover) {
+  border-inline-end-color: var(--_border);
 }
 :host(:not([variant="pills"])[orientation="vertical"]) ::slotted(fw-tab[selected]) {
   border-inline-end-color: var(--_accent);
 }
 
-/* pills */
-:host([variant="pills"]) ::slotted(fw-tab) { border-radius: var(--_radius); }
-:host([variant="pills"]) ::slotted(fw-tab:hover) { background: var(--_surface-2); }
-:host([variant="pills"]) ::slotted(fw-tab[selected]) { background: var(--_accent); color: var(--_accent-contrast); }
+/* pills: a sunken track holding a raised pill for the selected tab */
+:host([variant="pills"]) .tablist {
+  width: fit-content; max-width: 100%; padding: 0.25rem; gap: 0.25rem;
+  background: var(--_surface-2); border-radius: var(--_radius);
+}
+:host([variant="pills"][orientation="vertical"]) .tablist { width: auto; }
+:host([variant="pills"]) ::slotted(fw-tab) {
+  border-radius: max(0px, calc(var(--_radius) - 0.125rem));
+  --_tab-padding: 0.375rem 0.75rem;
+}
+:host([variant="pills"]) ::slotted(fw-tab:not([selected]):not([disabled]):hover) {
+  background: color-mix(in srgb, var(--_text) 5%, transparent);
+}
+:host([variant="pills"]) ::slotted(fw-tab[selected]) {
+  background: var(--_surface); color: var(--_text);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--_border) 70%, transparent),
+    0 1px 2px color-mix(in srgb, var(--_backdrop) 30%, transparent);
+}
+:host([variant="pills"]) ::slotted(fw-tab[selected]:focus-visible) {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--_border) 70%, transparent), var(--_ring);
+}
 `;
 
 /** Anything that takes keyboard focus on its own, visible or not. */

@@ -73,7 +73,7 @@ export const modalStyles = /* css */ `
   box-sizing: border-box;
   width: 100%; height: 100%; max-width: none; max-height: none;
   margin: 0; padding: 1rem; border: 0;
-  background: var(--fw-backdrop, rgb(0 0 0 / 0.5));
+  background: var(--_backdrop);
   color: var(--_text); font-family: var(--_font);
   overflow: hidden; overscroll-behavior: contain;
   opacity: 1;
@@ -89,7 +89,9 @@ export const modalStyles = /* css */ `
   position: relative; display: flex; flex-direction: column;
   width: 100%; max-height: 100%; min-height: 0;
   background: var(--_surface); color: var(--_text);
-  border: 1px solid var(--_border); border-radius: var(--_radius);
+  border: 1px solid var(--_border);
+  /* Capped so a pill-shaped theme still gets a panel, not a lozenge. */
+  border-radius: min(var(--_radius), 1rem);
   box-shadow: var(--_shadow);
   outline: none;
   transition: transform var(--_overlay-duration) ease;
@@ -98,11 +100,11 @@ export const modalStyles = /* css */ `
 
 .header {
   flex: none; display: flex; align-items: flex-start; gap: 0.5rem;
-  padding: 1rem 1.25rem 0.75rem;
+  padding: 1.125rem 1.25rem 0.625rem;
 }
 .title {
   flex: 1; min-width: 0; margin: 0;
-  font-size: 1rem; font-weight: 600; line-height: 1.5;
+  font-size: 1rem; font-weight: 600; line-height: 1.5; letter-spacing: -0.01em;
 }
 .header-actions { display: flex; align-items: center; gap: 0.25rem; }
 .close {
@@ -119,12 +121,13 @@ export const modalStyles = /* css */ `
 .body {
   flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain;
   padding: 0.25rem 1.25rem 1.25rem;
-  font-size: 0.875rem; line-height: 1.5;
+  font-size: var(--_font-size); line-height: 1.55;
 }
 :host([no-header]) .body { padding-top: 1.25rem; }
 .footer {
-  flex: none; display: flex; justify-content: flex-end; align-items: center; gap: 0.5rem;
-  padding: 0.75rem 1.25rem; border-top: 1px solid var(--_border);
+  flex: none; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.5rem;
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid color-mix(in srgb, var(--_border) 70%, transparent);
 }
 `;
 

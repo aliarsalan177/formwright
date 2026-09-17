@@ -18,21 +18,24 @@ const styles = /* css */ `
 .icon {
   display: inline-flex; align-items: center; justify-content: center;
   width: 3rem; height: 3rem; border-radius: 50%;
-  background: var(--_surface-2); color: var(--_muted);
-  font-size: 1.5rem;
+  background: color-mix(in srgb, var(--_text) 6%, var(--_surface)); color: var(--_muted);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--_text) 8%, var(--_surface));
+  font-size: 1.5rem; margin-block-end: 0.25rem;
 }
-:host([size="sm"]) .icon { width: 2.25rem; height: 2.25rem; font-size: 1.125rem; }
+:host([size="sm"]) .icon { width: 2.25rem; height: 2.25rem; font-size: 1.125rem; margin-block-end: 0; }
+:host([size="sm"]) .actions { margin-block-start: 0.25rem; }
 
-.heading { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.4; color: var(--_text); }
+.heading { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.4; color: var(--_text); text-wrap: balance; }
 :host([size="sm"]) .heading { font-size: 0.875rem; }
 
 .description {
   max-inline-size: 28rem; font-size: var(--_text-size); line-height: 1.5; color: var(--_muted);
+  text-wrap: pretty;
 }
 :host([size="sm"]) .description { font-size: 0.8125rem; }
 .heading:not([hidden]) + .description { margin-block-start: -0.25rem; }
 
-.actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.5rem; margin-block-start: 0.25rem; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.5rem; margin-block-start: 0.5rem; }
 
 ::slotted([slot="heading"]) { margin: 0; font: inherit; color: inherit; }
 `;

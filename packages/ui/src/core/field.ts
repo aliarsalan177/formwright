@@ -10,35 +10,49 @@
 export const fieldStyles = /* css */ `
 :host { display: block; }
 .field { display: flex; flex-direction: column; gap: 0.375rem; }
-.label { font-size: var(--_text-size); font-weight: 500; color: var(--_text); }
-.label .required { color: var(--_danger); margin-inline-start: 0.125rem; }
-.help { font-size: 0.8125rem; color: var(--_muted); }
-.error { font-size: 0.8125rem; color: var(--_danger); }
+.label {
+  font-size: var(--_text-size); font-weight: 500; line-height: 1.4; color: var(--_text);
+  overflow-wrap: anywhere;
+}
+.label .required { color: var(--_danger); margin-inline-start: 0.125rem; font-weight: 600; }
+.help, .error { font-size: 0.8125rem; line-height: 1.125rem; overflow-wrap: anywhere; }
+.help { color: var(--_muted); }
+.error { color: var(--_danger); }
+:host([disabled]) .label { color: var(--_muted); }
 
 .control {
   display: flex; align-items: center; gap: 0.5rem;
   min-height: var(--_height); padding: 0 0.75rem;
   background: var(--_surface); color: var(--_text);
   border: 1px solid var(--_border); border-radius: var(--_radius);
-  transition: border-color var(--_duration), box-shadow var(--_duration);
+  transition: border-color var(--_duration), box-shadow var(--_duration), background-color var(--_duration);
 }
-.control:focus-within { border-color: var(--_accent); box-shadow: var(--_ring); }
+/* Hover firms the border up a step; focus and open take over from it. */
+:host(:not([disabled]):not([invalid]):not([open])) .control:hover:not(:focus-within) {
+  border-color: color-mix(in srgb, var(--_text) 22%, var(--_border));
+}
+.control:focus-within, :host([open]) .control { border-color: var(--_accent); }
+.control:focus-within { box-shadow: var(--_ring); }
 :host([invalid]) .control { border-color: var(--_danger); }
 :host([invalid]) .control:focus-within { box-shadow: 0 0 0 3px color-mix(in srgb, var(--_danger) 30%, transparent); }
 :host([disabled]) .control { opacity: 0.6; cursor: not-allowed; background: var(--_surface-2); }
 
 .icon-button {
   display: inline-flex; align-items: center; justify-content: center; flex: none;
-  width: 1.75rem; height: 1.75rem; margin-inline-end: -0.375rem;
+  width: 1.75rem; height: 1.75rem; margin-inline-end: -0.375rem; padding: 0;
   border: 0; border-radius: var(--_radius-sm); background: transparent;
   color: var(--_muted); cursor: pointer; font: inherit;
+  transition: background-color var(--_duration), color var(--_duration), box-shadow var(--_duration);
 }
+.icon-button svg { display: block; }
 .icon-button:hover { background: var(--_surface-2); color: var(--_text); }
+.icon-button:active { background: color-mix(in srgb, var(--_text) 10%, var(--_surface)); }
 .icon-button:focus-visible { outline: none; box-shadow: var(--_ring); }
 /* Slotted content keeps the page's font size unless told otherwise, which
    left a "PKR" prefix a size larger than the value beside it. */
 ::slotted([slot="prefix"]), ::slotted([slot="suffix"]) {
-  display: inline-flex; flex: none; color: var(--_muted); font-size: var(--_text-size);
+  display: inline-flex; align-items: center; flex: none;
+  color: var(--_muted); font-size: var(--_text-size); line-height: 1;
 }
 `;
 

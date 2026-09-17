@@ -4,18 +4,25 @@ import { FwElement, nextId, type PropMap } from "../core/element.js";
 const styles = /* css */ `
 :host {
   display: flex; align-items: center; gap: 0.625rem;
-  padding: 0.5rem 0.75rem; border-radius: var(--_radius-sm);
+  min-height: 2.25rem; padding: 0.5rem 0.75rem; border-radius: min(var(--_radius-sm), 0.75rem);
   font-size: var(--_text-size); line-height: 1.25; cursor: pointer; user-select: none;
+  transition: background-color var(--_duration);
 }
 :host([data-active]) { background: var(--_surface-2); }
+:host([data-active]) .prefix { color: var(--_text); }
 :host([disabled]) { opacity: 0.5; cursor: not-allowed; }
 :host([data-filtered]) { display: none !important; }
 .prefix { display: inline-flex; flex: none; color: var(--_muted); }
 .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .suffix { display: inline-flex; align-items: center; gap: 0.375rem; flex: none; color: var(--_muted); }
 .shortcut {
-  font: inherit; font-size: 0.75rem; padding: 0.0625rem 0.375rem;
-  border: 1px solid var(--_border); border-radius: var(--_radius-sm); background: var(--_surface);
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.375rem; height: 1.375rem; padding: 0 0.375rem;
+  font: inherit; font-size: 0.75rem; font-weight: 500; line-height: 1; letter-spacing: 0.04em;
+  white-space: pre; color: var(--_muted);
+  border: 1px solid var(--_border); border-bottom-width: 2px;
+  border-radius: min(var(--_radius-sm), 0.375rem);
+  background: var(--_surface-2);
 }
 `;
 

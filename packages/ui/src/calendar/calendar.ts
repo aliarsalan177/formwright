@@ -30,55 +30,108 @@ const MAX_MONTHS = 2;
 const styles =
   srOnly +
   /* css */ `
-:host { display: inline-block; font-size: var(--_text-size); --_cell: var(--fw-calendar-cell-size, 2.25rem); }
-.base {
-  display: inline-flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem;
-  background: var(--_surface); color: var(--_text);
+:host {
+  display: inline-block; font-size: var(--_text-size);
+  --_cell: var(--fw-calendar-cell-size, 2.25rem);
+  --_band: var(--_accent-soft);
+  --_band-preview: color-mix(in srgb, var(--_accent-soft) 55%, transparent);
 }
-.header { display: flex; align-items: center; gap: 0.5rem; }
-.heading { flex: 1; text-align: center; font-weight: 600; white-space: nowrap; }
+.base {
+  display: inline-flex; flex-direction: column; gap: 0.75rem; padding: 0.75rem;
+  background: var(--_surface); color: var(--_text); line-height: 1.25;
+}
+.header { display: flex; align-items: center; gap: 0.5rem; min-height: 2rem; }
+.heading {
+  flex: 1; min-width: 0; text-align: center; font-weight: 600; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.005em;
+}
 .nav {
   display: inline-flex; align-items: center; justify-content: center; flex: none;
-  width: 2rem; height: 2rem; padding: 0; border: 0; border-radius: var(--_radius-sm);
-  background: transparent; color: var(--_muted); cursor: pointer; font: inherit;
+  width: 2rem; height: 2rem; padding: 0;
+  border: 1px solid var(--_border); border-radius: var(--_radius-sm);
+  background: var(--_surface); color: var(--_muted); cursor: pointer; font: inherit;
+  transition: background-color var(--_duration), color var(--_duration), border-color var(--_duration), box-shadow var(--_duration);
 }
 .nav:hover:not(:disabled) { background: var(--_surface-2); color: var(--_text); }
+.nav:active:not(:disabled) { background: color-mix(in srgb, var(--_text) 10%, var(--_surface)); }
 .nav:disabled { opacity: 0.4; cursor: not-allowed; }
-.nav:focus-visible, .day:focus-visible { outline: none; box-shadow: var(--_ring); }
+.nav:focus-visible { outline: none; border-color: var(--_accent); box-shadow: var(--_ring); }
+.nav svg { display: block; }
 :host(:dir(rtl)) .nav svg { transform: scaleX(-1); }
 .months { display: flex; flex-wrap: wrap; gap: 1.5rem; }
-.caption { text-align: center; font-weight: 600; margin-block-end: 0.25rem; }
-.grid { border-collapse: collapse; border-spacing: 0; }
+.caption {
+  text-align: center; font-weight: 500; color: var(--_muted);
+  font-size: calc(var(--_text-size) - 0.0625rem); margin-block-end: 0.375rem;
+}
+/* Separate borders so each week reads as its own band with a hairline
+   between rows, and the range pill can round at the ends of a week. */
+.grid { border-collapse: separate; border-spacing: 0 0.125rem; margin-block: -0.125rem; }
 .weekday {
-  width: var(--_cell); height: 2rem; padding: 0; text-align: center;
+  width: var(--_cell); height: 2rem; padding: 0; text-align: center; vertical-align: middle;
   font-size: 0.75rem; font-weight: 500; color: var(--_muted);
 }
 .cell { padding: 0; text-align: center; }
 .day {
-  position: relative; width: var(--_cell); height: var(--_cell); padding: 0;
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: var(--_cell); height: var(--_cell); padding: 0; vertical-align: middle;
   border: 0; border-radius: var(--_radius-sm); background: transparent;
-  color: inherit; font: inherit; cursor: pointer;
-  transition: background-color var(--_duration);
+  color: inherit; font: inherit; font-variant-numeric: tabular-nums; cursor: pointer;
+  transition: background-color var(--_duration), color var(--_duration), box-shadow var(--_duration);
 }
 .day:hover { background: var(--_surface-2); }
-.day[data-outside] { color: var(--_muted); }
-.day[aria-current="date"] { font-weight: 700; color: var(--_accent); }
-.day[aria-disabled="true"] { opacity: 0.35; cursor: not-allowed; text-decoration: line-through; }
-.day[aria-disabled="true"]:hover { background: transparent; }
-.cell[data-in-range], .cell[data-preview] {
-  background: color-mix(in srgb, var(--_accent) 12%, transparent);
+.day:focus-visible { outline: none; box-shadow: var(--_ring); z-index: 1; }
+.day[data-outside] { color: color-mix(in srgb, var(--_muted) 80%, var(--_surface)); }
+
+/* Today: bold, with a dot under the number that stays visible whatever
+   the day's background is. */
+.day[aria-current="date"] { font-weight: 600; color: var(--_accent); }
+.day[aria-current="date"]::after {
+  content: ""; position: absolute; inset-inline: 0; margin-inline: auto; bottom: 0.25rem;
+  width: 0.25rem; height: 0.25rem; border-radius: 50%; background: currentColor;
 }
-.cell[data-preview] { background: color-mix(in srgb, var(--_accent) 7%, transparent); }
-.cell[data-in-range] .day, .cell[data-preview] .day { border-radius: 0; }
-.cell[data-range-start] { border-start-start-radius: var(--_radius-sm); border-end-start-radius: var(--_radius-sm); }
-.cell[data-range-end] { border-start-end-radius: var(--_radius-sm); border-end-end-radius: var(--_radius-sm); }
+
+.day[aria-disabled="true"] {
+  color: var(--_muted); opacity: 0.5; cursor: not-allowed;
+  text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--_muted) 70%, transparent);
+}
+.day[aria-disabled="true"]:hover { background: transparent; }
+
+/* Range: a soft band behind the span, the ends solid accent. */
+.cell[data-in-range] { background: var(--_band); }
+.cell[data-preview] { background: var(--_band-preview); }
+.cell[data-in-range] .day, .cell[data-preview] .day { border-radius: 0; color: var(--_text); }
+.cell[data-in-range] .day[data-outside], .cell[data-preview] .day[data-outside] { color: var(--_muted); }
+.cell[data-in-range] .day[aria-current="date"], .cell[data-preview] .day[aria-current="date"] { color: var(--_accent); }
+.cell[data-in-range] .day:hover:not([aria-disabled="true"]),
+.cell[data-preview] .day:hover:not([aria-disabled="true"]) {
+  background: color-mix(in srgb, var(--_accent) 14%, transparent);
+}
+/* The ends carry the band under their open side, so the pill is continuous. */
+.cell[data-range-start]:not([data-range-end]), .cell[data-range-end]:not([data-range-start]) { background: var(--_band); }
+.grid:has(.cell[data-preview]) .cell[data-range-start]:not([data-range-end]),
+.grid:has(.cell[data-preview]) .cell[data-range-end]:not([data-range-start]) { background: var(--_band-preview); }
+.cell[data-range-start], .cell:first-child, .cell:has(> .day[hidden]) + .cell {
+  border-start-start-radius: var(--_radius-sm); border-end-start-radius: var(--_radius-sm);
+}
+.cell[data-range-end], .cell:last-child, .cell:has(+ .cell > .day[hidden]) {
+  border-start-end-radius: var(--_radius-sm); border-end-end-radius: var(--_radius-sm);
+}
 .cell[data-selected] .day,
 .cell[data-range-start] .day,
 .cell[data-range-end] .day {
-  background: var(--_accent); color: var(--_accent-contrast);
+  background: var(--_accent); color: var(--_accent-contrast); font-weight: 600;
 }
+.cell[data-selected] .day:hover,
+.cell[data-range-start] .day:hover,
+.cell[data-range-end] .day:hover { background: var(--_accent-hover); }
+.cell[data-selected] .day:focus-visible,
+.cell[data-range-start] .day:focus-visible,
+.cell[data-range-end] .day:focus-visible { box-shadow: 0 0 0 2px var(--_surface), 0 0 0 4px var(--_accent); }
+
 :host([disabled]) .base { opacity: 0.6; }
 :host([disabled]) .day { cursor: not-allowed; }
+:host([disabled]) .day:hover { background: transparent; }
+:host([disabled]) .nav { cursor: not-allowed; }
 `;
 
 const ICON_PREV = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>`;

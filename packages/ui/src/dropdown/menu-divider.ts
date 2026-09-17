@@ -2,7 +2,7 @@ import type { Scope } from "@formwright/ui-core";
 import { FwElement, type PropMap } from "../core/element.js";
 
 const styles = /* css */ `
-:host { display: block; margin: 0.25rem 0; }
+:host { display: block; margin: 0.25rem -0.25rem; }
 .line { height: 1px; background: var(--_border); }
 `;
 

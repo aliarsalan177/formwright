@@ -42,6 +42,7 @@ export * from "./tabs/index.js";
 export * from "./tag/index.js";
 export * from "./tags-input/index.js";
 export * from "./textarea/index.js";
+export * from "./theme/index.js";
 export * from "./toast/index.js";
 export * from "./tooltip/index.js";
 export * from "./core/index.js";

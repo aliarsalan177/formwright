@@ -15,8 +15,10 @@ const styles = /* css */ `
 .base {
   position: relative; display: flex; flex-direction: column; height: 100%;
   background: var(--_surface); color: var(--_text);
-  border: 1px solid var(--_border); border-radius: var(--_radius);
-  transition: box-shadow var(--_duration), border-color var(--_duration);
+  border: 1px solid var(--_border);
+  /* Capped, so a "full" radius theme does not turn a card into a pill. */
+  border-radius: min(var(--_radius), 1rem);
+  transition: box-shadow var(--_duration), border-color var(--_duration), background-color var(--_duration);
 }
 :host([variant="elevated"]) .base { border-color: transparent; box-shadow: var(--_shadow); }
 :host([variant="ghost"]) .base { border-color: transparent; background: transparent; }
@@ -27,12 +29,12 @@ const styles = /* css */ `
 ::slotted([slot="media"]) { display: block; width: 100%; max-width: 100%; }
 
 .main {
-  display: flex; flex: 1; flex-direction: column; gap: 0.5rem;
+  display: flex; flex: 1; flex-direction: column; gap: 0.375rem;
   padding: var(--_pad); color: inherit; text-decoration: none;
 }
-.header { font-weight: 600; font-size: 1rem; line-height: 1.4; }
+.header { font-weight: 600; font-size: 1rem; line-height: 1.4; color: var(--_text); }
 ::slotted([slot="header"]) { margin: 0; font: inherit; color: inherit; }
-.body { font-size: var(--_text-size); line-height: 1.5; }
+.body { font-size: var(--_text-size); line-height: 1.5; color: color-mix(in srgb, var(--_text) 85%, var(--_surface)); }
 
 .footer, .actions {
   display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
@@ -48,7 +50,7 @@ a.main::after { content: ""; position: absolute; inset: 0; border-radius: inheri
 a.main:focus-visible { outline: none; }
 a.main:focus-visible::after { box-shadow: var(--_ring); }
 :host([data-linked]) .base:hover { border-color: color-mix(in srgb, var(--_accent) 45%, var(--_border)); }
-:host([data-linked][variant="elevated"]) .base:hover { border-color: transparent; }
+:host([data-linked][variant="ghost"]) .base:hover { border-color: transparent; background: var(--_surface-2); }
 .footer, .actions { position: relative; z-index: 1; }
 `;
 

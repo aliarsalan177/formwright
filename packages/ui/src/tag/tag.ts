@@ -7,27 +7,38 @@ export type TagSize = "sm" | "md";
 
 const styles = /* css */ `
 :host {
+  /* The tone recipe shared with fw-badge, fw-alert and fw-progress. */
   --_tone: var(--_muted);
   --_tone-text: var(--_text);
+  --_tone-soft: color-mix(in srgb, var(--_tone) 12%, var(--_surface));
+  --_tone-line: color-mix(in srgb, var(--_tone) 28%, var(--_surface));
   display: inline-flex; vertical-align: middle; max-width: 100%;
 }
-:host([tone="accent"]) { --_tone: var(--_accent); --_tone-text: var(--_accent); }
-:host([tone="success"]) { --_tone: var(--_success); --_tone-text: var(--_success); }
-:host([tone="warning"]) { --_tone: var(--_warning); --_tone-text: var(--_warning); }
-:host([tone="danger"]) { --_tone: var(--_danger); --_tone-text: var(--_danger); }
+:host([tone="accent"]) { --_tone: var(--_accent); --_tone-text: color-mix(in srgb, var(--_accent) 72%, var(--_text)); }
+:host([tone="success"]) { --_tone: var(--_success); --_tone-text: color-mix(in srgb, var(--_success) 72%, var(--_text)); }
+:host([tone="warning"]) { --_tone: var(--_warning); --_tone-text: color-mix(in srgb, var(--_warning) 72%, var(--_text)); }
+:host([tone="danger"]) { --_tone: var(--_danger); --_tone-text: color-mix(in srgb, var(--_danger) 72%, var(--_text)); }
+:host([tone="neutral"]), :host(:not([tone])) {
+  --_tone-soft: var(--_surface-2);
+  --_tone-line: var(--_border);
+}
 
 .base {
   display: inline-flex; align-items: center; gap: 0.375rem; max-width: 100%;
-  min-height: 1.75rem; padding-inline: 0.625rem;
-  font-size: 0.8125rem; font-weight: 500; line-height: 1.2;
-  border: 1px solid color-mix(in srgb, var(--_tone) 30%, transparent);
+  min-height: 1.75rem; padding-block: 0.125rem; padding-inline: 0.625rem;
+  font-size: 0.8125rem; font-weight: 500; line-height: 1.25;
+  border: 1px solid var(--_tone-line);
   border-radius: var(--_radius-sm);
-  background: color-mix(in srgb, var(--_tone) 12%, transparent);
-  color: color-mix(in srgb, var(--_tone-text) 85%, var(--_text));
+  background: var(--_tone-soft);
+  color: var(--_tone-text);
+  transition: opacity var(--_duration);
 }
 :host([removable]) .base { padding-inline-end: 0.25rem; }
-:host([size="sm"]) .base { min-height: 1.375rem; padding-inline: 0.5rem; gap: 0.25rem; font-size: 0.75rem; }
-:host([size="sm"][removable]) .base { padding-inline-end: 0.125rem; }
+:host([size="sm"]) .base {
+  min-height: 1.375rem; padding-block: 0; padding-inline: 0.5rem; gap: 0.25rem;
+  font-size: 0.75rem;
+}
+:host([size="sm"][removable]) .base { padding-inline-end: 0.1875rem; }
 :host([disabled]) .base { opacity: 0.55; cursor: not-allowed; }
 
 .label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -35,16 +46,18 @@ const styles = /* css */ `
 .remove {
   display: inline-flex; align-items: center; justify-content: center; flex: none;
   width: 1.25rem; height: 1.25rem; padding: 0;
-  border: 0; border-radius: var(--_radius-sm); background: transparent;
-  color: inherit; opacity: 0.7; cursor: pointer; font: inherit;
+  border: 0; border-radius: max(0px, calc(var(--_radius-sm) - 0.125rem)); background: transparent;
+  color: inherit; opacity: 0.65; cursor: pointer; font: inherit;
   transition: background-color var(--_duration), opacity var(--_duration);
 }
 :host([size="sm"]) .remove { width: 1rem; height: 1rem; }
-.remove:hover { opacity: 1; background: color-mix(in srgb, var(--_tone) 20%, transparent); }
+:host([size="sm"]) .remove svg { width: 10px; height: 10px; }
+.remove:hover { opacity: 1; background: color-mix(in srgb, var(--_tone) 22%, var(--_surface)); }
+.remove:active { background: color-mix(in srgb, var(--_tone) 32%, var(--_surface)); }
 .remove:focus-visible { outline: none; opacity: 1; box-shadow: var(--_ring); }
 .remove:disabled { cursor: not-allowed; pointer-events: none; }
 
-::slotted([slot="prefix"]) { display: inline-flex; flex: none; }
+::slotted([slot="prefix"]) { display: inline-flex; flex: none; color: var(--_tone); }
 `;
 
 const ICON_REMOVE = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>`;

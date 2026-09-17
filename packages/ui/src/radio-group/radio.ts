@@ -7,24 +7,29 @@ const styles = /* css */ `
   font-size: var(--_text-size); line-height: 1.25rem;
   cursor: pointer; user-select: none; outline: none;
   --_dot: 1rem;
+  /* The group sets --_radio-border to the danger colour while invalid. */
+  --_dot-border: var(--_radio-border, color-mix(in srgb, var(--_muted) 30%, var(--_border)));
 }
 .control {
   position: relative; display: inline-block; flex: none;
   width: var(--_dot); height: var(--_dot); margin-block-start: calc((1.25rem - var(--_dot)) / 2);
-  border: 1px solid var(--_border); border-radius: 50%; background: var(--_surface);
-  transition: border-color var(--_duration), box-shadow var(--_duration);
+  border: 1px solid var(--_dot-border); border-radius: 50%; background: var(--_surface);
+  transition: background-color var(--_duration), border-color var(--_duration), box-shadow var(--_duration);
 }
 .control::after {
   content: ""; position: absolute; inset: 0; margin: auto;
-  width: 45%; height: 45%; border-radius: 50%;
+  width: 40%; height: 40%; border-radius: 50%;
   background: var(--_accent-contrast); transform: scale(0);
   transition: transform var(--_duration);
 }
 :host([checked]) .control { background: var(--_accent); border-color: var(--_accent); }
 :host([checked]) .control::after { transform: scale(1); }
-:host(:hover:not([disabled])) .control { border-color: var(--_accent); }
+:host(:hover:not([disabled]):not([checked])) .control {
+  border-color: color-mix(in srgb, var(--_accent) 70%, var(--_dot-border));
+}
+:host(:hover:not([disabled])[checked]) .control { background: var(--_accent-hover); border-color: var(--_accent-hover); }
 :host(:focus-visible) .control { box-shadow: var(--_ring); }
-:host([disabled]) { cursor: not-allowed; opacity: 0.6; }
+:host([disabled]) { cursor: not-allowed; opacity: 0.55; }
 .label { color: var(--_text); }
 `;
 

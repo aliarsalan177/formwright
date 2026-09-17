@@ -4,16 +4,22 @@ import { FwElement, nextId, type PropMap } from "../core/element.js";
 const styles = /* css */ `
 :host {
   display: flex; align-items: center; gap: 0.5rem;
-  padding: 0.5rem 0.625rem; border-radius: var(--_radius-sm);
-  font-size: var(--_text-size); line-height: 1.25; cursor: pointer; outline: none;
-  user-select: none;
+  min-height: 2rem; padding: 0.375rem 0.5rem; border-radius: min(var(--_radius-sm), 0.5rem);
+  font-size: var(--_text-size); line-height: 1.25rem; color: var(--_text);
+  cursor: pointer; outline: none; user-select: none;
+  scroll-margin-block: 0.25rem;
 }
 :host(:focus), :host([data-active]) { background: var(--_surface-2); }
+:host(:not([disabled]):active) { background: var(--_accent-soft); }
 :host([selected]) { font-weight: 500; }
-:host([disabled]) { opacity: 0.5; cursor: not-allowed; }
-.check { width: 1rem; flex: none; visibility: hidden; color: var(--_accent); }
+:host([disabled]) { color: var(--_muted); opacity: 0.7; cursor: not-allowed; }
+:host([disabled]:focus), :host([disabled][data-active]) { background: transparent; }
+/* The check trails, so option text lines up with the text in the trigger. */
+.check { display: inline-flex; order: 1; width: 1rem; flex: none; visibility: hidden; color: var(--_accent); }
+.check svg { display: block; }
 :host([selected]) .check { visibility: visible; }
-.label { flex: 1; min-width: 0; }
+::slotted([slot="prefix"]) { display: inline-flex; align-items: center; flex: none; }
+.label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 `;
 
 /**

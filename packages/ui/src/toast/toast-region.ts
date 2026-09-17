@@ -96,7 +96,11 @@ export class FwToastRegion extends FwElement {
     // In the top layer, so toasts show above an open modal dialog rather
     // than behind its backdrop. Re-shown on each new toast so it stays
     // above a dialog opened after it.
-    const topLayer = "showPopover" in HTMLElement.prototype;
+    // A region an app has placed in the page flow (position: static, say
+    // to show toasts inline in a panel) stays where it was put: no top
+    // layer, and it does not follow modals.
+    const inFlow = getComputedStyle(this).position === "static";
+    const topLayer = !inFlow && "showPopover" in HTMLElement.prototype;
     if (topLayer) {
       if (!this.hasAttribute("popover")) this.setAttribute("popover", "manual");
       this.#raise();
@@ -111,6 +115,7 @@ export class FwToastRegion extends FwElement {
       scope.add(() => observer.disconnect());
     }
 
+    if (inFlow) return;
     scope.add(onModalLayerChange(() => this.#relocate()));
     // Last: moving reconnects this element, which runs all of the above
     // again in the new place.

@@ -17,25 +17,51 @@ const styles =
   fieldStyles +
   srOnly +
   /* css */ `
-.control { flex-wrap: wrap; cursor: pointer; padding-block: 0.25rem; row-gap: 0.25rem; }
-:host([disabled]) .control { cursor: not-allowed; }
+/* Chips sit on a fixed-height row, and the control's vertical padding is
+   whatever is left of the control height — so one row of chips is exactly
+   as tall as <fw-input>, and more rows grow by a chip and a gap each. */
+:host { --_chip-h: 1.5rem; }
+:host([size="sm"]) { --_chip-h: 1.25rem; }
+:host([size="lg"]) { --_chip-h: 1.875rem; }
+.control {
+  flex-wrap: wrap; row-gap: 0.25rem;
+  --_chip-pad: calc((var(--_height) - 2px - var(--_chip-h)) / 2);
+  padding-block: var(--_chip-pad);
+  /* A pill radius on a control that has wrapped to several rows turns it
+     into an oval; half a row keeps one row a pill and more rows a card. */
+  border-radius: min(var(--_radius), calc(var(--_height) / 2));
+}
+.control:has(.tag) { padding-inline-start: var(--_chip-pad); }
+.control .icon-button { margin-block: calc((var(--_chip-h) - 1.75rem) / 2); }
 /* Not display: contents, which drops the list role in some browsers. */
 .tags { display: flex; flex-wrap: wrap; gap: 0.25rem; min-width: 0; max-width: 100%; }
+.tags:empty { display: none; }
 .tag {
   display: inline-flex; align-items: center; gap: 0.125rem; max-width: 100%;
-  padding: 0.125rem 0.125rem 0.125rem 0.5rem; border-radius: var(--_radius-sm);
-  background: var(--_surface-2); font-size: calc(var(--_text-size) - 0.0625rem); line-height: 1.25rem;
+  height: var(--_chip-h); padding-inline: 0.5rem 0.1875rem;
+  border-radius: calc(var(--_radius-sm) - 0.0625rem);
+  background: color-mix(in srgb, var(--_text) 8%, var(--_surface));
+  color: var(--_text); font-size: calc(var(--_text-size) - 0.0625rem); font-weight: 500; line-height: 1;
+  user-select: none;
 }
-.tag-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:host([size="lg"]) .tag { padding-inline-start: 0.625rem; }
+.tag-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.25; }
+.tag-text:last-child { padding-inline-end: 0.3125rem; }
 .tag-remove {
   display: inline-flex; align-items: center; justify-content: center; flex: none;
-  width: 1.25rem; height: 1.25rem; padding: 0; border: 0; border-radius: var(--_radius-sm);
+  width: 1.125rem; height: 1.125rem; padding: 0; border: 0;
+  border-radius: calc(var(--_radius-sm) - 0.125rem);
   background: transparent; color: var(--_muted); cursor: pointer;
+  transition: background-color var(--_duration), color var(--_duration);
 }
-.tag-remove:hover { color: var(--_text); background: color-mix(in srgb, var(--_muted) 20%, transparent); }
+.tag-remove svg { display: block; }
+.tag-remove:hover { color: var(--_text); background: color-mix(in srgb, var(--_text) 12%, transparent); }
+:host([disabled]) .tag { background: color-mix(in srgb, var(--_text) 10%, var(--_surface-2)); }
+.control { cursor: pointer; }
+:host([disabled]) .control { cursor: not-allowed; }
 .trigger {
   flex: 1; min-width: 3rem; outline: none; user-select: none;
-  font-size: var(--_text-size); line-height: calc(var(--_height) - 0.5rem - 2px);
+  font-size: var(--_text-size); line-height: var(--_chip-h);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .trigger.placeholder { color: var(--_muted); }
@@ -55,12 +81,13 @@ const styles =
    rules, so a browser without :popover-open keeps the [hidden] one. */
 .popup[popover]:not(:popover-open) { display: none; }
 .search {
-  flex: none; width: 100%; margin-bottom: 0.25rem; padding: 0.375rem 0.5rem;
+  flex: none; width: 100%; height: var(--_height-sm); margin-bottom: 0.25rem; padding: 0 0.625rem;
   font: inherit; font-size: var(--_text-size); color: inherit;
   background: var(--_surface); border: 1px solid var(--_border); border-radius: var(--_radius-sm);
-  outline: none;
+  outline: none; transition: border-color var(--_duration), box-shadow var(--_duration);
 }
-.search:focus { border-color: var(--_accent); }
+.search::placeholder { color: var(--_muted); opacity: 1; }
+.search:focus { border-color: var(--_accent); box-shadow: var(--_ring); }
 .listbox { overflow: auto; overscroll-behavior: contain; min-height: 0; outline: none; }
 .empty { padding: 0.5rem 0.625rem; font-size: var(--_text-size); color: var(--_muted); }
 `;

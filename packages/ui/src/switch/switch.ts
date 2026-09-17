@@ -7,15 +7,16 @@ import { FwFormElement } from "../core/form-element.js";
 const styles = /* css */ `
 :host {
   display: inline-block; vertical-align: middle;
-  --_track-w: 2.25rem; --_track-h: 1.25rem; --_gap: 2px;
+  --_track-w: 2.25rem; --_track-h: 1.25rem; --_gap: 2px; --_line: 1.25rem;
+  --_track-border: color-mix(in srgb, var(--_muted) 30%, var(--_border));
 }
-:host([size="sm"]) { --_track-w: 1.75rem; --_track-h: 1rem; }
-:host([size="lg"]) { --_track-w: 2.75rem; --_track-h: 1.5rem; }
+:host([size="sm"]) { --_track-w: 1.75rem; --_track-h: 1rem; --_line: 1.125rem; }
+:host([size="lg"]) { --_track-w: 2.75rem; --_track-h: 1.5rem; --_line: 1.5rem; }
 
-.base { display: inline-flex; flex-direction: column; gap: 0.25rem; }
+.base { display: inline-flex; flex-direction: column; gap: 0.125rem; }
 .row {
-  position: relative; display: inline-flex; align-items: center; gap: 0.5rem;
-  font-size: var(--_text-size); line-height: 1.25rem; cursor: pointer; user-select: none;
+  position: relative; display: inline-flex; align-items: center; gap: 0.625rem;
+  font-size: var(--_text-size); line-height: var(--_line); cursor: pointer; user-select: none;
 }
 :host([label-position="start"]) .row { flex-direction: row-reverse; justify-content: flex-end; }
 .native {
@@ -24,29 +25,42 @@ const styles = /* css */ `
   transform: translateY(-50%); opacity: 0; cursor: inherit;
 }
 :host([label-position="start"]) .native { inset-inline-start: auto; inset-inline-end: 0; }
+/* Off: an outlined track with a muted thumb, which reads in light and dark
+   alike. On: filled with the accent and a contrasting thumb. */
 .track {
   position: relative; display: inline-block; flex: none;
   width: var(--_track-w); height: var(--_track-h);
-  border-radius: 999px; background: var(--_border);
+  border-radius: 999px; background: var(--_surface-2);
+  box-shadow: inset 0 0 0 1px var(--_track-border);
   transition: background-color var(--_duration), box-shadow var(--_duration);
   pointer-events: none;
 }
 .thumb {
   position: absolute; inset-block-start: var(--_gap); inset-inline-start: var(--_gap);
   width: calc(var(--_track-h) - 2 * var(--_gap)); height: calc(var(--_track-h) - 2 * var(--_gap));
-  border-radius: 50%; background: var(--_surface);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
-  transition: inset-inline-start var(--_duration);
+  border-radius: 50%; background: var(--_muted);
+  transition: inset-inline-start var(--_duration), background-color var(--_duration), box-shadow var(--_duration);
 }
-.native:checked ~ .track { background: var(--_accent); }
-.native:checked ~ .track .thumb { inset-inline-start: calc(var(--_track-w) - var(--_track-h) + var(--_gap)); }
-.row:hover .native:not(:disabled):not(:checked) ~ .track { background: color-mix(in srgb, var(--_border) 70%, var(--_text)); }
-.row:hover .native:not(:disabled):checked ~ .track { background: var(--_accent-hover); }
-.native:focus-visible ~ .track { box-shadow: var(--_ring); }
+.native:checked ~ .track { background: var(--_accent); box-shadow: inset 0 0 0 1px var(--_accent); }
+.native:checked ~ .track .thumb {
+  inset-inline-start: calc(var(--_track-w) - var(--_track-h) + var(--_gap));
+  background: var(--_accent-contrast);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--_backdrop) 50%, transparent);
+}
+.row:hover .native:not(:disabled):not(:checked) ~ .track {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--_text) 30%, var(--_track-border));
+}
+.row:hover .native:not(:disabled):not(:checked) ~ .track .thumb { background: color-mix(in srgb, var(--_text) 30%, var(--_muted)); }
+.row:hover .native:not(:disabled):checked ~ .track { background: var(--_accent-hover); box-shadow: inset 0 0 0 1px var(--_accent-hover); }
+.native:focus-visible ~ .track { box-shadow: inset 0 0 0 1px var(--_track-border), var(--_ring); }
+.native:focus-visible:checked ~ .track { box-shadow: inset 0 0 0 1px var(--_accent), var(--_ring); }
 .label { color: var(--_text); }
-.base.disabled .row { cursor: not-allowed; opacity: 0.6; }
+.base.disabled .row { cursor: not-allowed; opacity: 0.55; }
 
-.help { font-size: 0.8125rem; color: var(--_muted); padding-inline-start: calc(var(--_track-w) + 0.5rem); }
+.help {
+  font-size: 0.8125rem; line-height: 1.125rem; color: var(--_muted);
+  padding-inline-start: calc(var(--_track-w) + 0.625rem);
+}
 :host([label-position="start"]) .help { padding-inline-start: 0; }
 `;
 

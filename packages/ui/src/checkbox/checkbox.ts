@@ -7,25 +7,28 @@ import { FwFormElement } from "../core/form-element.js";
 const styles = /* css */ `
 :host {
   display: inline-block; vertical-align: middle;
-  --_box: 1rem;
+  --_box: 1rem; --_line: 1.25rem;
+  /* Small controls need a firmer edge than a text field to read at a glance. */
+  --_box-border: color-mix(in srgb, var(--_muted) 30%, var(--_border));
 }
-:host([size="sm"]) { --_box: 0.875rem; }
-:host([size="lg"]) { --_box: 1.25rem; }
+:host([size="sm"]) { --_box: 0.875rem; --_line: 1.125rem; }
+:host([size="lg"]) { --_box: 1.25rem; --_line: 1.5rem; }
 
-.base { display: inline-flex; flex-direction: column; gap: 0.25rem; }
+.base { display: inline-flex; flex-direction: column; gap: 0.125rem; }
 .row {
   position: relative; display: inline-flex; align-items: flex-start; gap: 0.5rem;
-  font-size: var(--_text-size); line-height: 1.25rem; cursor: pointer; user-select: none;
+  font-size: var(--_text-size); line-height: var(--_line); cursor: pointer; user-select: none;
 }
 .native {
   position: absolute; inset-block-start: 0; inset-inline-start: 0;
-  width: var(--_box); height: var(--_box); margin: 0; margin-block-start: calc((1.25rem - var(--_box)) / 2);
+  width: var(--_box); height: var(--_box); margin: 0; margin-block-start: calc((var(--_line) - var(--_box)) / 2);
   opacity: 0; cursor: inherit;
 }
 .box {
   display: inline-flex; align-items: center; justify-content: center; flex: none;
-  width: var(--_box); height: var(--_box); margin-block-start: calc((1.25rem - var(--_box)) / 2);
-  border: 1px solid var(--_border); border-radius: calc(var(--_radius-sm) * 0.75);
+  width: var(--_box); height: var(--_box); margin-block-start: calc((var(--_line) - var(--_box)) / 2);
+  border: 1px solid var(--_box-border);
+  border-radius: min(calc(var(--_radius-sm) * 0.75), calc(var(--_box) * 0.3));
   background: var(--_surface); color: var(--_accent-contrast);
   transition: background-color var(--_duration), border-color var(--_duration), box-shadow var(--_duration);
   pointer-events: none;
@@ -35,14 +38,22 @@ const styles = /* css */ `
 .native:checked + .box, .native:indeterminate + .box { background: var(--_accent); border-color: var(--_accent); }
 .native:checked:not(:indeterminate) + .box .check { display: block; }
 .native:indeterminate + .box .dash { display: block; }
-.row:hover .native:not(:disabled) + .box { border-color: var(--_accent); }
+.row:hover .native:not(:disabled):not(:checked):not(:indeterminate) + .box {
+  border-color: color-mix(in srgb, var(--_accent) 70%, var(--_box-border));
+}
+.row:hover .native:not(:disabled):checked + .box,
+.row:hover .native:not(:disabled):indeterminate + .box { background: var(--_accent-hover); border-color: var(--_accent-hover); }
 .native:focus-visible + .box { box-shadow: var(--_ring); }
 .label { color: var(--_text); }
 
-:host([invalid]) .box { border-color: var(--_danger); }
-.base.disabled .row { cursor: not-allowed; opacity: 0.6; }
+:host([invalid]) .native:not(:checked):not(:indeterminate) + .box { border-color: var(--_danger); }
+:host([invalid]) .native:focus-visible + .box { box-shadow: 0 0 0 3px color-mix(in srgb, var(--_danger) 30%, transparent); }
+.base.disabled .row { cursor: not-allowed; opacity: 0.55; }
 
-.help, .error { font-size: 0.8125rem; padding-inline-start: calc(var(--_box) + 0.5rem); }
+.help, .error {
+  font-size: 0.8125rem; line-height: 1.125rem;
+  padding-inline-start: calc(var(--_box) + 0.5rem);
+}
 .help { color: var(--_muted); }
 .error { color: var(--_danger); }
 `;

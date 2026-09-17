@@ -8,9 +8,10 @@ export type MenuItemType = "normal" | "checkbox" | "radio";
 const styles = /* css */ `
 :host {
   display: flex; align-items: center; gap: 0.5rem;
-  padding: 0.5rem 0.625rem; border-radius: var(--_radius-sm);
+  padding: 0.5rem 0.625rem; border-radius: min(var(--_radius-sm), 0.5rem);
   font-size: var(--_text-size); line-height: 1.25; cursor: pointer; outline: none;
   user-select: none; white-space: nowrap;
+  transition: background-color var(--_duration), color var(--_duration);
 }
 :host(:focus), :host([data-active]) { background: var(--_surface-2); }
 :host(:focus-visible) { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--_accent) 45%, transparent); }
@@ -26,8 +27,13 @@ const styles = /* css */ `
 .dot, :host([type="radio"]) .tick { display: none; }
 :host([type="radio"]) .dot { display: block; }
 .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.suffix { margin-inline-start: auto; padding-inline-start: 1rem; color: var(--_muted); font-size: 0.8125em; }
+.suffix {
+  display: inline-flex; align-items: center; margin-inline-start: auto; padding-inline-start: 1rem;
+  color: var(--_muted); font-size: 0.75rem; letter-spacing: 0.04em;
+}
+::slotted(kbd[slot="suffix"]) { font: inherit; }
 ::slotted([slot="prefix"]) { display: inline-flex; flex: none; }
+:host([danger]) .suffix { color: color-mix(in srgb, var(--_danger) 70%, var(--_muted)); }
 :host([aria-expanded="true"]) { background: var(--_surface-2); }
 .chevron { display: none; flex: none; margin-inline-end: -0.25rem; color: var(--_muted); }
 :host([aria-haspopup="menu"]) .chevron { display: inline-flex; }

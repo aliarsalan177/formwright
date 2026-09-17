@@ -7,35 +7,49 @@ export type BadgeSize = "sm" | "md";
 
 const styles = /* css */ `
 :host {
+  /* One tone recipe shared with fw-tag, fw-alert and fw-progress: a soft
+     wash mixed into the surface, text pulled toward the text colour so it
+     reads in light and dark, and the tone's -contrast on solid fills. */
   --_tone: var(--_muted);
   --_tone-text: var(--_text);
   --_tone-contrast: var(--_surface);
+  --_tone-soft: color-mix(in srgb, var(--_tone) 14%, var(--_surface));
+  --_tone-line: color-mix(in srgb, var(--_tone) 45%, var(--_surface));
   display: inline-flex; vertical-align: middle;
 }
-:host([tone="accent"]) { --_tone: var(--_accent); --_tone-text: var(--_accent); --_tone-contrast: var(--_accent-contrast); }
-:host([tone="success"]) { --_tone: var(--_success); --_tone-text: var(--_success); --_tone-contrast: #fff; }
-:host([tone="warning"]) { --_tone: var(--_warning); --_tone-text: var(--_warning); --_tone-contrast: #fff; }
-:host([tone="danger"]) { --_tone: var(--_danger); --_tone-text: var(--_danger); --_tone-contrast: #fff; }
+:host([tone="accent"]) { --_tone: var(--_accent); --_tone-text: color-mix(in srgb, var(--_accent) 72%, var(--_text)); --_tone-contrast: var(--_accent-contrast); }
+:host([tone="success"]) { --_tone: var(--_success); --_tone-text: color-mix(in srgb, var(--_success) 72%, var(--_text)); --_tone-contrast: var(--_success-contrast); }
+:host([tone="warning"]) { --_tone: var(--_warning); --_tone-text: color-mix(in srgb, var(--_warning) 72%, var(--_text)); --_tone-contrast: var(--_warning-contrast); }
+:host([tone="danger"]) { --_tone: var(--_danger); --_tone-text: color-mix(in srgb, var(--_danger) 72%, var(--_text)); --_tone-contrast: var(--_danger-contrast); }
 
 .base {
-  display: inline-flex; align-items: center; gap: 0.375rem;
+  display: inline-flex; align-items: center; gap: 0.3125rem;
   min-height: 1.375rem; padding-block: 0.125rem; padding-inline: 0.5rem;
   font-size: 0.75rem; font-weight: 500; line-height: 1; white-space: nowrap;
-  border: 1px solid transparent; border-radius: 999px;
-  background: color-mix(in srgb, var(--_tone) 14%, transparent);
-  color: color-mix(in srgb, var(--_tone-text) 85%, var(--_text));
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+  border-radius: min(var(--_radius-sm), 999px);
+  background: var(--_tone-soft);
+  color: var(--_tone-text);
 }
-:host([size="sm"]) .base { min-height: 1.125rem; padding-inline: 0.375rem; gap: 0.25rem; font-size: 0.6875rem; }
+:host([size="sm"]) .base {
+  min-height: 1.125rem; padding-block: 0; padding-inline: 0.375rem; gap: 0.25rem;
+  font-size: 0.6875rem;
+}
 
 :host([variant="solid"]) .base { background: var(--_tone); color: var(--_tone-contrast); }
 :host(:not([tone])[variant="solid"]) .base,
 :host([tone="neutral"][variant="solid"]) .base { background: var(--_text); color: var(--_surface); }
 :host([variant="outline"]) .base {
   background: transparent; color: var(--_tone-text);
-  border-color: color-mix(in srgb, var(--_tone) 55%, transparent);
+  border-color: var(--_tone-line);
 }
+:host(:not([tone])[variant="outline"]) .base,
+:host([tone="neutral"][variant="outline"]) .base { border-color: var(--_border); }
 
-.dot { width: 0.375rem; height: 0.375rem; flex: none; border-radius: 50%; background: currentColor; }
+.dot { width: 0.375rem; height: 0.375rem; flex: none; border-radius: 50%; background: var(--_tone); }
+:host([variant="solid"]) .dot { background: currentColor; }
+:host([size="sm"]) .dot { width: 0.3125rem; height: 0.3125rem; }
 `;
 
 /**

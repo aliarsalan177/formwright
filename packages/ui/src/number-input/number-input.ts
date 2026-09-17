@@ -15,8 +15,13 @@ const styles =
 }
 .input::placeholder { color: var(--_muted); opacity: 1; }
 .input:disabled { cursor: not-allowed; }
-.stepper { touch-action: manipulation; user-select: none; }
-.stepper:disabled { opacity: 0.4; cursor: not-allowed; background: transparent; }
+.stepper {
+  touch-action: manipulation; user-select: none;
+  transition: background-color var(--_duration), color var(--_duration);
+}
+.stepper svg { display: block; }
+.stepper:active:not(:disabled) { background: color-mix(in srgb, var(--_text) 10%, var(--_surface)); color: var(--_text); }
+.stepper:disabled { opacity: 0.4; cursor: not-allowed; background: transparent; color: var(--_muted); }
 .decrement { margin-inline-end: -0.25rem; }
 :host([stepper-position="split"]) .decrement { order: -1; margin-inline: -0.375rem 0; }
 :host([stepper-position="split"]) .input { text-align: center; }

@@ -6,7 +6,14 @@ import { slotHasContent } from "../core/field.js";
 export type AlertTone = "info" | "success" | "warning" | "danger";
 
 const styles = /* css */ `
-:host { --_tone: var(--_accent); display: block; }
+:host {
+  /* The tone recipe shared with fw-badge, fw-tag and fw-progress. */
+  --_tone: var(--_info);
+  --_tone-text: color-mix(in srgb, var(--_tone) 72%, var(--_text));
+  --_tone-soft: color-mix(in srgb, var(--_tone) 10%, var(--_surface));
+  --_tone-line: color-mix(in srgb, var(--_tone) 28%, var(--_surface));
+  display: block;
+}
 :host([tone="success"]) { --_tone: var(--_success); }
 :host([tone="warning"]) { --_tone: var(--_warning); }
 :host([tone="danger"]) { --_tone: var(--_danger); }
@@ -15,25 +22,27 @@ const styles = /* css */ `
   display: flex; align-items: flex-start; gap: 0.75rem;
   padding-block: 0.875rem; padding-inline: 1rem;
   font-size: var(--_text-size); line-height: 1.5;
-  background: color-mix(in srgb, var(--_tone) 8%, var(--_surface));
+  background: var(--_tone-soft);
   color: var(--_text);
-  border: 1px solid color-mix(in srgb, var(--_tone) 30%, transparent);
-  border-inline-start-width: 3px; border-inline-start-color: var(--_tone);
-  border-radius: var(--_radius);
+  border: 1px solid var(--_tone-line);
+  /* A "full" radius theme rounds controls into pills; a multi-line
+     panel keeps a large but finite corner. */
+  border-radius: min(var(--_radius), 1rem);
 }
 
 .icon {
   display: inline-flex; flex: none; align-items: center;
-  height: 1.5em; color: var(--_tone);
+  height: 1.5em; color: var(--_tone-text);
 }
 .icon-default { display: contents; }
+.icon svg, ::slotted([slot="icon"]) { width: 1.125rem; height: 1.125rem; }
 ::slotted([slot="icon"]) { display: inline-flex; }
 
-.content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; }
-.heading { font-weight: 600; }
+.content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; }
+.heading { font-weight: 600; color: var(--_text); }
 ::slotted([slot="heading"]) { margin: 0; font: inherit; color: inherit; }
-.message { color: color-mix(in srgb, var(--_text) 85%, var(--_muted)); }
-.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-block-start: 0.5rem; }
+.message { color: color-mix(in srgb, var(--_text) 80%, var(--_surface)); overflow-wrap: anywhere; }
+.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-block-start: 0.625rem; }
 
 .close {
   display: inline-flex; align-items: center; justify-content: center; flex: none;
@@ -42,8 +51,9 @@ const styles = /* css */ `
   color: var(--_muted); cursor: pointer; font: inherit;
   transition: background-color var(--_duration), color var(--_duration);
 }
-.close:hover { background: color-mix(in srgb, var(--_tone) 14%, transparent); color: var(--_text); }
-.close:focus-visible { outline: none; box-shadow: var(--_ring); }
+.close:hover { background: color-mix(in srgb, var(--_tone) 16%, var(--_surface)); color: var(--_text); }
+.close:active { background: color-mix(in srgb, var(--_tone) 24%, var(--_surface)); }
+.close:focus-visible { outline: none; box-shadow: var(--_ring); color: var(--_text); }
 `;
 
 const svg = (path: string) =>

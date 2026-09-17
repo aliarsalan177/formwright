@@ -18,8 +18,11 @@ export const menuStyles = /* css */ `
   max-height: min(24rem, var(--fw-available-height, 24rem));
   overflow: auto; overscroll-behavior: contain;
   background: var(--_surface); color: var(--_text);
-  border: 1px solid var(--_border); border-radius: var(--_radius);
+  border: 1px solid var(--_border);
+  /* Capped so a pill-shaped theme still gets a panel, not a lozenge. */
+  border-radius: min(var(--_radius), 0.75rem);
   box-shadow: var(--_shadow);
+  font-family: var(--_font);
   outline: none;
 }
 `;

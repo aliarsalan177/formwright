@@ -317,3 +317,16 @@ describe("above a modal", () => {
     expect(region.querySelector("fw-toast")).not.toBeNull();
   });
 });
+
+describe("in the page flow", () => {
+  it("leaves a static region where it was put, even while a modal is open", async () => {
+    await import("../dialog/index.js");
+    document.body.innerHTML = `
+      <section id="panel"><fw-toast-region id="r" style="position: static"></fw-toast-region></section>
+      <fw-dialog id="d" heading="D"></fw-dialog>`;
+    const region = document.getElementById("r")!;
+    (document.getElementById("d") as HTMLElement & { show(): void }).show();
+    expect(region.parentElement).toBe(document.getElementById("panel"));
+    expect(region.hasAttribute("popover")).toBe(false);
+  });
+});

@@ -12,17 +12,27 @@
  */
 export const baseStyles = /* css */ `
 :host {
+  /* Set by createTheme() from @formwright/ui/theme, or by hand on any
+     ancestor. Neutrals that are not set are mixed from surface and text,
+     so a page that only sets those two still gets a coherent palette. */
   --_accent: var(--fw-accent, #7c3aed);
-  --_accent-hover: var(--fw-accent-hover, #6d28d9);
-  --_accent-contrast: var(--fw-accent-contrast, #ffffff);
-  --_surface: var(--fw-surface, #ffffff);
-  --_surface-2: var(--fw-surface-2, #f4f4f5);
   --_text: var(--fw-text, #18181b);
-  --_muted: var(--fw-muted, #71717a);
-  --_border: var(--fw-border, #d4d4d8);
+  --_surface: var(--fw-surface, #ffffff);
+  --_accent-hover: var(--fw-accent-hover, color-mix(in srgb, var(--_accent) 86%, var(--_text)));
+  --_accent-contrast: var(--fw-accent-contrast, #ffffff);
+  --_accent-soft: var(--fw-accent-soft, color-mix(in srgb, var(--_accent) 14%, var(--_surface)));
+  --_surface-2: var(--fw-surface-2, color-mix(in srgb, var(--_text) 5%, var(--_surface)));
+  --_muted: var(--fw-muted, color-mix(in srgb, var(--_text) 62%, var(--_surface)));
+  --_border: var(--fw-border, color-mix(in srgb, var(--_text) 17%, var(--_surface)));
   --_danger: var(--fw-danger, #dc2626);
-  --_success: var(--fw-success, #16a34a);
-  --_warning: var(--fw-warning, #d97706);
+  --_success: var(--fw-success, #15803d);
+  --_warning: var(--fw-warning, #b45309);
+  --_info: var(--fw-info, #2563eb);
+  --_danger-contrast: var(--fw-danger-contrast, #ffffff);
+  --_success-contrast: var(--fw-success-contrast, #ffffff);
+  --_warning-contrast: var(--fw-warning-contrast, #ffffff);
+  --_info-contrast: var(--fw-info-contrast, #ffffff);
+  --_backdrop: var(--fw-backdrop, rgb(15 15 20 / 0.5));
   --_radius: var(--fw-radius, 0.5rem);
   --_radius-sm: var(--fw-radius-sm, 0.375rem);
   --_font: var(--fw-font, inherit);
@@ -32,15 +42,16 @@ export const baseStyles = /* css */ `
   --_height-md: var(--fw-control-height-md, 2.5rem);
   --_height-lg: var(--fw-control-height-lg, 3rem);
   --_duration: var(--fw-duration, 150ms);
+  --_font-size: var(--fw-font-size, 0.875rem);
   --_height: var(--_height-md);
-  --_text-size: 0.875rem;
+  --_text-size: var(--_font-size);
 
   box-sizing: border-box;
   font-family: var(--_font);
   color: var(--_text);
 }
-:host([size="sm"]) { --_height: var(--_height-sm); --_text-size: 0.8125rem; }
-:host([size="lg"]) { --_height: var(--_height-lg); --_text-size: 1rem; }
+:host([size="sm"]) { --_height: var(--_height-sm); --_text-size: calc(var(--_font-size) - 0.0625rem); }
+:host([size="lg"]) { --_height: var(--_height-lg); --_text-size: calc(var(--_font-size) + 0.125rem); }
 :host([hidden]) { display: none !important; }
 *, *::before, *::after { box-sizing: inherit; }
 [hidden] { display: none !important; }

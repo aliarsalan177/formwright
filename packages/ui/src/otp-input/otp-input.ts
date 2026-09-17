@@ -10,7 +10,8 @@ const styles =
   fieldStyles +
   /* css */ `
 /* The group is a row of boxes, not one bordered control. */
-.control, .control:focus-within, :host([invalid]) .control, :host([disabled]) .control {
+.control, .control:focus-within, :host([invalid]) .control,
+:host([invalid]) .control:focus-within, :host([disabled]) .control {
   min-height: 0; padding: 0; gap: 0.5rem; flex-wrap: wrap;
   border: 0; background: transparent; box-shadow: none; opacity: 1;
 }
@@ -20,10 +21,14 @@ const styles =
   font: inherit; font-size: calc(var(--_text-size) * 1.375); font-weight: 600;
   font-variant-numeric: tabular-nums; color: var(--_text);
   background: var(--_surface); border: 1px solid var(--_border); border-radius: var(--_radius);
-  outline: none; transition: border-color var(--_duration), box-shadow var(--_duration);
+  outline: none;
+  transition: border-color var(--_duration), box-shadow var(--_duration), background-color var(--_duration);
 }
+.box:hover:not(:focus):not(:disabled) { border-color: color-mix(in srgb, var(--_border) 60%, var(--_text)); }
 .box:focus { border-color: var(--_accent); box-shadow: var(--_ring); }
-:host([invalid]) .box { border-color: var(--_danger); }
+:host([invalid]) .box, :host([invalid]) .box:hover { border-color: var(--_danger); }
+:host([invalid]) .box:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--_danger) 30%, transparent); }
+.box::selection { background: var(--_accent-soft); }
 .box:disabled { opacity: 0.6; cursor: not-allowed; background: var(--_surface-2); }
 `;
 

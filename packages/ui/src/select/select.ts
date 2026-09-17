@@ -18,23 +18,34 @@ const styles =
 .trigger { cursor: pointer; outline: none; user-select: none; }
 .trigger[aria-disabled="true"] { cursor: not-allowed; }
 .display {
-  flex: 1; min-width: 0; font-size: var(--_text-size);
+  flex: 1; min-width: 0; font-size: var(--_text-size); line-height: 1.4;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .display.placeholder { color: var(--_muted); }
-.chevron { flex: none; color: var(--_muted); transition: transform var(--_duration); }
+.chevron {
+  display: inline-flex; flex: none; color: var(--_muted);
+  margin-inline-end: -0.125rem;
+  transition: transform var(--_duration), color var(--_duration);
+}
+.chevron svg { display: block; }
+.trigger:hover .chevron, :host([open]) .chevron { color: var(--_text); }
 :host([open]) .chevron { transform: rotate(180deg); }
 
+/* The reference floating panel: menus, popovers, the combobox and date
+   picker share this surface, border, radius, shadow and 4px inset. */
 .listbox {
   margin: 0; inset: auto; padding: 0.25rem;
   min-width: 10rem;
   max-height: min(18rem, var(--fw-available-height, 18rem));
-  overflow: auto; overscroll-behavior: contain;
+  overflow: auto; overscroll-behavior: contain; scroll-padding-block: 0.25rem;
   background: var(--_surface); color: var(--_text);
-  border: 1px solid var(--_border); border-radius: var(--_radius);
+  /* Capped, so a pill theme (radius: full) does not clip the list. */
+  border: 1px solid var(--_border); border-radius: min(var(--_radius), 0.75rem);
   box-shadow: var(--_shadow);
+  font-family: var(--_font); font-size: var(--_text-size);
+  outline: none;
 }
-.empty { padding: 0.5rem 0.625rem; font-size: var(--_text-size); color: var(--_muted); }
+.empty { padding: 0.375rem 0.5rem; font-size: var(--_text-size); line-height: 1.25rem; color: var(--_muted); }
 `;
 
 const CHEVRON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;

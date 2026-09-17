@@ -24,15 +24,20 @@ const styles =
   position: relative; display: flex; align-items: center; justify-content: center;
   width: 100%; height: 100%; overflow: hidden;
   border-radius: 50%;
-  background: var(--fw-avatar-background, var(--_surface-2)); color: var(--_muted);
-  font-size: calc(var(--_size) * 0.4); font-weight: 600; line-height: 1;
+  background: var(--fw-avatar-background, color-mix(in srgb, var(--_text) 9%, var(--_surface)));
+  color: var(--fw-avatar-color, var(--_muted));
+  font-size: calc(var(--_size) * 0.38); font-weight: 600; line-height: 1;
+  letter-spacing: 0.01em;
   user-select: none;
   box-shadow: var(--fw-avatar-ring, none);
 }
-:host([shape="square"]) .base { border-radius: var(--_radius); }
+:host([shape="square"]) .base { border-radius: min(var(--_radius), calc(var(--_size) * 0.25)); }
+/* A soft wash of the name's hue with its text pulled toward the text
+   colour, so initials read in light and dark alike. */
 .base[data-hue] {
-  background: var(--fw-avatar-background, hsl(var(--_hue) 45% 42%));
-  color: var(--fw-avatar-color, #fff);
+  --_hue-color: hsl(var(--_hue) 62% 50%);
+  background: var(--fw-avatar-background, color-mix(in srgb, var(--_hue-color) 20%, var(--_surface)));
+  color: var(--fw-avatar-color, color-mix(in srgb, var(--_hue-color) 55%, var(--_text)));
 }
 
 .initials { text-transform: uppercase; }

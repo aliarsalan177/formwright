@@ -9,6 +9,7 @@ const styles =
   modalStyles +
   /* css */ `
 .dialog { padding: 0; }
+.header { padding: 1.25rem 1.25rem 0.75rem; }
 .dialog[open] { align-items: stretch; justify-content: flex-end; }
 :host([placement="start"]) .dialog[open] { justify-content: flex-start; }
 :host([placement="top"]) .dialog[open],
@@ -41,8 +42,14 @@ const styles =
   max-height: var(--_cap, 85%);
   border: 0;
 }
-:host([placement="top"]) .panel { --_from: translateY(-100%); border-bottom: 1px solid var(--_border); }
-:host([placement="bottom"]) .panel { --_from: translateY(100%); border-top: 1px solid var(--_border); }
+:host([placement="top"]) .panel {
+  --_from: translateY(-100%); border-bottom: 1px solid var(--_border);
+  border-end-start-radius: min(var(--_radius), 1rem); border-end-end-radius: min(var(--_radius), 1rem);
+}
+:host([placement="bottom"]) .panel {
+  --_from: translateY(100%); border-top: 1px solid var(--_border);
+  border-start-start-radius: min(var(--_radius), 1rem); border-start-end-radius: min(var(--_radius), 1rem);
+}
 
 /* Slides in from its edge. The base styles zero these durations under
    prefers-reduced-motion, which also makes the close synchronous. */

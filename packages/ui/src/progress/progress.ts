@@ -9,7 +9,10 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 
 const styles = /* css */ `
 :host {
+  /* The tone recipe shared with fw-badge, fw-tag and fw-alert: the track
+     is the tone's soft wash, the fill is the tone itself. */
   --_tone: var(--_accent);
+  --_tone-soft: color-mix(in srgb, var(--_tone) 16%, var(--_surface));
   --_bar: 0.5rem;
   --_ring-size: 2.5rem;
   display: block;
@@ -23,14 +26,16 @@ const styles = /* css */ `
 
 .base { display: flex; align-items: center; gap: 0.75rem; }
 .value {
-  flex: none; font-size: var(--_text-size); font-variant-numeric: tabular-nums;
+  flex: none; font-size: var(--_text-size); font-weight: 500; font-variant-numeric: tabular-nums;
   color: var(--_muted); line-height: 1;
 }
+/* After a bar, wide enough for "100%", so stacked bars end at one edge. */
+.base > .value { min-inline-size: 4ch; text-align: end; }
 
 /* linear */
 .track {
   position: relative; flex: 1; min-width: 0; height: var(--_bar); overflow: hidden;
-  border-radius: 999px; background: var(--_surface-2);
+  border-radius: 999px; background: var(--_tone-soft);
 }
 .indicator {
   position: absolute; inset-block: 0; inset-inline-start: 0;
@@ -49,7 +54,7 @@ const styles = /* css */ `
 /* circular */
 .circle { position: relative; display: inline-flex; width: var(--_ring-size); height: var(--_ring-size); }
 .circle svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-.circle-track { stroke: var(--_surface-2); }
+.circle-track { stroke: var(--_tone-soft); }
 .circle-indicator {
   stroke: var(--_tone); stroke-linecap: round;
   transition: stroke-dashoffset var(--_duration) ease;
@@ -57,7 +62,7 @@ const styles = /* css */ `
 .base[data-indeterminate] .circle svg { animation: fw-progress-spin 0.9s linear infinite; }
 .circle .value {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  font-size: calc(var(--_ring-size) * 0.26); color: var(--_text);
+  font-size: calc(var(--_ring-size) * 0.26); font-weight: 600; color: var(--_text);
 }
 
 @keyframes fw-progress-spin { from { transform: rotate(-90deg); } to { transform: rotate(270deg); } }
