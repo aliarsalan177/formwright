@@ -2,137 +2,170 @@ import { Form, type FormSchema } from "@formwright/core";
 import "@formwright/dom";
 import type { StoryHost } from "../helpers/mount";
 
-const GENERAL: FormSchema = {
-  id: "general",
-  version: "1.0",
-  title: "General",
-  fields: [
-    { id: "appName", type: "text", label: "Application name" },
-    {
-      id: "language",
-      type: "select",
-      label: "Language",
-      options: [
-        { label: "English", value: "en" },
-        { label: "Français", value: "fr" },
+type SectionId = "general" | "notifications";
+
+const SECTIONS: readonly { id: SectionId; title: string; icon: string; schema: FormSchema }[] = [
+  {
+    id: "general",
+    title: "General",
+    icon: "⚙️",
+    schema: {
+      id: "general",
+      version: "1.0",
+      title: "General",
+      fields: [
+        { id: "appName", type: "text", label: "Application name" },
+        {
+          id: "language",
+          type: "select",
+          label: "Language",
+          options: [
+            { label: "English", value: "en" },
+            { label: "Français", value: "fr" },
+          ],
+        },
+        {
+          id: "beta",
+          type: "toggle",
+          label: "Enable beta features",
+          description: "Get early access to features still in development.",
+          labelPosition: "start",
+        },
       ],
     },
-    {
-      id: "beta",
-      type: "toggle",
-      label: "Enable beta features",
-      labelPosition: "start",
+  },
+  {
+    id: "notifications",
+    title: "Notifications",
+    icon: "🔔",
+    schema: {
+      id: "notifications",
+      version: "1.0",
+      title: "Notifications",
+      fields: [
+        { id: "email", type: "toggle", label: "Email alerts", labelPosition: "start" },
+        { id: "push", type: "toggle", label: "Push notifications", labelPosition: "start" },
+      ],
     },
-  ],
-};
+  },
+];
 
-const NOTIFICATIONS: FormSchema = {
-  id: "notifications",
-  version: "1.0",
-  title: "Notifications",
-  fields: [
-    { id: "email", type: "toggle", label: "Email alerts", labelPosition: "start" },
-    { id: "push", type: "toggle", label: "Push notifications", labelPosition: "start" },
-  ],
-};
+function el<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  className: string,
+  text?: string,
+): HTMLElementTagNameMap[K] {
+  const node = document.createElement(tag);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
 
 /** Mini iOS-style settings builder. */
 export function mountSettingsBuilderMini(): StoryHost {
   let currentForm: Form | null = null;
   let instantApply = true;
-  let section: "general" | "notifications" = "general";
-  const values: Record<string, Record<string, unknown>> = {
+  let section: SectionId = "general";
+  const values: Record<SectionId, Record<string, unknown>> = {
     general: { appName: "Formwright", language: "en", beta: false },
     notifications: { email: true, push: false },
   };
 
-  const wrap = document.createElement("div") as StoryHost;
-  wrap.className = "sb-settings-mini";
+  const wrap = el("div", "settings-mini") as StoryHost;
+  const layout = el("div", "settings");
 
-  const sidebar = document.createElement("div");
-  sidebar.className = "sb-settings-sidebar";
-  const main = document.createElement("div");
-  const head = document.createElement("div");
-  head.className = "settings-head";
-  const panel = document.createElement("div");
-  panel.className = "form-host settings-panel";
-  const log = document.createElement("pre");
-  log.className = "settings-log";
-  log.style.fontSize = "11px";
-  log.style.padding = "8px";
-  main.append(head, panel, log);
+  const rail = el("aside", "settings-rail");
+  const nav = el("div", "settings-nav");
+  rail.append(el("div", "settings-search", "Settings"), nav);
+
+  const detail = el("section", "settings-detail");
+  const head = el("div", "settings-head");
+  const panel = el("div", "form-host");
+  detail.append(head, panel);
+
+  const side = el("aside", "settings-side");
+  const log = el("pre", "result");
+  side.append(el("h2", "", "Save activity"), log);
 
   function render(): void {
     currentForm?.destroy();
     panel.replaceChildren();
     head.replaceChildren();
 
-    const title = document.createElement("h2");
-    title.className = "settings-title";
-    title.textContent = section === "general" ? "General" : "Notifications";
-    head.append(title);
+    const current = SECTIONS.find((s) => s.id === section)!;
+    for (const b of nav.querySelectorAll("button")) {
+      b.classList.toggle("active", b.dataset.section === section);
+    }
 
-    const seg = document.createElement("div");
-    seg.className = "settings-seg";
+    const bar = el("div", "settings-navbar");
+    const seg = el("div", "settings-seg");
+    seg.setAttribute("role", "group");
+    seg.setAttribute("aria-label", "Save mode");
     for (const [label, instant] of [
       ["Instant", true],
       ["Save", false],
     ] as const) {
-      const b = document.createElement("button");
+      const b = el(
+        "button",
+        "settings-seg-opt" + (instantApply === instant ? " is-on" : ""),
+        label,
+      );
       b.type = "button";
-      b.className = "settings-seg-opt" + (instantApply === instant ? " is-on" : "");
-      b.textContent = label;
+      b.setAttribute("aria-pressed", String(instantApply === instant));
       b.addEventListener("click", () => {
         instantApply = instant;
         render();
       });
       seg.append(b);
     }
-    head.append(seg);
+    bar.append(el("div", "settings-navbar-lead"), el("h2", "settings-title", current.title), seg);
+    head.append(bar);
 
-    const schema = section === "general" ? GENERAL : NOTIFICATIONS;
-    const form = new Form({ ...schema, actions: [] }, values[section]);
+    const form = new Form({ ...current.schema, actions: [], summary: false }, values[section], {
+      dom: { customStyles: true },
+    });
+    const id = section;
     form.on("change", (p) => {
-      const { id, value } = p as { id: string; value: unknown };
-      values[section] = form.values.peek() as Record<string, unknown>;
-      log.textContent = JSON.stringify(values[section], null, 2);
-      if (instantApply) {
-        log.textContent = `PATCH /api/settings/${section}/${id}\n${JSON.stringify(value, null, 2)}`;
-      }
+      const { id: field, value } = p as { id: string; value: unknown };
+      values[id] = form.values.peek() as Record<string, unknown>;
+      log.textContent = instantApply
+        ? `PATCH /api/settings/${id}/${field}\n${JSON.stringify(value, null, 2)}`
+        : JSON.stringify(values[id], null, 2);
     });
     form.mount(panel);
     currentForm = form;
     log.textContent = JSON.stringify(values[section], null, 2);
 
-    if (!instantApply) {
-      const save = document.createElement("button");
+    if (instantApply) {
+      panel.append(el("p", "settings-instant-note", "Changes apply instantly."));
+    } else {
+      const save = el("button", "settings-saveall", "Save all");
       save.type = "button";
-      save.className = "settings-saveall";
-      save.textContent = "Save all";
-      save.addEventListener("click", () => void form.submit());
+      save.addEventListener("click", () => {
+        log.textContent = `PUT /api/settings/${id}\n${JSON.stringify(values[id], null, 2)}`;
+      });
       panel.append(save);
     }
   }
 
-  for (const [id, label] of [
-    ["general", "General"],
-    ["notifications", "Notifications"],
-  ] as const) {
-    const btn = document.createElement("button");
+  for (const s of SECTIONS) {
+    const btn = el("button", "");
     btn.type = "button";
-    btn.textContent = label;
+    btn.dataset.section = s.id;
+    const ico = el("span", "s-ico", s.icon);
+    ico.setAttribute("aria-hidden", "true");
+    const chev = el("span", "s-chev", "›");
+    chev.setAttribute("aria-hidden", "true");
+    btn.append(ico, el("span", "", s.title), chev);
     btn.addEventListener("click", () => {
-      section = id;
-      for (const b of sidebar.querySelectorAll("button")) {
-        b.classList.toggle("active", b === btn);
-      }
+      section = s.id;
       render();
     });
-    if (id === "general") btn.classList.add("active");
-    sidebar.append(btn);
+    nav.append(btn);
   }
 
-  wrap.append(sidebar, main);
+  layout.append(rail, detail, side);
+  wrap.append(layout);
   render();
 
   wrap.__storyDispose = () => currentForm?.destroy();

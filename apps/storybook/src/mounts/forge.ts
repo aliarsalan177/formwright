@@ -12,14 +12,24 @@ const PALETTE: { type: FieldType; label: string }[] = [
   { type: "checkbox", label: "Checkbox" },
 ];
 
-let fields: FieldSchema[] = [
-  { id: "name", type: "text", label: "Full name", validation: { kind: "string", required: true } },
-  { id: "email", type: "email", label: "Email", validation: { kind: "string", format: "email" } },
-];
+let fields: FieldSchema[] = [];
 let previewForm: Form | null = null;
+let seq = 0;
 
 function buildSchema(): FormSchema {
-  return { id: "forge", version: "1.0", title: "Untitled form", fields };
+  // The summary side panel doesn't fit the preview rail.
+  return { id: "forge", version: "1.0", title: "Untitled form", summary: false, fields };
+}
+
+function el<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  className: string,
+  text?: string,
+): HTMLElementTagNameMap[K] {
+  const node = document.createElement(tag);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
 }
 
 function renderPreview(host: HTMLElement): void {
@@ -27,28 +37,38 @@ function renderPreview(host: HTMLElement): void {
   previewForm = null;
   host.replaceChildren();
   if (!fields.length) {
-    host.textContent = "Add a field from the palette.";
+    host.append(el("p", "forge-hint", "Add a field from the palette to preview the form."));
     return;
   }
-  previewForm = new Form(buildSchema());
+  previewForm = new Form(buildSchema(), {}, { dom: { customStyles: true } });
   previewForm.mount(host);
 }
 
 function renderCanvas(canvas: HTMLElement, preview: HTMLElement): void {
   canvas.replaceChildren();
+  if (!fields.length) {
+    canvas.append(el("div", "forge-empty", "Click a field type to start building."));
+    return;
+  }
   for (const f of fields) {
-    const row = document.createElement("div");
-    row.className = "forge-canvas-item";
-    row.textContent = `${f.label ?? f.id} (${f.type})`;
-    const del = document.createElement("button");
+    const card = el("div", "forge-card");
+    const head = el("div", "forge-card-head");
+    head.append(
+      el("span", "forge-card-title", String(f.label ?? f.id)),
+      el("span", "forge-card-type", String(f.type)),
+    );
+    const actions = el("div", "forge-card-actions");
+    const del = el("button", "forge-chip forge-chip-danger", "✕");
     del.type = "button";
-    del.textContent = "×";
+    del.title = "Delete field";
+    del.setAttribute("aria-label", `Delete ${String(f.label ?? f.id)}`);
     del.addEventListener("click", () => {
       fields = fields.filter((x) => x.id !== f.id);
       sync(preview, canvas);
     });
-    row.append(del);
-    canvas.append(row);
+    actions.append(del);
+    card.append(head, actions);
+    canvas.append(card);
   }
 }
 
@@ -57,20 +77,21 @@ function sync(preview: HTMLElement, canvas: HTMLElement): void {
   renderPreview(preview);
 }
 
-function addField(type: FieldType): void {
-  const id = `${type}_${fields.length + 1}`;
-  const base: FieldSchema = { id, type, label: type.charAt(0).toUpperCase() + type.slice(1) };
+function addField(type: FieldType, label: string): void {
+  const id = `${type}_${++seq}`;
+  const base: FieldSchema = { id, type, label };
   if (type === "select") {
     (base as FieldSchema & { options: unknown }).options = [
-      { label: "A", value: "a" },
-      { label: "B", value: "b" },
+      { label: "Option A", value: "a" },
+      { label: "Option B", value: "b" },
     ];
   }
   fields = [...fields, base];
 }
 
-/** Mini Forge — drag-and-drop form builder preview. */
+/** Mini Forge — the form builder's palette, canvas and live preview. */
 export function mountForgeMini(): StoryHost {
+  seq = 0;
   fields = [
     {
       id: "name",
@@ -81,43 +102,35 @@ export function mountForgeMini(): StoryHost {
     { id: "email", type: "email", label: "Email", validation: { kind: "string", format: "email" } },
   ];
 
-  const wrap = document.createElement("div") as StoryHost;
-  wrap.className = "sb-forge-mini";
+  const wrap = el("div", "forge-mini") as StoryHost;
+  const main = el("div", "forge");
 
-  const palette = document.createElement("div");
-  palette.className = "sb-forge-palette";
-  const ph = document.createElement("h4");
-  ph.textContent = "Palette";
-  palette.append(ph);
+  const palette = el("aside", "forge-palette");
+  palette.setAttribute("aria-label", "Field palette");
+  palette.append(el("h2", "", "Fields"));
   for (const item of PALETTE) {
-    const chip = document.createElement("button");
+    const chip = el("button", "forge-pal-item", item.label);
     chip.type = "button";
-    chip.className = "forge-pal-item";
-    chip.textContent = item.label;
     chip.addEventListener("click", () => {
-      addField(item.type);
+      addField(item.type, item.label);
       sync(preview, canvas);
     });
     palette.append(chip);
   }
+  palette.append(el("p", "forge-hint", "Click a field type to append it."));
 
-  const canvasCol = document.createElement("div");
-  canvasCol.className = "sb-forge-canvas";
-  const ch = document.createElement("h4");
-  ch.textContent = "Canvas";
-  const canvas = document.createElement("div");
-  canvas.className = "forge-canvas";
-  canvasCol.append(ch, canvas);
+  const canvasCol = el("section", "forge-canvas-wrap");
+  const canvasHead = el("div", "forge-canvas-head");
+  canvasHead.append(el("h2", "", "Canvas"), el("p", "", "Fields render top to bottom."));
+  const canvas = el("div", "forge-canvas");
+  canvasCol.append(canvasHead, canvas);
 
-  const previewCol = document.createElement("div");
-  previewCol.className = "sb-forge-preview";
-  const prh = document.createElement("h4");
-  prh.textContent = "Live preview";
-  const preview = document.createElement("div");
-  preview.className = "form-host";
-  previewCol.append(prh, preview);
+  const rail = el("aside", "forge-rail");
+  const preview = el("div", "forge-panel form-host");
+  rail.append(el("h2", "", "Live preview"), preview);
 
-  wrap.append(palette, canvasCol, previewCol);
+  main.append(palette, canvasCol, rail);
+  wrap.append(main);
   sync(preview, canvas);
 
   wrap.__storyDispose = () => previewForm?.destroy();

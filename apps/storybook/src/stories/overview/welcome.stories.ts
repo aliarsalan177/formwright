@@ -20,6 +20,18 @@ export const Welcome: Story = {
         <li><strong>Forms</strong> — field types, groups, collections, conditions, validation</li>
         <li><strong>Wizard UX</strong> — steps, fill/bar/tabs progress, URL sync, consent cache, success screen</li>
       </ul>
+      <h2>UI</h2>
+      <p>
+        <code>@formwright/ui</code> — framework-free web components under the <code>fw-</code> prefix.
+        Use them as plain HTML (<code>&lt;fw-select&gt;</code>) in any framework or none.
+      </p>
+      <ul>
+        <li><strong>Form Controls</strong> — button, input, textarea, select, checkbox, switch, radio group, slider</li>
+        <li><strong>Inputs</strong> — combobox, multi-select, tags, number, OTP, date picker, calendar</li>
+        <li><strong>Overlays</strong> — popover, tooltip, dropdown with submenus, dialog, drawer, toast, command palette</li>
+        <li><strong>Navigation</strong> — tabs, accordion, breadcrumbs, pagination, stepper</li>
+        <li><strong>Display</strong> — badge, tag, avatar, spinner, skeleton, progress, divider, alert, card, empty state</li>
+      </ul>
       <h2>Gridwright</h2>
       <ul>
         <li><strong>Live</strong> — virtualization + surgical cell updates</li>

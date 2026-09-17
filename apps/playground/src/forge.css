@@ -2,10 +2,11 @@
 
 .forge-top {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 14px 22px;
+  gap: 10px 16px;
+  padding: 12px 22px;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
 }
@@ -13,9 +14,11 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 .forge-brand strong {
   font-size: 16px;
+  font-weight: 600;
   color: var(--text);
 }
 .forge-brand span {
@@ -24,13 +27,15 @@
 }
 .forge-nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 6px 14px;
 }
 .forge-nav a {
   font-size: 13px;
   color: var(--muted);
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 .forge-nav a:hover {
   color: var(--text);
@@ -40,15 +45,21 @@
 .forge-ghost {
   font: inherit;
   font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
   padding: 7px 14px;
-  border-radius: 9px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    filter 0.15s ease;
 }
 .forge-primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #0b0d12;
+  color: var(--accent-contrast, #0b0d12);
   font-weight: 600;
 }
 .forge-primary:hover {
@@ -59,14 +70,23 @@
   color: var(--text);
 }
 .forge-ghost:hover {
+  filter: none;
   border-color: var(--accent);
+}
+.forge-primary:focus-visible,
+.forge-ghost:focus-visible,
+.forge-pal-item:focus-visible,
+.forge-chip:focus-visible,
+.forge-tab:focus-visible,
+.forge-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* Three-column workspace. */
 .forge {
   display: grid;
-  grid-template-columns: 210px 1fr 330px;
-  gap: 0;
+  grid-template-columns: 210px minmax(0, 1fr) 330px;
   height: calc(100vh - 64px);
 }
 .forge-palette,
@@ -76,42 +96,67 @@
   background: var(--panel);
 }
 .forge-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   border-right: 1px solid var(--border);
 }
 .forge-rail {
   border-left: 1px solid var(--border);
 }
 .forge-palette h2,
+.forge-rail > h2,
 .forge-canvas-head h2 {
   font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   color: var(--muted);
-  margin: 0 0 10px;
+  margin: 0 0 6px;
+}
+.forge-rail > h2 {
+  margin-bottom: 14px;
 }
 
 .forge-pal-item {
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: start;
   padding: 9px 12px;
-  margin-bottom: 7px;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 8px;
   background: var(--panel-2);
   color: var(--text);
-  font-size: 13px;
   cursor: grab;
   user-select: none;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 }
 .forge-pal-item:hover {
+  filter: none;
   border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel-2));
 }
 .forge-pal-item:active {
   cursor: grabbing;
+}
+button.forge-pal-item {
+  cursor: pointer;
+}
+.forge-palette .forge-hint {
+  margin: 8px 0 0;
 }
 
 /* Canvas. */
 .forge-canvas-wrap {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   overflow: hidden;
   background: var(--bg);
 }
@@ -119,7 +164,7 @@
   padding: 16px 22px 8px;
 }
 .forge-canvas-head p {
-  margin: 2px 0 0;
+  margin: 0;
   font-size: 12px;
   color: var(--muted);
 }
@@ -128,9 +173,10 @@
   overflow-y: auto;
   padding: 12px 22px 40px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   align-content: start;
+  transition: background-color 0.15s ease;
 }
 .forge-canvas.is-drop {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
@@ -139,7 +185,7 @@
   grid-column: 1 / -1;
   border: 2px dashed var(--border);
   border-radius: 12px;
-  padding: 48px;
+  padding: 48px 24px;
   text-align: center;
   color: var(--muted);
   font-size: 14px;
@@ -151,12 +197,19 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 12px 14px;
+  min-width: 0;
+  padding: 11px 12px 11px 14px;
   border: 1px solid var(--border);
-  border-radius: 11px;
+  border-radius: 10px;
   background: var(--panel);
   color: var(--text);
   cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.forge-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
 }
 .forge-card.is-half {
   grid-column: span 1;
@@ -183,9 +236,10 @@
 }
 .forge-card-type {
   font-size: 11px;
+  font-weight: 500;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 .forge-card-actions {
   display: flex;
@@ -195,85 +249,115 @@
 .forge-chip {
   font: inherit;
   font-size: 12px;
-  width: 26px;
-  height: 26px;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border-radius: 7px;
   border: 1px solid var(--border);
   background: var(--panel-2);
   color: var(--text);
   cursor: pointer;
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
 }
 .forge-chip:hover {
+  filter: none;
   border-color: var(--accent);
 }
 .forge-chip.is-on {
   background: var(--accent);
   border-color: var(--accent);
-  color: #0b0d12;
+  color: var(--accent-contrast, #0b0d12);
 }
 .forge-chip-danger:hover {
   border-color: var(--err);
   color: var(--err);
+  background: color-mix(in srgb, var(--err) 10%, var(--panel-2));
 }
 
 /* Right rail: tabs + panels. */
 .forge-tabs {
   display: flex;
   gap: 4px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   background: var(--panel-2);
   border: 1px solid var(--border);
   border-radius: 9px;
-  padding: 4px;
+  padding: 3px;
 }
 .forge-tab {
   flex: 1;
   font: inherit;
   font-size: 12px;
+  font-weight: 500;
   padding: 6px 8px;
   border: 0;
   border-radius: 6px;
   background: transparent;
   color: var(--muted);
   cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+.forge-tab:hover {
+  filter: none;
+  color: var(--text);
 }
 .forge-tab.is-active {
   background: var(--accent);
-  color: #0b0d12;
+  color: var(--accent-contrast, #0b0d12);
   font-weight: 600;
 }
 
 .forge-row {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-bottom: 12px;
+  gap: 6px;
+  margin-bottom: 14px;
   font-size: 12px;
+  font-weight: 500;
   color: var(--muted);
 }
 .forge-row input[type="text"],
 .forge-row select {
   font: inherit;
   font-size: 13px;
+  font-weight: 400;
   color: var(--text);
-  padding: 7px 9px;
+  padding: 7px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel-2);
   width: 100%;
+  min-width: 0;
 }
 .forge-row input[type="text"]:focus,
 .forge-row select:focus {
-  outline: none;
+  outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  outline-offset: 0;
   border-color: var(--accent);
 }
 .forge-row-inline {
   flex-direction: row;
   align-items: center;
   gap: 8px;
+  cursor: pointer;
+}
+.forge-row-inline input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--accent);
 }
 .forge-row-inline span {
   font-size: 13px;
@@ -282,14 +366,19 @@
 .forge-options {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 6px;
 }
 .forge-opt {
   display: flex;
+  align-items: center;
   gap: 6px;
 }
 .forge-opt input {
   flex: 1;
+}
+.forge-opt .forge-chip {
+  width: 34px;
+  height: 34px;
 }
 .forge-add-opt {
   align-self: flex-start;
@@ -297,6 +386,7 @@
   padding: 5px 10px;
 }
 .forge-hint {
+  margin: 0;
   font-size: 12px;
   color: var(--muted);
   line-height: 1.5;
@@ -317,8 +407,19 @@
 }
 
 /* The live-preview form sits on a panel surface so inputs read clearly. */
-.forge-panel[data-panel="preview"] .fw-form {
+.forge-panel.form-host .fw-form {
   background: transparent;
+}
+.forge-panel.form-host .fw-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.forge-panel.form-host .fw-success-host:empty {
+  display: none;
+}
+/* The rail is too narrow for a side summary. */
+.forge-panel.form-host .fw-summary {
+  display: none;
 }
 
 .forge-toast {
@@ -327,22 +428,101 @@
   left: 50%;
   transform: translateX(-50%);
   background: var(--accent);
-  color: #0b0d12;
+  color: var(--accent-contrast, #0b0d12);
   font-size: 13px;
   font-weight: 600;
   padding: 10px 16px;
   border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   z-index: 50;
 }
 
 @media (max-width: 860px) {
   .forge {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     height: auto;
   }
   .forge-palette {
-    display: flex;
+    flex-direction: row;
     flex-wrap: wrap;
-    gap: 7px;
+    align-content: flex-start;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .forge-palette h2,
+  .forge-palette .forge-hint {
+    flex-basis: 100%;
+  }
+  .forge-palette .forge-pal-item {
+    width: auto;
+  }
+  .forge-rail {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+  .forge-canvas {
+    padding-bottom: 24px;
+  }
+}
+@media (max-width: 480px) {
+  .forge-top,
+  .forge-canvas-head,
+  .forge-canvas {
+    padding-inline: 16px;
+  }
+}
+
+/* ---- Storybook mini Forge (apps/storybook mounts) ----
+   Maps the playground tokens onto the @formwright/ui theme so the embedded app
+   follows the Storybook theme toolbar; falls back to the playground palette. */
+.forge-mini {
+  --bg: var(--fw-surface-2, #0f1115);
+  --panel: var(--fw-surface, #171a21);
+  --panel-2: var(--fw-surface-2, #1e222b);
+  --border: var(--fw-border, #2a2f3a);
+  --text: var(--fw-text, #e6e9ef);
+  --muted: var(--fw-muted, #9aa3b2);
+  --accent: var(--fw-accent, #6ea8fe);
+  --accent-hover: var(--fw-accent-hover, #8dbbfe);
+  --accent-contrast: var(--fw-accent-contrast, #0b0d12);
+  --label: color-mix(in srgb, var(--text) 82%, var(--panel));
+  --border-strong: color-mix(in srgb, var(--text) 26%, var(--panel));
+  --ring: color-mix(in srgb, var(--accent) 35%, transparent);
+  --shadow-pop: var(--fw-shadow, 0 12px 32px rgba(0, 0, 0, 0.45));
+  --ok: var(--fw-success, #3fb950);
+  --err: var(--fw-danger, #f85149);
+  box-sizing: border-box;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
+.forge-mini .forge {
+  height: 100vh;
+  min-height: 480px;
+}
+@media (max-width: 860px) {
+  .forge-mini .forge {
+    height: auto;
+    min-height: 100vh;
+    grid-template-rows: auto auto 1fr;
+  }
+}
+/* styles.css draws the switch knob in the text colour (made for its dark page);
+   on a light Storybook theme that reads as a black dot, so use a white knob. */
+:root:not([data-fw-mode="dark"]) .forge-mini .form-host input.fw-switch::after {
+  background: #fff;
+}
+/* In a Storybook docs page the story sits inline: size it to its content, not the viewport. */
+.docs-story .forge-mini {
+  min-height: 0;
+}
+.docs-story .forge-mini .forge {
+  height: 600px;
+  min-height: 0;
+}
+@media (max-width: 860px) {
+  .docs-story .forge-mini .forge {
+    height: auto;
   }
 }

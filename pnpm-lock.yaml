@@ -81,6 +81,9 @@ importers:
       '@formwright/schema':
         specifier: workspace:*
         version: link:../../packages/schema
+      '@formwright/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
     devDependencies:
       '@storybook/addon-essentials':
         specifier: ^8.6.14

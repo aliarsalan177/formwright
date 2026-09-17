@@ -4,6 +4,9 @@ import "@formwright/dom";
 
 export type StoryHost = HTMLElement & { __storyDispose?: () => void };
 
+/** Id of the `<style>` tag @formwright/dom injects for its built-in form theme. */
+const DEFAULT_FORM_STYLE_ID = "formwright-form-default-styles";
+
 /** Mount a Form into a story container; returns the wrapper with a dispose hook. */
 export function mountFormStory(
   schema: FormSchema,
@@ -17,9 +20,16 @@ export function mountFormStory(
   host.className = "form-host";
   wrap.appendChild(host);
 
+  // These stories use the playground's dark theme (apps/playground/src/styles.css),
+  // exactly like the playground page does. The renderer's built-in light theme is
+  // injected once per document by any form mounted without `customStyles`, and it
+  // targets every `.fw-root` — so drop it if an earlier story left it behind.
+  document.getElementById(DEFAULT_FORM_STYLE_ID)?.remove();
+
   const persistKey = schema.persist ? `storybook-${schema.id}` : options.persistKey;
   const form = new Form(schema, initialValues, {
     ...options,
+    dom: { customStyles: true, ...options.dom },
     ...(persistKey ? { persistKey } : {}),
     send:
       options.send ??

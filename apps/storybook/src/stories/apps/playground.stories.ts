@@ -5,15 +5,25 @@ import { playgroundPageUrl } from "../../helpers/playground-url";
 function playgroundIframe(page: string, title: string): StoryHost {
   const wrap = document.createElement("div") as StoryHost;
   wrap.className = "sb-iframe-wrap";
+  // The playground pages are dark; keep the caption strip on the same surface.
+  wrap.style.display = "flex";
+  wrap.style.flexDirection = "column";
+  wrap.style.background = "var(--bg, #0f1115)";
+  const url = playgroundPageUrl(page);
   const note = document.createElement("p");
-  note.style.padding = "12px 16px";
+  note.style.padding = "10px 16px";
   note.style.margin = "0";
-  note.style.fontSize = "13px";
-  note.style.color = "var(--muted,#64748b)";
-  note.textContent = `${title} — embedded from the live playground pages (also at ${playgroundPageUrl(page)}).`;
+  note.style.fontFamily = "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+  note.style.fontSize = "12px";
+  note.style.lineHeight = "1.5";
+  note.style.color = "var(--muted, #9aa3b2)";
+  note.style.background = "var(--panel, #171a21)";
+  note.style.borderBottom = "1px solid var(--border, #2a2f3a)";
+  note.textContent = `${title} — embedded from the live playground pages (also at ${url}).`;
   const iframe = document.createElement("iframe");
   iframe.title = title;
-  iframe.src = playgroundPageUrl(page);
+  iframe.src = url;
+  iframe.style.display = "block";
   wrap.append(note, iframe);
   return wrap;
 }

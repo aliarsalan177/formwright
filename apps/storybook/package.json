@@ -13,9 +13,10 @@
   "dependencies": {
     "@formwright/core": "workspace:*",
     "@formwright/dom": "workspace:*",
-    "@formwright/schema": "workspace:*",
     "@formwright/grid-core": "workspace:*",
-    "@formwright/grid-dom": "workspace:*"
+    "@formwright/grid-dom": "workspace:*",
+    "@formwright/schema": "workspace:*",
+    "@formwright/ui": "workspace:*"
   },
   "devDependencies": {
     "@storybook/addon-essentials": "^8.6.14",

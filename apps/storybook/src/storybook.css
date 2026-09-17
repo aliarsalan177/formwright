@@ -1,16 +1,70 @@
+/* Formwright form stories: the playground's dark theme, full-bleed, content centred. */
 .sb-form-story {
-  padding: 24px;
-  max-width: 640px;
-  margin: 0 auto;
+  /* Follow the Storybook "UI theme" toolbar: point the playground's palette
+     at the --fw-* theme tokens, falling back to the playground's dark look. */
+  --bg: var(--fw-surface, #0f1115);
+  --panel: var(--fw-surface, #171a21);
+  --panel-2: var(--fw-surface-2, #1e222b);
+  --border: var(--fw-border, #2a2f3a);
+  --border-strong: color-mix(in srgb, var(--text) 26%, var(--panel));
+  --text: var(--fw-text, #e6e9ef);
+  --label: color-mix(in srgb, var(--text) 82%, var(--panel));
+  --muted: var(--fw-muted, #9aa3b2);
+  --accent: var(--fw-accent, #6ea8fe);
+  --accent-hover: var(--fw-accent-hover, #8dbbfe);
+  --accent-contrast: var(--fw-accent-contrast, #0b0d12);
+  --ring: color-mix(in srgb, var(--accent) 35%, transparent);
+  --shadow-pop: var(--fw-shadow, 0 12px 32px rgba(0, 0, 0, 0.45));
+  --ok: var(--fw-success, #3fb950);
+  --err: var(--fw-danger, #f85149);
+  box-sizing: border-box;
   min-height: 100vh;
-  background: var(--bg, #f8fafc);
+  padding: 32px 24px;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+.sb-form-story > .form-host {
+  max-width: 880px;
+  margin-inline: auto;
+}
+/* Docs pages stack several stories: size each to its content. */
+.sb-story .sb-form-story {
+  min-height: 0;
+  padding: 28px 24px;
+}
+/* The playground draws the switch knob in the text colour, made for its dark
+   page; on a light theme that is a black dot. */
+:root:not([data-fw-mode="dark"]) .sb-form-story .form-host input.fw-switch::after {
+  background: #fff;
+}
+@media (max-width: 480px) {
+  .sb-form-story {
+    padding: 20px 16px;
+  }
 }
 
 .sb-app-story {
+  /* The grid demos are light; the playground CSS loaded for every story
+     defines a dark palette on :root, so restate the light one here. */
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #f1f5f9;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --muted: #64748b;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: var(--bg, #f8fafc);
+  background: var(--bg);
+  color: var(--text);
 }
 
 .sb-app-head {
@@ -80,72 +134,60 @@
   border: 0;
 }
 
-.sb-forge-mini {
-  display: grid;
-  grid-template-columns: 200px 1fr 1fr;
-  min-height: 80vh;
-  background: var(--bg, #f8fafc);
+/* @formwright/ui stories */
+.sb-ui {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 32px 24px;
+  background: var(--fw-surface, #fff);
+  color: var(--fw-text, #0f172a);
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
 }
-.sb-forge-palette {
-  padding: 12px;
-  border-right: 1px solid var(--border);
-  background: var(--surface, #fff);
+.sb-ui > * {
+  max-width: var(--sb-ui-width, 32rem);
+  margin-inline: auto;
 }
-.sb-forge-canvas {
-  padding: 12px;
-  border-right: 1px solid var(--border);
+.sb-ui--center .sb-ui-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 60vh;
 }
-.sb-forge-preview {
-  padding: 12px;
-}
-
-.sb-builder-mini {
-  display: grid;
-  grid-template-columns: 180px 1fr 1fr;
-  min-height: 80vh;
-}
-.sb-builder-nav {
-  padding: 12px;
-  border-right: 1px solid var(--border);
-  background: var(--surface, #fff);
+.sb-ui-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 16px;
 }
-.sb-builder-nav button {
-  text-align: left;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface, #fff);
-  cursor: pointer;
+.sb-ui-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
 }
-.sb-builder-nav button.active {
-  border-color: var(--accent, #2563eb);
-  background: color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
+.sb-ui-note {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: var(--fw-muted, #64748b);
+  line-height: 1.5;
+}
+.sb-ui-log {
+  margin-top: 24px;
+  padding: 12px;
+  min-height: 3em;
+  border-radius: 8px;
+  background: var(--fw-surface-2, #f1f5f9);
+  color: var(--fw-text, #334155);
+  font-size: 12px;
+  white-space: pre-wrap;
 }
 
-.sb-settings-mini {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  min-height: 80vh;
-}
-.sb-settings-sidebar {
-  padding: 12px;
-  border-right: 1px solid var(--border);
-  background: var(--surface, #fff);
-}
-.sb-settings-sidebar button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 8px 10px;
-  margin-bottom: 4px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  cursor: pointer;
-}
-.sb-settings-sidebar button.active {
-  background: color-mix(in srgb, var(--accent, #2563eb) 12%, transparent);
+/* The playground's page-wide element styles (button, input, select,
+   textarea) are loaded for every story. UI stories and toasts start from
+   the browser defaults instead, so what shows is the components' own look. */
+.sb-ui :where(button, input, select, textarea),
+fw-toast-region :where(button, input, select, textarea) {
+  all: revert;
 }

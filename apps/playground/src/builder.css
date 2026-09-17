@@ -1,28 +1,27 @@
 /* Theme / Settings Builder demo layout */
 .builder {
   display: grid;
-  grid-template-columns: 200px 360px 1fr;
+  grid-template-columns: 200px 360px minmax(0, 1fr);
   gap: 16px;
   padding: 16px;
+  margin: 0; /* styles.css has an unrelated `.builder` rule with a bottom margin */
   align-items: start;
-}
-@media (max-width: 1100px) {
-  .builder {
-    grid-template-columns: 1fr;
-  }
 }
 
 .builder-rail {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 14px;
+  padding: 16px;
+  position: sticky;
+  top: 16px;
 }
 .builder-rail h2,
-.builder-settings h2,
+.builder-settings > h2,
 .stage-title {
   margin: 0 0 12px;
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
@@ -30,63 +29,115 @@
 .builder-nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 .builder-nav button {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  text-align: left;
-  background: var(--panel-2);
+  min-height: 40px;
+  text-align: start;
+  background: transparent;
   color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
   font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.builder-nav button:hover {
+  filter: none;
+  background: var(--panel-2);
+}
+.builder-nav button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 .builder-nav button .ico {
-  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  font-size: 15px;
+  line-height: 1;
 }
 .builder-nav button.active {
-  border-color: var(--accent);
-  background: rgba(110, 168, 254, 0.12);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 .rail-note {
   margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
   font-size: 12px;
   line-height: 1.5;
   color: var(--muted);
 }
 .rail-note code {
   color: var(--accent);
+  overflow-wrap: anywhere;
 }
 
 .builder-settings {
   position: sticky;
   top: 16px;
+  min-height: 0;
+  min-width: 0;
+}
+/* The form's own title reads as the panel heading, not another uppercase label. */
+.builder-settings .fw-title {
+  margin: 0 0 2px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text);
+}
+/* An empty success host would still add a grid gap under the fields. */
+.builder-settings .fw-success-host:empty {
+  display: none;
+}
+/* The live preview is the summary here. */
+.builder-settings .fw-summary {
+  display: none;
 }
 
 .builder-stage {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 0;
+}
+.builder-stage .stage-title {
+  /* line up with the headings inside the bordered, padded panels */
+  margin: 17px 0 2px;
 }
 
 /* The rendered "store theme" preview */
 .builder-preview {
   --t-accent: #6ea8fe;
+  container-type: inline-size;
   border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
   background: #fff;
   color: #111;
   font-family: ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 .t-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: 10px 16px;
   padding: 14px 18px;
   border-bottom: 1px solid #eee;
 }
@@ -105,12 +156,19 @@
   font-size: 14px;
 }
 .t-search {
+  flex: 0 1 220px;
+  min-width: 0;
+  margin-inline-start: auto;
   border: 1px solid #ddd;
   border-radius: 999px;
   padding: 6px 12px;
   font-size: 13px;
   color: #111;
   background: #fafafa;
+}
+.t-search:focus {
+  outline: 2px solid var(--t-accent);
+  outline-offset: -1px;
 }
 .t-hero {
   padding: 48px 24px;
@@ -120,6 +178,8 @@
 .t-hero h1 {
   margin: 0 0 8px;
   font-size: 30px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 .t-hero p {
   margin: 0 0 18px;
@@ -146,9 +206,10 @@
   gap: 14px;
 }
 .t-card {
+  min-width: 0;
   border: 1px solid #eee;
   border-radius: 12px;
-  padding: 18px;
+  padding: 18px 12px;
   text-align: center;
   background: #fafafa;
 }
@@ -166,7 +227,9 @@
 }
 .t-footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
+  gap: 8px 16px;
   padding: 18px;
   border-top: 1px solid #eee;
   font-size: 13px;
@@ -175,9 +238,91 @@
 .t-social {
   letter-spacing: 4px;
 }
+@container (max-width: 480px) {
+  .t-hero {
+    padding: 32px 18px;
+  }
+  .t-hero h1 {
+    font-size: 24px;
+  }
+  .t-products {
+    padding: 18px;
+  }
+  .t-search {
+    flex: 1 1 100%;
+    margin-inline-start: 0;
+  }
+  /* The column count is an inline style from the settings; cap it on a narrow preview. */
+  .t-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px;
+  }
+}
 
 .builder-payload-wrap summary {
   cursor: pointer;
   font-size: 13px;
   color: var(--muted);
+}
+.builder-payload-wrap summary:hover {
+  color: var(--text);
+}
+.builder-payload-wrap .result {
+  margin-top: 8px;
+}
+
+@media (max-width: 1100px) {
+  .builder {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* Stacked, a sticky panel would slide over the ones below it. */
+  .builder-rail,
+  .builder-settings {
+    position: static;
+  }
+  .builder-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .builder-nav button {
+    width: auto;
+  }
+  .builder-stage .stage-title {
+    margin-top: 4px;
+  }
+}
+
+/* ---- Storybook mini theme builder (apps/storybook mounts) ----
+   Maps the playground tokens onto the @formwright/ui theme so the embedded app
+   follows the Storybook theme toolbar; falls back to the playground palette. */
+.builder-mini {
+  --bg: var(--fw-surface-2, #0f1115);
+  --panel: var(--fw-surface, #171a21);
+  --panel-2: var(--fw-surface-2, #1e222b);
+  --border: var(--fw-border, #2a2f3a);
+  --text: var(--fw-text, #e6e9ef);
+  --muted: var(--fw-muted, #9aa3b2);
+  --accent: var(--fw-accent, #6ea8fe);
+  --accent-hover: var(--fw-accent-hover, #8dbbfe);
+  --accent-contrast: var(--fw-accent-contrast, #0b0d12);
+  --label: color-mix(in srgb, var(--text) 82%, var(--panel));
+  --border-strong: color-mix(in srgb, var(--text) 26%, var(--panel));
+  --ring: color-mix(in srgb, var(--accent) 35%, transparent);
+  --shadow-pop: var(--fw-shadow, 0 12px 32px rgba(0, 0, 0, 0.45));
+  --ok: var(--fw-success, #3fb950);
+  --err: var(--fw-danger, #f85149);
+  box-sizing: border-box;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
+/* styles.css draws the switch knob in the text colour (made for its dark page);
+   on a light Storybook theme that reads as a black dot, so use a white knob. */
+:root:not([data-fw-mode="dark"]) .builder-mini .form-host input.fw-switch::after {
+  background: #fff;
+}
+/* In a Storybook docs page the story sits inline: size it to its content, not the viewport. */
+.docs-story .builder-mini {
+  min-height: 0;
 }

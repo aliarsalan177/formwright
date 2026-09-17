@@ -16,9 +16,19 @@ const config: StorybookConfig = {
     return mergeConfig(config, {
       base,
       resolve: {
-        alias: {
-          "@playground": path.join(dir, "../../playground/src"),
-        },
+        alias: [
+          { find: "@playground", replacement: path.join(dir, "../../playground/src") },
+          // Stories run against the component source, so styling changes show
+          // up on reload without rebuilding the package.
+          {
+            find: /^@formwright\/ui$/,
+            replacement: path.join(dir, "../../../packages/ui/src/index.ts"),
+          },
+          {
+            find: /^@formwright\/ui\/(.+)$/,
+            replacement: path.join(dir, "../../../packages/ui/src/$1/index.ts"),
+          },
+        ],
       },
     });
   },
