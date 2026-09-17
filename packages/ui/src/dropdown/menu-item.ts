@@ -1,47 +1,21 @@
 import { untrack } from "@formwright/reactive";
 import type { Scope } from "@formwright/ui-core";
-import { FwElement, type PropMap } from "../core/element.js";
+import type { PropMap } from "../core/element.js";
+import { FwItemBase, itemStyles } from "../core/item.js";
 import type { FwSubmenu } from "./submenu.js";
 
 export type MenuItemType = "normal" | "checkbox" | "radio";
 
-const styles = /* css */ `
-:host {
-  display: flex; align-items: center; gap: 0.5rem;
-  padding: 0.5rem 0.625rem; border-radius: min(var(--_radius-sm), 0.5rem);
-  font-size: var(--_text-size); line-height: 1.25; cursor: pointer; outline: none;
-  user-select: none; white-space: nowrap;
-  transition: background-color var(--_duration), color var(--_duration);
-}
-:host(:focus), :host([data-active]) { background: var(--_surface-2); }
-:host(:focus-visible) { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--_accent) 45%, transparent); }
-:host([danger]) { color: var(--_danger); }
-:host([danger]:focus), :host([danger][data-active]) {
-  background: color-mix(in srgb, var(--_danger) 10%, transparent);
-}
-:host([disabled]) { opacity: 0.5; cursor: not-allowed; }
-
-.check { width: 1rem; flex: none; display: none; color: var(--_accent); }
+const styles =
+  itemStyles +
+  /* css */ `
+/* Checkbox and radio items lead with their indicator, as menus do. */
 :host([type="checkbox"]) .check, :host([type="radio"]) .check { display: inline-flex; visibility: hidden; }
 :host([checked]) .check { visibility: visible; }
-.dot, :host([type="radio"]) .tick { display: none; }
-:host([type="radio"]) .dot { display: block; }
-.label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.suffix {
-  display: inline-flex; align-items: center; margin-inline-start: auto; padding-inline-start: 1rem;
-  color: var(--_muted); font-size: 0.75rem; letter-spacing: 0.04em;
-}
-::slotted(kbd[slot="suffix"]) { font: inherit; }
-::slotted([slot="prefix"]) { display: inline-flex; flex: none; }
-:host([danger]) .suffix { color: color-mix(in srgb, var(--_danger) 70%, var(--_muted)); }
-:host([aria-expanded="true"]) { background: var(--_surface-2); }
-.chevron { display: none; flex: none; margin-inline-end: -0.25rem; color: var(--_muted); }
-:host([aria-haspopup="menu"]) .chevron { display: inline-flex; }
-:host(:dir(rtl)) .chevron { transform: scaleX(-1); }
+.check .dot, :host([type="radio"]) .check .tick { display: none; }
+:host([type="radio"]) .check .dot { display: block; }
 `;
 
-const CHECK = `<svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
-const CHEVRON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>`;
 const DOT = `<svg class="dot" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4"/></svg>`;
 
 const ROLE: Record<MenuItemType, string> = {
@@ -56,6 +30,7 @@ const ROLE: Record<MenuItemType, string> = {
  * ```html
  * <fw-menu-item value="edit"><svg slot="prefix" …></svg>Edit<kbd slot="suffix">⌘E</kbd></fw-menu-item>
  * <fw-menu-item value="delete" danger>Delete member</fw-menu-item>
+ * <fw-menu-item value="export" description="CSV of every member">Export</fw-menu-item>
  * <fw-menu-item type="checkbox" value="archived" checked>Show archived</fw-menu-item>
  * <fw-menu-item type="radio" group="sort" value="name" checked>Sort by name</fw-menu-item>
  * <fw-menu-item type="radio" group="sort" value="joined">Sort by join date</fw-menu-item>
@@ -76,79 +51,43 @@ const ROLE: Record<MenuItemType, string> = {
  * role, `aria-checked` and `aria-disabled` are set on it directly and it
  * receives real focus while the menu is open.
  *
- * Slots: default (label), `prefix` (icon), `suffix` (shortcut hint),
+ * It is the shared item row (see `FwItemBase`), so it renders exactly like
+ * `<fw-option>` and `<fw-list-item>`. A plain `<fw-list-item>` works as a
+ * normal menu item too; checkbox, radio and submenu items stay
+ * `<fw-menu-item>`.
+ *
+ * Slots: default (label), `prefix` (icon), `description`, `suffix` (shortcut hint),
  * `submenu` (an `<fw-submenu>`).
- * Parts: `check`, `label`, `suffix`, `chevron`.
+ * Parts: `check`, `label`, `description`, `suffix`, `chevron`.
  */
-export class FwMenuItem extends FwElement {
+export class FwMenuItem extends FwItemBase {
   static override props: PropMap = {
-    ...FwElement.props,
-    value: { type: "string", default: "" },
-    disabled: { type: "boolean", reflect: true },
-    danger: { type: "boolean", reflect: true },
+    ...FwItemBase.props,
     type: { type: "string", reflect: true, default: "normal" },
     checked: { type: "boolean", reflect: true },
     group: { type: "string" },
   };
   static override styles = styles;
 
-  declare value: string;
-  declare disabled: boolean;
-  declare danger: boolean;
   declare type: MenuItemType;
   declare checked: boolean;
   declare group: string | null;
-
-  /** The label text, without the prefix icon or shortcut hint. Used for typeahead. */
-  get text(): string {
-    let text = "";
-    for (const node of this.childNodes) {
-      if (node instanceof Element && node.hasAttribute("slot")) continue;
-      text += node.textContent ?? "";
-    }
-    return text.trim();
-  }
 
   /** The `<fw-submenu>` this item opens, if it has one. */
   get submenu(): FwSubmenu | null {
     return this.querySelector<FwSubmenu>(":scope > fw-submenu");
   }
 
-  protected render(root: ShadowRoot): void {
-    const check = document.createElement("span");
-    check.className = "check";
-    check.setAttribute("part", "check");
-    check.setAttribute("aria-hidden", "true");
-    check.innerHTML = CHECK + DOT;
-
-    const prefix = document.createElement("slot");
-    prefix.name = "prefix";
-
-    const label = document.createElement("span");
-    label.className = "label";
-    label.setAttribute("part", "label");
-    label.append(document.createElement("slot"));
-
-    const suffix = document.createElement("span");
-    suffix.className = "suffix";
-    suffix.setAttribute("part", "suffix");
-    const suffixSlot = document.createElement("slot");
-    suffixSlot.name = "suffix";
-    suffix.append(suffixSlot);
-
-    const chevron = document.createElement("span");
-    chevron.className = "chevron";
-    chevron.setAttribute("part", "chevron");
-    chevron.setAttribute("aria-hidden", "true");
-    chevron.innerHTML = CHEVRON;
-
+  protected override render(root: ShadowRoot): void {
+    super.render(root);
+    this.itemParts.check.insertAdjacentHTML("beforeend", DOT);
     const submenu = document.createElement("slot");
     submenu.name = "submenu";
-
-    root.append(check, prefix, label, suffix, chevron, submenu);
+    root.append(submenu);
   }
 
   protected override connected(scope: Scope): void {
+    super.connected(scope);
     if (!this.hasAttribute("tabindex")) this.tabIndex = -1;
 
     scope.bind(() => {
@@ -156,11 +95,6 @@ export class FwMenuItem extends FwElement {
       this.setAttribute("role", ROLE[type]);
       if (type === "normal") this.removeAttribute("aria-checked");
       else this.setAttribute("aria-checked", String(this.prop<boolean>("checked").get()));
-    });
-
-    scope.bind(() => {
-      if (this.prop<boolean>("disabled").get()) this.setAttribute("aria-disabled", "true");
-      else this.removeAttribute("aria-disabled");
     });
 
     // A radio item that becomes checked, however it happened, unchecks

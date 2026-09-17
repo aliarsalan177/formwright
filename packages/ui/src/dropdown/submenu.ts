@@ -6,6 +6,7 @@ import {
   type Scope,
 } from "@formwright/ui-core";
 import { FwElement, type PropMap } from "../core/element.js";
+import type { FwListItem } from "../list/list-item.js";
 import type { FwMenuItem } from "./menu-item.js";
 
 /** @internal The panel look shared by `<fw-dropdown>` and `<fw-submenu>`. */
@@ -39,9 +40,17 @@ export const hasPopover =
 /** @internal The element whose items an item moves among: its nearest submenu or dropdown. */
 export const MENU = "fw-submenu, fw-dropdown";
 
+/** An item a menu moves among and chooses: a `<fw-menu-item>`, or a `<fw-list-item>` acting as a plain one. */
+export type MenuEntry = FwMenuItem | FwListItem;
+
+/** @internal The submenu an item opens: only a `<fw-menu-item>` can have one. */
+export function submenuOf(item: MenuEntry): FwSubmenu | null {
+  return item.localName === "fw-menu-item" ? (item as FwMenuItem).submenu : null;
+}
+
 /** @internal A menu's own items — not those of a submenu or dropdown inside it. */
-export function ownItems(menu: Element): FwMenuItem[] {
-  return [...menu.querySelectorAll<FwMenuItem>("fw-menu-item")].filter((item) => {
+export function ownItems(menu: Element): MenuEntry[] {
+  return [...menu.querySelectorAll<MenuEntry>("fw-menu-item, fw-list-item")].filter((item) => {
     if (item.closest(MENU) !== menu) return false;
     const trigger = item.closest('[slot="trigger"]');
     return !trigger || !menu.contains(trigger);
@@ -103,7 +112,7 @@ export class FwSubmenu extends FwElement {
   }
 
   /** This submenu's own items, in document order — not those of a submenu inside it. */
-  get items(): FwMenuItem[] {
+  get items(): MenuEntry[] {
     return ownItems(this);
   }
 
@@ -128,7 +137,7 @@ export class FwSubmenu extends FwElement {
 
     this.#collection = createCollection({
       items: () => this.items,
-      textOf: (item) => (item as FwMenuItem).text,
+      textOf: (item) => (item as MenuEntry).text,
       isDisabled: (item) => item.hasAttribute("disabled"),
       onActiveChange: (item) => {
         for (const each of this.items) each.toggleAttribute("data-active", each === item);

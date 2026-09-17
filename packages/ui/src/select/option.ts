@@ -1,77 +1,37 @@
 import type { Scope } from "@formwright/ui-core";
-import { FwElement, nextId, type PropMap } from "../core/element.js";
-
-const styles = /* css */ `
-:host {
-  display: flex; align-items: center; gap: 0.5rem;
-  min-height: 2rem; padding: 0.375rem 0.5rem; border-radius: min(var(--_radius-sm), 0.5rem);
-  font-size: var(--_text-size); line-height: 1.25rem; color: var(--_text);
-  cursor: pointer; outline: none; user-select: none;
-  scroll-margin-block: 0.25rem;
-}
-:host(:focus), :host([data-active]) { background: var(--_surface-2); }
-:host(:not([disabled]):active) { background: var(--_accent-soft); }
-:host([selected]) { font-weight: 500; }
-:host([disabled]) { color: var(--_muted); opacity: 0.7; cursor: not-allowed; }
-:host([disabled]:focus), :host([disabled][data-active]) { background: transparent; }
-/* The check trails, so option text lines up with the text in the trigger. */
-.check { display: inline-flex; order: 1; width: 1rem; flex: none; visibility: hidden; color: var(--_accent); }
-.check svg { display: block; }
-:host([selected]) .check { visibility: visible; }
-::slotted([slot="prefix"]) { display: inline-flex; align-items: center; flex: none; }
-.label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-`;
+import { nextId, type PropMap } from "../core/element.js";
+import { FwItemBase, itemStyles } from "../core/item.js";
 
 /**
- * `<fw-option>` — one choice inside `<fw-select>` (and later the combobox
- * and multi-select).
+ * `<fw-option>` — one choice inside `<fw-select>`, `<fw-combobox>` or
+ * `<fw-multi-select>`.
  *
  * ```html
  * <fw-option value="MALE">Male</fw-option>
  * <fw-option value="FEMALE" disabled>Female</fw-option>
  * <fw-option value="pk" label="Pakistan"><img slot="prefix" …> Pakistan</fw-option>
+ * <fw-option value="sana" description="Head trainer">Sana Malik</fw-option>
  * ```
  *
  * Its content can be anything; `label` sets the plain text shown in the
  * closed select and used for type-to-find when the content is richer.
+ * Without it, the text of the default slot is used — prefix, suffix and
+ * description excluded.
  *
- * Slots: default, `prefix`. Parts: `check`, `label`.
+ * It is the shared item row (see `FwItemBase`), so it renders exactly like
+ * `<fw-menu-item>` and `<fw-list-item>`; a `<fw-list-item>` can stand in
+ * for it anywhere. The container marks it `data-selectable`, which gives
+ * it the trailing check.
+ *
+ * Slots: default, `prefix`, `description`, `suffix`.
+ * Parts: `check`, `label`, `description`, `suffix`, `chevron`.
  */
-export class FwOption extends FwElement {
-  static override props: PropMap = {
-    value: { type: "string", default: "" },
-    label: { type: "string" },
-    disabled: { type: "boolean", reflect: true },
-    selected: { type: "boolean", reflect: true },
-  };
-  static override styles = styles;
-
-  declare value: string;
-  declare label: string | null;
-  declare disabled: boolean;
-  declare selected: boolean;
-
-  /** The text this option shows as, when closed and when typed for. */
-  get text(): string {
-    return (this.prop<string | null>("label").peek() ?? this.textContent ?? "").trim();
-  }
-
-  protected render(root: ShadowRoot): void {
-    const check = document.createElement("span");
-    check.className = "check";
-    check.setAttribute("part", "check");
-    check.setAttribute("aria-hidden", "true");
-    check.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
-    const prefix = document.createElement("slot");
-    prefix.name = "prefix";
-    const label = document.createElement("span");
-    label.className = "label";
-    label.setAttribute("part", "label");
-    label.append(document.createElement("slot"));
-    root.append(check, prefix, label);
-  }
+export class FwOption extends FwItemBase {
+  static override props: PropMap = { ...FwItemBase.props };
+  static override styles = itemStyles;
 
   protected override connected(scope: Scope): void {
+    super.connected(scope);
     // Options live in the page, not the select's shadow root, so their own
     // role and state are what assistive technology reads.
     if (!this.hasAttribute("role")) this.setAttribute("role", "option");
@@ -80,11 +40,6 @@ export class FwOption extends FwElement {
 
     scope.bind(() => {
       this.setAttribute("aria-selected", String(this.prop<boolean>("selected").get()));
-    });
-    scope.bind(() => {
-      const disabled = this.prop<boolean>("disabled").get();
-      if (disabled) this.setAttribute("aria-disabled", "true");
-      else this.removeAttribute("aria-disabled");
     });
   }
 }

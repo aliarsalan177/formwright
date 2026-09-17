@@ -96,6 +96,10 @@ const CHEVRON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
 const CLEAR = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
 const REMOVE = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
 
+/** Options are `<fw-option>`s or `<fw-list-item>`s, as children or grandchildren (in a group). */
+const OPTION_SELECTOR =
+  ":scope > fw-option, :scope > * > fw-option, :scope > fw-list-item, :scope > * > fw-list-item";
+
 const hasPopover = typeof HTMLElement !== "undefined" && "showPopover" in HTMLElement.prototype;
 const canReflectActive = () =>
   typeof Element !== "undefined" && "ariaActiveDescendantElement" in Element.prototype;
@@ -163,6 +167,9 @@ function toList(input: unknown): readonly string[] {
  * the active option is exposed with `ariaActiveDescendantElement` and a
  * `data-active` highlight. Without it, focus moves onto the options, as in
  * `<fw-select>`.
+ *
+ * Options are `<fw-option>`s, or `<fw-list-item>`s for richer rows
+ * (import `@formwright/ui/list` to register it).
  *
  * Events: `input` and `change` whenever the selection changes, `fw-show`, `fw-hide`.
  * Slots: default (options), `label`, `help`, `prefix`, `empty`.
@@ -242,9 +249,9 @@ export class FwMultiSelect extends FwFormElement {
     else super.attributeChangedCallback(name, old, value);
   }
 
-  /** The options, in document order. */
+  /** The options — `<fw-option>` and `<fw-list-item>` children — in document order. */
   get options(): FwOption[] {
-    return [...this.querySelectorAll<FwOption>(":scope > fw-option, :scope > * > fw-option")];
+    return [...this.querySelectorAll<FwOption>(OPTION_SELECTOR)];
   }
 
   /** The chosen options, in the order their values were chosen. */
@@ -381,6 +388,7 @@ export class FwMultiSelect extends FwFormElement {
         const on = values.includes(valueOf(option));
         // Attributes rather than properties: they work before the option upgrades.
         if (option.hasAttribute("selected") !== on) option.toggleAttribute("selected", on);
+        if (!option.hasAttribute("data-selectable")) option.setAttribute("data-selectable", "");
         if (atMax && !on && !option.hasAttribute("disabled")) {
           option.setAttribute("disabled", "");
           this.#disabledByMax.add(option);
@@ -528,7 +536,7 @@ export class FwMultiSelect extends FwFormElement {
       if (!this.prop<boolean>("open").peek()) return;
       const path = event.composedPath();
       const inSearch = path.includes(search);
-      const option = (event.target as Element | null)?.closest?.("fw-option");
+      const option = (event.target as Element | null)?.closest?.("fw-option, fw-list-item");
       if (!inSearch && !(option && this.contains(option))) return;
       const collection = this.#collection!;
       switch (event.key) {
@@ -562,7 +570,9 @@ export class FwMultiSelect extends FwFormElement {
     };
 
     const optionFrom = (event: Event): FwOption | null => {
-      const option = (event.target as Element | null)?.closest?.("fw-option") as FwOption | null;
+      const option = (event.target as Element | null)?.closest?.(
+        "fw-option, fw-list-item",
+      ) as FwOption | null;
       return option && this.contains(option) ? option : null;
     };
 

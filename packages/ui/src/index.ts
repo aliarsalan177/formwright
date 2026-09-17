@@ -25,6 +25,7 @@ export * from "./drawer/index.js";
 export * from "./dropdown/index.js";
 export * from "./empty-state/index.js";
 export * from "./input/index.js";
+export * from "./list/index.js";
 export * from "./multi-select/index.js";
 export * from "./number-input/index.js";
 export * from "./otp-input/index.js";

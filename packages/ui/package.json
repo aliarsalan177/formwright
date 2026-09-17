@@ -123,6 +123,11 @@
       "import": "./dist/input/index.js",
       "require": "./dist/input/index.cjs"
     },
+    "./list": {
+      "types": "./dist/list/index.d.ts",
+      "import": "./dist/list/index.js",
+      "require": "./dist/list/index.cjs"
+    },
     "./multi-select": {
       "types": "./dist/multi-select/index.d.ts",
       "import": "./dist/multi-select/index.js",

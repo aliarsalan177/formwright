@@ -53,6 +53,10 @@ const CLEAR = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" strok
 
 /** The Popover API puts the list in the top layer: above every z-index,
  *  and outside any transformed ancestor that would trap `position: fixed`. */
+/** Options are `<fw-option>`s or `<fw-list-item>`s, as children or grandchildren (in a group). */
+const OPTION_SELECTOR =
+  ":scope > fw-option, :scope > * > fw-option, :scope > fw-list-item, :scope > * > fw-list-item";
+
 const hasPopover = typeof HTMLElement !== "undefined" && "showPopover" in HTMLElement.prototype;
 
 /**
@@ -76,6 +80,10 @@ const hasPopover = typeof HTMLElement !== "undefined" && "showPopover" in HTMLEl
  * staying on the trigger with `aria-activedescendant`: the options are in
  * the page and the trigger is in the shadow root, and id references do not
  * cross that boundary. Focus does, in every screen reader.
+ *
+ * Options are `<fw-option>`s, or `<fw-list-item>`s for richer rows
+ * (avatar, description, badge); both behave the same here. Import
+ * `@formwright/ui/list` to register `<fw-list-item>`.
  *
  * Events: `input` and `change` when the user picks, `fw-show`, `fw-hide`.
  * Slots: default (options), `label`, `help`, `prefix`, `empty`.
@@ -123,9 +131,9 @@ export class FwSelect extends FwFormElement {
   readonly #optionsVersion = signal(0);
   readonly #slots = signal(0);
 
-  /** The options, in document order. */
+  /** The options — `<fw-option>` and `<fw-list-item>` children — in document order. */
   get options(): FwOption[] {
-    return [...this.querySelectorAll<FwOption>(":scope > fw-option, :scope > * > fw-option")];
+    return [...this.querySelectorAll<FwOption>(OPTION_SELECTOR)];
   }
 
   /** The chosen option, if any. */
@@ -244,6 +252,7 @@ export class FwSelect extends FwFormElement {
       for (const option of options) {
         const on = value !== "" && option.value === value;
         option.selected = on;
+        if (!option.hasAttribute("data-selectable")) option.setAttribute("data-selectable", "");
         if (on) chosen = option;
       }
       const placeholder = this.prop<string | null>("placeholder").get() ?? "";
@@ -328,7 +337,7 @@ export class FwSelect extends FwFormElement {
 
     const onListKey = (event: KeyboardEvent) => {
       if (!this.prop<boolean>("open").peek()) return;
-      const option = (event.target as Element | null)?.closest?.("fw-option");
+      const option = (event.target as Element | null)?.closest?.("fw-option, fw-list-item");
       if (!option) return;
       const collection = this.#collection!;
       switch (event.key) {
@@ -363,13 +372,17 @@ export class FwSelect extends FwFormElement {
     };
 
     const onOptionClick = (event: MouseEvent) => {
-      const option = (event.target as Element | null)?.closest?.("fw-option") as FwOption | null;
+      const option = (event.target as Element | null)?.closest?.(
+        "fw-option, fw-list-item",
+      ) as FwOption | null;
       if (!option || option.disabled) return;
       this.#choose(option, true);
     };
 
     const onOptionHover = (event: PointerEvent) => {
-      const option = (event.target as Element | null)?.closest?.("fw-option") as FwOption | null;
+      const option = (event.target as Element | null)?.closest?.(
+        "fw-option, fw-list-item",
+      ) as FwOption | null;
       if (option && !option.disabled) this.#collection?.setActive(option);
     };
 

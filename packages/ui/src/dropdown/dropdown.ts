@@ -9,7 +9,16 @@ import {
 } from "@formwright/ui-core";
 import { FwElement, type PropMap } from "../core/element.js";
 import type { FwMenuItem } from "./menu-item.js";
-import { MENU, hasPopover, isRtl, menuStyles, ownItems, type FwSubmenu } from "./submenu.js";
+import {
+  MENU,
+  hasPopover,
+  isRtl,
+  menuStyles,
+  ownItems,
+  submenuOf,
+  type FwSubmenu,
+  type MenuEntry,
+} from "./submenu.js";
 
 const styles = menuStyles;
 
@@ -20,7 +29,8 @@ const HOVER_CLOSE_MS = 200;
 
 export interface DropdownSelectDetail {
   value: string;
-  item: FwMenuItem;
+  /** The chosen item: a `<fw-menu-item>`, or a `<fw-list-item>` used as a menu item. */
+  item: MenuEntry;
 }
 
 /**
@@ -61,6 +71,12 @@ export interface DropdownSelectDetail {
  * the whole tree. Hovering an item opens its submenu after a moment;
  * moving to another item closes it after a short grace period, which
  * moving into the submenu cancels. Clicking the item toggles it.
+ *
+ * A plain `<fw-list-item>` works as a normal menu item — arrows, typeahead
+ * and `fw-select` treat it exactly like a `<fw-menu-item>` — for richer
+ * rows with an avatar or description. Checkbox, radio and submenu items
+ * stay `<fw-menu-item>`. Import `@formwright/ui/list` to register
+ * `<fw-list-item>`.
  *
  * Choosing an item, at any depth, fires `fw-select` from the dropdown with `{ value, item }`, toggles a
  * checkbox item or checks a radio item, and closes the menu unless
@@ -107,7 +123,7 @@ export class FwDropdown extends FwElement {
   }
 
   /** This dropdown's items, in document order — not those of a dropdown nested inside it. */
-  get items(): FwMenuItem[] {
+  get items(): MenuEntry[] {
     return ownItems(this);
   }
 
@@ -129,7 +145,7 @@ export class FwDropdown extends FwElement {
   protected override connected(scope: Scope): void {
     this.#collection = createCollection({
       items: () => this.items,
-      textOf: (item) => (item as FwMenuItem).text,
+      textOf: (item) => (item as MenuEntry).text,
       isDisabled: (item) => item.hasAttribute("disabled"),
       onActiveChange: (item) => {
         for (const each of this.items) each.toggleAttribute("data-active", each === item);
@@ -176,14 +192,15 @@ export class FwDropdown extends FwElement {
     // The item an event is on, and the menu — this or a submenu — it is in.
     // Walked outward, so a press on a submenu's padding is not taken for
     // the item that opened it.
-    const locate = (event: Event): { item: FwMenuItem | null; menu: Element | null } => {
+    const locate = (event: Event): { item: MenuEntry | null; menu: Element | null } => {
       for (const node of event.composedPath()) {
         if (node === this) break;
         if (!(node instanceof Element)) continue;
-        if (node.localName !== "fw-menu-item" && node.localName !== "fw-submenu") continue;
+        const name = node.localName;
+        if (name !== "fw-menu-item" && name !== "fw-list-item" && name !== "fw-submenu") continue;
         if (node.closest("fw-dropdown") !== this) break;
         if (node.localName === "fw-submenu") return { item: null, menu: node };
-        return { item: node as FwMenuItem, menu: node.closest(MENU) };
+        return { item: node as MenuEntry, menu: node.closest(MENU) };
       }
       return { item: null, menu: null };
     };
@@ -218,7 +235,7 @@ export class FwDropdown extends FwElement {
       if (!item || !menu) return;
 
       const rtl = isRtl(item);
-      const submenu = item.submenu;
+      const submenu = submenuOf(item);
       if (
         submenu &&
         (event.key === (rtl ? "ArrowLeft" : "ArrowRight") ||
@@ -273,7 +290,7 @@ export class FwDropdown extends FwElement {
       }
       const { item } = locate(event);
       if (!item) return;
-      const submenu = item.submenu;
+      const submenu = submenuOf(item);
       if (!submenu) this.#activate(item);
       else if (item.disabled) return;
       else if (submenu.open) this.#closeSubmenu(submenu, false);
@@ -299,7 +316,7 @@ export class FwDropdown extends FwElement {
       if (collection?.active() !== item) collection?.setActive(item);
       else if (document.activeElement !== item) item.focus({ preventScroll: true });
 
-      const wanted = item.submenu;
+      const wanted = submenuOf(item);
       const current = this.#openChild(menu);
       if (wanted === current) {
         if (this.#hoverMenu === menu) this.#clearHover();
@@ -365,7 +382,7 @@ export class FwDropdown extends FwElement {
   /** The open submenu among a menu's own items. */
   #openChild(menu: Element): FwSubmenu | null {
     for (const item of ownItems(menu)) {
-      const submenu = item.submenu;
+      const submenu = submenuOf(item);
       if (submenu?.open) return submenu;
     }
     return null;
@@ -374,7 +391,7 @@ export class FwDropdown extends FwElement {
   /** Close a menu's open submenus, except the one belonging to `keep`. */
   #closeChildren(menu: Element, keep: HTMLElement | null): void {
     for (const item of ownItems(menu)) {
-      const submenu = item.submenu;
+      const submenu = submenuOf(item);
       if (submenu?.open && item !== keep) submenu.open = false;
     }
   }
@@ -407,10 +424,13 @@ export class FwDropdown extends FwElement {
     this.#hoverFor = null;
   }
 
-  #activate(item: FwMenuItem): void {
+  #activate(item: MenuEntry): void {
     if (item.disabled) return;
-    if (item.type === "checkbox") item.checked = !item.checked;
-    else if (item.type === "radio") item.checked = true;
+    if (item.localName === "fw-menu-item") {
+      const menuItem = item as FwMenuItem;
+      if (menuItem.type === "checkbox") menuItem.checked = !menuItem.checked;
+      else if (menuItem.type === "radio") menuItem.checked = true;
+    }
     this.emit<DropdownSelectDetail>("fw-select", { value: item.value, item });
     if (this.prop<boolean | null>("closeOnSelect").peek() !== false) this.#close(true);
   }

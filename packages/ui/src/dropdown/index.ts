@@ -15,7 +15,7 @@ export { FwDropdown, type DropdownSelectDetail } from "./dropdown.js";
 export { FwMenuDivider } from "./menu-divider.js";
 export { FwMenuItem, type MenuItemType } from "./menu-item.js";
 export { FwMenuLabel } from "./menu-label.js";
-export { FwSubmenu } from "./submenu.js";
+export { FwSubmenu, type MenuEntry } from "./submenu.js";
 
 declare global {
   interface HTMLElementTagNameMap {

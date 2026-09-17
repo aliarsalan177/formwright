@@ -64,6 +64,10 @@ const valueOf = (o: FwOption): string =>
 const textOf = (o: FwOption): string =>
   typeof o.text === "string" ? o.text : (o.getAttribute("label") ?? o.textContent ?? "").trim();
 
+/** Options are `<fw-option>`s or `<fw-list-item>`s, as children or grandchildren (in a group). */
+const OPTION_SELECTOR =
+  ":scope > fw-option, :scope > * > fw-option, :scope > fw-list-item, :scope > * > fw-list-item";
+
 const hasPopover = typeof HTMLElement !== "undefined" && "showPopover" in HTMLElement.prototype;
 
 /** Element reflection lets an input in a shadow root point at a light-DOM
@@ -107,6 +111,10 @@ const canReflectActive = () =>
  * second Escape clears, Tab chooses the active option only when it was
  * reached with the arrows. Leaving the field without choosing puts back the
  * chosen option's text, unless `allow-custom`.
+ *
+ * Options are `<fw-option>`s, or `<fw-list-item>`s for richer rows; the
+ * filter matches their `text` (label, or default-slot text). Import
+ * `@formwright/ui/list` to register `<fw-list-item>`.
  *
  * Events: `fw-search` (`{ query }`, after `debounce` ms) as the user types;
  * `input` and `change` when a value is chosen; `fw-show`, `fw-hide`.
@@ -177,9 +185,9 @@ export class FwCombobox extends FwFormElement {
   readonly #optionsVersion = signal(0);
   readonly #slots = signal(0);
 
-  /** The options, in document order. */
+  /** The options — `<fw-option>` and `<fw-list-item>` children — in document order. */
   get options(): FwOption[] {
-    return [...this.querySelectorAll<FwOption>(":scope > fw-option, :scope > * > fw-option")];
+    return [...this.querySelectorAll<FwOption>(OPTION_SELECTOR)];
   }
 
   /** The chosen option, if any. */
@@ -313,6 +321,7 @@ export class FwCombobox extends FwFormElement {
       for (const option of this.options) {
         const on = value !== "" && valueOf(option) === value;
         option.selected = on;
+        if (!option.hasAttribute("data-selectable")) option.setAttribute("data-selectable", "");
         if (on) chosen = option;
       }
       // A new value always wins over half-typed text; an options change
@@ -518,7 +527,9 @@ export class FwCombobox extends FwFormElement {
     };
 
     const optionFrom = (event: Event): FwOption | null => {
-      const option = (event.target as Element | null)?.closest?.("fw-option") as FwOption | null;
+      const option = (event.target as Element | null)?.closest?.(
+        "fw-option, fw-list-item",
+      ) as FwOption | null;
       return option && this.contains(option) ? option : null;
     };
 
