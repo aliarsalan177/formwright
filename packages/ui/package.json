@@ -1,6 +1,6 @@
 {
   "name": "@formwright/ui",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "Web components built on Formwright's headless foundation: <fw-button>, <fw-input>, <fw-select> and the rest. Framework-free, form-associated, themeable with CSS custom properties, one import path per component.",
   "license": "MIT",
   "repository": {
